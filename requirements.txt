@@ -3,3 +3,4 @@ flask-dance
 pygithub
 requests
 cryptography
+python-dateutil
