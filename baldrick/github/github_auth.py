@@ -1,16 +1,21 @@
+import dateutil.parser
 import datetime
 
 import jwt
 
 import requests
 
-TEN_MIN = datetime.timedelta(minutes=10)
+TEN_MIN = datetime.timedelta(minutes=9)
 ONE_MIN = datetime.timedelta(minutes=1)
 
 # TODO: need to change global variable to use redis
 
 json_web_token = None
 json_web_token_expiry = None
+
+
+def parse_iso_datetime(timestamp):
+    return datetime.datetime(*time.strptime(timestamp, "%Y-%m-%dT%H:%M:%S")[:6])
 
 
 def get_json_web_token():
@@ -34,10 +39,10 @@ def get_json_web_token():
         payload = {}
 
         # Issued at time
-        payload['iat'] = int(now.timestamp()),
+        payload['iat'] = int(now.timestamp())
 
         # JWT expiration time (10 minute maximum)
-        payload['exp'] = int(json_web_token_expiry.timestamp()),
+        payload['exp'] = int(json_web_token_expiry.timestamp())
 
         # Integration's GitHub identifier
         payload['iss'] = app.integration_id
@@ -62,9 +67,9 @@ def get_installation_token(installation):
     global installation_token
     global installation_token_expiry
 
-    now = datetime.datetime.now()
+    now = datetime.datetime.now().timestamp()
 
-    if installation_token_expiry is None or now + ONE_MIN > installation_token_expiry:
+    if installation_token_expiry is None or now + 60 > installation_token_expiry:
 
         # FIXME: if .netrc file is present, Authorization header will get
         # overwritten, so need to figure out how to ignore that file.
@@ -80,8 +85,7 @@ def get_installation_token(installation):
 
         installation_token = resp['token']
         # FIXME: need to parse string
-        installation_token_expiry = resp['expiry']
-        print('TOKEN', installation_token_expiry)
+        installation_token_expiry = dateutil.parser.parse(resp['expires_at']).timestamp()
 
     return installation_token
 
@@ -94,4 +98,4 @@ def github_request_headers(installation):
     headers['Authorization'] = 'token {0}'.format(token)
     headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
 
-    return token
+    return headers

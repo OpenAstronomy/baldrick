@@ -13,22 +13,22 @@ def submit_review(pull_request_payload, decision, body):
     ----------
     pull_request_payload : dict
         The payload sent from GitHub via the webhook interface
-    decision : { 'approve' | 'reject' | 'comment' }
+    decision : { 'approve' | 'request_changes' | 'comment' }
         The decision as to whether to aprove or reject the changes so far.
     body : str
         The body of the review comment
     """
 
-    url_review = pull_request_payload['review_comments_url'].replace('comments', 'reviews')
+    url_review = pull_request_payload['pull_request']['review_comments_url'].replace('comments', 'reviews')
 
     data = {}
-    data['commit_id'] = data['head']['sha']
+    data['commit_id'] = pull_request_payload['pull_request']['head']['sha']
     data['body'] = body
     data['event'] = decision.upper()
 
-    headers = github_request_headers(pull_request_payload['installation'])
+    headers = github_request_headers(pull_request_payload['installation']['id'])
 
-    requests.post(url_review, json=data, headers=headers)
+    response = requests.post(url_review, json=data, headers=headers)
 
 
 def set_status(pull_request_payload, state, description, context):
@@ -47,13 +47,13 @@ def set_status(pull_request_payload, state, description, context):
          A string used to identify the status line.
     """
 
-    url_status = pull_request_payload['statuses_url']
+    url_status = pull_request_payload['pull_request']['statuses_url']
 
     data = {}
     data['state'] = state
     data['description'] = description
     data['context'] = context
 
-    headers = github_request_headers(pull_request_payload['installation'])
+    headers = github_request_headers(pull_request_payload['installation']['id'])
 
-    requests.post(url_status, json=data, headers=headers)
+    response = requests.post(url_status, json=data, headers=headers)
