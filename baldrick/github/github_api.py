@@ -65,7 +65,7 @@ def fill_pull_request_from_issue(pull_request_payload):
 
     headers = github_request_headers(pull_request_payload['installation']['id'])
 
-    response = requests.post(url_pull_request, headers=headers)
+    response = requests.get(url_pull_request, headers=headers)
 
     pull_request_payload['pull_request'] = response.json()
     pull_request_payload['number'] = pull_request_payload['pull_request']['number']
