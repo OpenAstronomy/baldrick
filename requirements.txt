@@ -2,3 +2,4 @@ flask
 flask-dance
 pygithub
 requests
+cryptography
