@@ -27,7 +27,7 @@ def get_json_web_token():
 
     # Include a one-minute buffer otherwise token might expire by the time we
     # make the request with the token.
-    if now + ONE_MIN > json_web_token_expiry:
+    if json_web_token_expiry is None or now + ONE_MIN > json_web_token_expiry:
 
         json_web_token_expiry = now + TEN_MIN
 
@@ -64,7 +64,7 @@ def get_installation_token(installation):
 
     now = datetime.datetime.now()
 
-    if now + ONE_MIN > installation_token_expiry:
+    if installation_token_expiry is None or now + ONE_MIN > installation_token_expiry:
 
         # FIXME: if .netrc file is present, Authorization header will get
         # overwritten, so need to figure out how to ignore that file.
@@ -81,6 +81,7 @@ def get_installation_token(installation):
         installation_token = resp['token']
         # FIXME: need to parse string
         installation_token_expiry = resp['expiry']
+        print('TOKEN', installation_token_expiry)
 
     return installation_token
 
