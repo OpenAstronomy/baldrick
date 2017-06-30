@@ -2,7 +2,7 @@ import requests
 
 from changebot.github_auth import github_request_headers
 
-__all__ = ['submit_review', 'set_status']
+__all__ = ['submit_review', 'set_status', 'fill_pull_request_from_issue']
 
 
 def submit_review(pull_request_payload, decision, body):
@@ -28,7 +28,7 @@ def submit_review(pull_request_payload, decision, body):
 
     headers = github_request_headers(pull_request_payload['installation']['id'])
 
-    response = requests.post(url_review, json=data, headers=headers)
+    requests.post(url_review, json=data, headers=headers)
 
 
 def set_status(pull_request_payload, state, description, context):
@@ -56,4 +56,15 @@ def set_status(pull_request_payload, state, description, context):
 
     headers = github_request_headers(pull_request_payload['installation']['id'])
 
-    response = requests.post(url_status, json=data, headers=headers)
+    requests.post(url_status, json=data, headers=headers)
+
+
+def fill_pull_request_from_issue(pull_request_payload):
+
+    url_pull_request = pull_request_payload['issue']['pull_request']['url']
+
+    headers = github_request_headers(pull_request_payload['installation']['id'])
+
+    response = requests.post(url_pull_request, json=data, headers=headers)
+
+    pull_request_payload['pull_request'] = response.json()
