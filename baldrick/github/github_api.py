@@ -125,7 +125,7 @@ class PullRequestHandler(object):
         ----------
         pull_request_payload : dict
             The payload sent from GitHub via the webhook interface.
-        state : { 'pending' | 'error' | 'pass' }
+        state : { 'pending' | 'success' | 'error' | 'failure' }
             The state to set for the pull request.
         description : str
             The message that appears in the status line.
