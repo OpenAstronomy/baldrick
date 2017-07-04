@@ -56,6 +56,10 @@ class PullRequestHandler(object):
         return f'{HOST}/repos/{self.repo}/pulls/{self.number}'
 
     @property
+    def _url_issue_comment(self):
+        return f'{HOST}/repos/{self.repo}/issues/{self.number}/comments'
+
+    @property
     def _url_review_comment(self):
         return f'{self._url_pull_request}/reviews'
 
@@ -74,6 +78,10 @@ class PullRequestHandler(object):
             assert response.ok, response.content
             self._cache['json'] = response.json()
         return self._cache['json']
+
+    @property
+    def user(self):
+        return self.json['user']['login']
 
     @property
     def head_sha(self):
@@ -139,4 +147,37 @@ class PullRequestHandler(object):
         data['context'] = context
 
         response = requests.post(self._url_head_status, json=data, headers=self._headers)
+        assert response.ok, response.content
+
+    def find_comments(self, login):
+        """
+        Find comments by a given user.
+        """
+
+        response = requests.get(self._url_issue_comment, headers=self._headers)
+        assert response.ok, response.content
+
+        return [comment['id'] for comment in response.json() if comment['user']['login'] == login]
+
+    def submit_comment(self, body, comment_id=None):
+        """
+        Submit a comment to the pull request
+
+        Parameters
+        ----------
+        message : str
+            The comment
+        id : int
+            If specified, the comment with this ID will be replaced
+        """
+
+        data = {}
+        data['body'] = body
+
+        if comment_id is None:
+            url = self._url_issue_comment
+        else:
+            url = f'{HOST}/repos/{self.repo}/issues/comments/{comment_id}'
+
+        response = requests.post(url, json=data, headers=self._headers)
         assert response.ok, response.content
