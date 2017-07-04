@@ -31,6 +31,8 @@ class RepoHandler(object):
         url_file = self._url_contents + path_to_file
         data = {'ref': self.branch}
         response = requests.get(url_file, params=data, headers=self._headers)
+        if not response.ok and response.json()['message'] == 'Not Found':
+            raise FileNotFoundError(path_to_file)
         assert response.ok, response.content
         contents_base64 = response.json()['content']
         return base64.b64decode(contents_base64).decode()
@@ -82,6 +84,10 @@ class PullRequestHandler(object):
     @property
     def user(self):
         return self.json['user']['login']
+
+    @property
+    def head_repo_name(self):
+        return self.json['head']['repo']['full_name']
 
     @property
     def head_sha(self):
