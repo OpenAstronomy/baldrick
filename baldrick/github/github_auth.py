@@ -1,6 +1,7 @@
 import time
 import dateutil.parser
 import datetime
+from collections import defaultdict
 
 import jwt
 
@@ -56,8 +57,8 @@ def get_json_web_token():
 
 
 # TODO: update this to support multiple installation tokens
-installation_token = None
-installation_token_expiry = None
+installation_token = defaultdict(lambda: None)
+installation_token_expiry = defaultdict(lambda: None)
 
 
 def get_installation_token(installation):
@@ -65,12 +66,9 @@ def get_installation_token(installation):
     Get access token for installation
     """
 
-    global installation_token
-    global installation_token_expiry
-
     now = datetime.datetime.now().timestamp()
 
-    if installation_token_expiry is None or now + 60 > installation_token_expiry:
+    if installation_token_expiry[installation] is None or now + 60 > installation_token_expiry[installation]:
 
         # FIXME: if .netrc file is present, Authorization header will get
         # overwritten, so need to figure out how to ignore that file.
@@ -84,11 +82,10 @@ def get_installation_token(installation):
 
         resp = req.json()
 
-        installation_token = resp['token']
-        # FIXME: need to parse string
-        installation_token_expiry = dateutil.parser.parse(resp['expires_at']).timestamp()
+        installation_token[installation] = resp['token']
+        installation_token_expiry[installation] = dateutil.parser.parse(resp['expires_at']).timestamp()
 
-    return installation_token
+    return installation_token[installation]
 
 
 def github_request_headers(installation):
