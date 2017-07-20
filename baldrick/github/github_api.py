@@ -1,3 +1,4 @@
+import re
 import base64
 import requests
 
@@ -160,10 +161,32 @@ class PullRequestHandler(object):
         Find comments by a given user.
         """
 
+        # Get comments
         response = requests.get(self._url_issue_comment, headers=self._headers)
         assert response.ok, response.content
+        comments = response.json()
 
-        return [comment['id'] for comment in response.json() if comment['user']['login'] == login]
+        # We need to check if there were any other pages of results
+
+        if 'Link' in response.headers:
+
+            links = response.headers['Link']
+
+            # There are likely better ways to parse/extract the link information
+            # but here we just find the last page number mentioned in the header
+            # 'Link' section and then loop over all pages to get the comments
+            last_match = list(re.finditer('page=[0-9]+', links))[-1]
+            last_page = int(links[last_match.start():last_match.end()].split('=')[1])
+
+            # If there are other pages, just loop over them and get all the
+            # comments
+            if last_page > 1:
+                for page in range(2, last_page + 1):
+                    response = requests.get(self._url_issue_comment + '?page={0}'.format(page), headers=self._headers)
+                    assert response.ok, response.content
+                    comments += response.json()
+
+        return [comment['id'] for comment in comments if comment['user']['login'] == login]
 
     def submit_comment(self, body, comment_id=None):
         """
