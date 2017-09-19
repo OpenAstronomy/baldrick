@@ -76,8 +76,23 @@ class RepoHandler(object):
         return base64.b64decode(contents_base64).decode()
 
     def get_issues(self, state, labels):
-        # RETURN LIST OF ISSUE IDs
-        return
+        """
+        Get a list of issues.
+
+        Parameters
+        ----------
+        state : {'open', ...}
+            Status of the issues.
+
+        labels : str
+           List of comma-separated labels; e.g., ``Closed?``.
+
+        """
+        url = f'{HOST}/repos/{self.repo}/issues'
+        kwargs = {'state': state, 'labels': labels}
+        r = requests.get(url, json=kwargs)
+        result = r.json()
+        return [d['number'] for d in result]
 
 
 class IssueHandler(object):
