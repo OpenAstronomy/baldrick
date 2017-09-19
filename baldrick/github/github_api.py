@@ -53,7 +53,10 @@ class IssueHandler(object):
 
     @property
     def _headers(self):
-        return github_request_headers(self.installation)
+        if self.installation is None:
+            return None
+        else:
+            return github_request_headers(self.installation)
 
     def invalidate_cache(self):
         self._cache.clear()
@@ -180,6 +183,7 @@ class PullRequestHandler(IssueHandler):
 
     def get_last_commit_date(self):
         # RETURN datetime object
+        return
 
     def submit_review(self, decision, body):
         """
