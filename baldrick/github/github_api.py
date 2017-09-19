@@ -38,8 +38,12 @@ class RepoHandler(object):
         contents_base64 = response.json()['content']
         return base64.b64decode(contents_base64).decode()
 
+    def get_issues(self, state, labels):
+        # RETURN LIST OF ISSUE IDs
+        return
 
-class PullRequestHandler(object):
+
+class IssueHandler(object):
 
     def __init__(self, repo, number, installation):
         self.repo = repo
@@ -47,20 +51,92 @@ class PullRequestHandler(object):
         self.installation = installation
         self._cache = {}
 
-    def invalidate_cache(self):
-        self._cache.clear()
-
     @property
     def _headers(self):
         return github_request_headers(self.installation)
 
+    def invalidate_cache(self):
+        self._cache.clear()
+
     @property
-    def _url_pull_request(self):
-        return f'{HOST}/repos/{self.repo}/pulls/{self.number}'
+    def _url_labels(self):
+        return f'{HOST}/repos/{self.repo}/issues/{self.number}/labels'
 
     @property
     def _url_issue_comment(self):
         return f'{HOST}/repos/{self.repo}/issues/{self.number}/comments'
+
+    def get_label_added_date(self, label):
+        # RETURN datetime object
+        return
+
+    def submit_comment(self, body, comment_id=None):
+        """
+        Submit a comment to the pull request
+
+        Parameters
+        ----------
+        message : str
+            The comment
+        id : int
+            If specified, the comment with this ID will be replaced
+        """
+
+        data = {}
+        data['body'] = body
+
+        if comment_id is None:
+            url = self._url_issue_comment
+        else:
+            url = f'{HOST}/repos/{self.repo}/issues/comments/{comment_id}'
+
+        response = requests.post(url, json=data, headers=self._headers)
+        assert response.ok, response.content
+
+    def find_comments(self, login):
+        """
+        Find comments by a given user.
+        """
+
+        # Get comments
+        response = requests.get(self._url_issue_comment, headers=self._headers)
+        assert response.ok, response.content
+        comments = response.json()
+
+        # We need to check if there were any other pages of results
+
+        if 'Link' in response.headers:
+
+            links = response.headers['Link']
+
+            # There are likely better ways to parse/extract the link information
+            # but here we just find the last page number mentioned in the header
+            # 'Link' section and then loop over all pages to get the comments
+            last_match = list(re.finditer('page=[0-9]+', links))[-1]
+            last_page = int(links[last_match.start():last_match.end()].split('=')[1])
+
+            # If there are other pages, just loop over them and get all the
+            # comments
+            if last_page > 1:
+                for page in range(2, last_page + 1):
+                    response = requests.get(self._url_issue_comment + '?page={0}'.format(page), headers=self._headers)
+                    assert response.ok, response.content
+                    comments += response.json()
+
+        return [comment['id'] for comment in comments if comment['user']['login'] == login]
+
+    @property
+    def labels(self):
+        response = requests.get(self._url_labels, headers=self._headers)
+        assert response.ok, response.content
+        return [label['name'] for label in response.json()]
+
+
+class PullRequestHandler(IssueHandler):
+
+    @property
+    def _url_pull_request(self):
+        return f'{HOST}/repos/{self.repo}/pulls/{self.number}'
 
     @property
     def _url_review_comment(self):
@@ -69,10 +145,6 @@ class PullRequestHandler(object):
     @property
     def _url_head_status(self):
         return f'{HOST}/repos/{self.repo}/statuses/{self.head_sha}'
-
-    @property
-    def _url_labels(self):
-        return f'{HOST}/repos/{self.repo}/issues/{self.number}/labels'
 
     @property
     def json(self):
@@ -106,11 +178,8 @@ class PullRequestHandler(object):
         else:
             return milestone['title']
 
-    @property
-    def labels(self):
-        response = requests.get(self._url_labels, headers=self._headers)
-        assert response.ok, response.content
-        return [label['name'] for label in response.json()]
+    def get_last_commit_date(self):
+        # RETURN datetime object
 
     def submit_review(self, decision, body):
         """
@@ -154,59 +223,4 @@ class PullRequestHandler(object):
         data['context'] = context
 
         response = requests.post(self._url_head_status, json=data, headers=self._headers)
-        assert response.ok, response.content
-
-    def find_comments(self, login):
-        """
-        Find comments by a given user.
-        """
-
-        # Get comments
-        response = requests.get(self._url_issue_comment, headers=self._headers)
-        assert response.ok, response.content
-        comments = response.json()
-
-        # We need to check if there were any other pages of results
-
-        if 'Link' in response.headers:
-
-            links = response.headers['Link']
-
-            # There are likely better ways to parse/extract the link information
-            # but here we just find the last page number mentioned in the header
-            # 'Link' section and then loop over all pages to get the comments
-            last_match = list(re.finditer('page=[0-9]+', links))[-1]
-            last_page = int(links[last_match.start():last_match.end()].split('=')[1])
-
-            # If there are other pages, just loop over them and get all the
-            # comments
-            if last_page > 1:
-                for page in range(2, last_page + 1):
-                    response = requests.get(self._url_issue_comment + '?page={0}'.format(page), headers=self._headers)
-                    assert response.ok, response.content
-                    comments += response.json()
-
-        return [comment['id'] for comment in comments if comment['user']['login'] == login]
-
-    def submit_comment(self, body, comment_id=None):
-        """
-        Submit a comment to the pull request
-
-        Parameters
-        ----------
-        message : str
-            The comment
-        id : int
-            If specified, the comment with this ID will be replaced
-        """
-
-        data = {}
-        data['body'] = body
-
-        if comment_id is None:
-            url = self._url_issue_comment
-        else:
-            url = f'{HOST}/repos/{self.repo}/issues/comments/{comment_id}'
-
-        response = requests.post(url, json=data, headers=self._headers)
         assert response.ok, response.content
