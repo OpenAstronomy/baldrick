@@ -122,8 +122,40 @@ class IssueHandler(object):
         return f'{HOST}/repos/{self.repo}/issues/{self.number}/comments'
 
     def get_label_added_date(self, label):
-        # RETURN datetime object
-        return
+        """
+        Get last added date for a label.
+        If label is re-added, the last time it was added is the one.
+
+        Parameters
+        ----------
+        label : str
+            Issue label.
+
+        Returns
+        -------
+        t : float or `None`
+            Unix timestamp, if available.
+
+        """
+        headers = {'Accept': 'application/vnd.github.mockingbird-preview'}
+        url = f'{HOST}/repos/{self.repo}/issues/{self.number}/timeline'
+        r = requests.get(url, headers=headers)
+        result = r.json()
+        last_labeled = None
+
+        for d in result:
+            if 'label' in d and d['label']['name'] == label:
+                if d['event'] == 'labeled':
+                    last_labeled = d['created_at']
+                elif d['event'] == 'unlabeled':
+                    last_labeled = None
+
+        if last_labeled is None:
+            t = None
+        else:
+            t = dateutil.parser.parse(date).timestamp()
+
+        return t
 
     def submit_comment(self, body, comment_id=None):
         """
