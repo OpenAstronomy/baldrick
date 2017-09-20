@@ -1,12 +1,6 @@
 import time
 from changebot.github_api import IssueHandler, RepoHandler
 
-# MONTH = 3600 * 24 * 30
-# ISSUE_WARNING_LIMIT = 5 * MONTH
-# ISSUE_DEADLINE_LIMIT = 6 * MONTH
-ISSUE_WARNING_LIMIT = 60
-ISSUE_DEADLINE_LIMIT = 120
-
 
 ISSUE_CLOSE_WARNING = """
 Hi humans :wave: - this issue was labeled as **Close?** approximately 5 months ago. So..... any news? :newspaper_roll:
@@ -28,6 +22,8 @@ I'm going to close this issue as per my previous message. But if you feel that w
 
 def process_issues(repository, installation):
 
+    from .webapp import app
+
     now = time.time()
 
     # Get issues labeled as 'Close?'
@@ -45,10 +41,10 @@ def process_issues(repository, installation):
 
         dt = now - labeled_time
 
-        if dt > ISSUE_DEADLINE_LIMIT:
+        if app.stale_issue_close and dt > app.stale_issue_close_seconds:
             print(f'-> CLOSING issue {n}')
             issue.submit_comment(ISSUE_CLOSE_EPILOGUE)
-        elif dt > ISSUE_WARNING_LIMIT:
+        elif dt > app.stale_issue_warn_seconds:
             print(f'-> WARNING issue {n}')
             issue.submit_comment(ISSUE_CLOSE_WARNING)
         else:
