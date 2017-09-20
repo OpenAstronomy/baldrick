@@ -3,6 +3,8 @@ import base64
 import requests
 from copy import deepcopy
 
+import dateutil.parser
+
 from changebot.github_auth import github_request_headers
 
 __all__ = ['RepoHandler', 'PullRequestHandler']
@@ -258,4 +260,4 @@ class PullRequestHandler(IssueHandler):
                 date = event['committer']['date']
         if date is None:
             raise Exception(f'No commit found in {url}')
-        return date
+        return dateutil.parser.parse(date).timestamp()
