@@ -1,4 +1,3 @@
-import time
 import dateutil.parser
 import datetime
 from collections import defaultdict
@@ -14,10 +13,6 @@ ONE_MIN = datetime.timedelta(minutes=1)
 
 json_web_token = None
 json_web_token_expiry = None
-
-
-def parse_iso_datetime(timestamp):
-    return datetime.datetime(*time.strptime(timestamp, "%Y-%m-%dT%H:%M:%S")[:6])
 
 
 def get_json_web_token():

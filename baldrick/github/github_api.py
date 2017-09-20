@@ -1,12 +1,42 @@
 import re
 import base64
 import requests
+from copy import deepcopy
+
+import dateutil.parser
 
 from changebot.github_auth import github_request_headers
 
 __all__ = ['RepoHandler', 'PullRequestHandler']
 
 HOST = "https://api.github.com"
+
+
+def paged_github_json_request(url, headers=None):
+
+    response = requests.get(url, headers=headers)
+    assert response.ok, response.content
+    results = response.json()
+
+    if 'Link' in response.headers:
+
+        links = response.headers['Link']
+
+        # There are likely better ways to parse/extract the link information
+        # but here we just find the last page number mentioned in the header
+        # 'Link' section and then loop over all pages to get the comments
+        last_match = list(re.finditer('page=[0-9]+', links))[-1]
+        last_page = int(links[last_match.start():last_match.end()].split('=')[1])
+
+        # If there are other pages, just loop over them and get all the
+        # comments
+        if last_page > 1:
+            for page in range(2, last_page + 1):
+                response = requests.get(url + '?page={0}'.format(page), headers=headers)
+                assert response.ok, response.content
+                results += response.json()
+
+    return results
 
 
 class RepoHandler(object):
@@ -28,18 +58,44 @@ class RepoHandler(object):
     def _url_contents(self):
         return f'{HOST}/repos/{self.repo}/contents/'
 
+    @property
+    def _url_pull_requests(self):
+        return f'{HOST}/repos/{self.repo}/issues/{self.number}/labels'
+
+    def open_pull_requests(self, repo):
+        response = requests.get(self._url_pull_requests, headers=self._headers)
+        assert response.ok, response.content
+        return [pr['number'] for pr in response.json()]
+
     def get_file_contents(self, path_to_file):
         url_file = self._url_contents + path_to_file
         data = {'ref': self.branch}
         response = requests.get(url_file, params=data, headers=self._headers)
-        if not response.ok and response.json()['message'] == 'Not Found':
-            raise FileNotFoundError(path_to_file)
         assert response.ok, response.content
         contents_base64 = response.json()['content']
         return base64.b64decode(contents_base64).decode()
 
+    def get_issues(self, state, labels):
+        """
+        Get a list of issues.
 
-class PullRequestHandler(object):
+        Parameters
+        ----------
+        state : {'open', ...}
+            Status of the issues.
+
+        labels : str
+           List of comma-separated labels; e.g., ``Closed?``.
+
+        """
+        url = f'{HOST}/repos/{self.repo}/issues'
+        kwargs = {'state': state, 'labels': labels}
+        r = requests.get(url, kwargs)
+        result = r.json()
+        return [d['number'] for d in result]
+
+
+class IssueHandler(object):
 
     def __init__(self, repo, number, installation):
         self.repo = repo
@@ -47,20 +103,101 @@ class PullRequestHandler(object):
         self.installation = installation
         self._cache = {}
 
+    @property
+    def _headers(self):
+        if self.installation is None:
+            return None
+        else:
+            return github_request_headers(self.installation)
+
     def invalidate_cache(self):
         self._cache.clear()
 
     @property
-    def _headers(self):
-        return github_request_headers(self.installation)
-
-    @property
-    def _url_pull_request(self):
-        return f'{HOST}/repos/{self.repo}/pulls/{self.number}'
+    def _url_labels(self):
+        return f'{HOST}/repos/{self.repo}/issues/{self.number}/labels'
 
     @property
     def _url_issue_comment(self):
         return f'{HOST}/repos/{self.repo}/issues/{self.number}/comments'
+
+    def get_label_added_date(self, label):
+        """
+        Get last added date for a label.
+        If label is re-added, the last time it was added is the one.
+
+        Parameters
+        ----------
+        label : str
+            Issue label.
+
+        Returns
+        -------
+        t : float or `None`
+            Unix timestamp, if available.
+
+        """
+        headers = {'Accept': 'application/vnd.github.mockingbird-preview'}
+        url = f'{HOST}/repos/{self.repo}/issues/{self.number}/timeline'
+        result = paged_github_json_request(url, headers=headers)
+        last_labeled = None
+
+        for d in result:
+            if 'label' in d and d['label']['name'] == label:
+                if d['event'] == 'labeled':
+                    last_labeled = d['created_at']
+                elif d['event'] == 'unlabeled':
+                    last_labeled = None
+
+        if last_labeled is None:
+            t = None
+        else:
+            t = dateutil.parser.parse(last_labeled).timestamp()
+
+        return t
+
+    def submit_comment(self, body, comment_id=None):
+        """
+        Submit a comment to the pull request
+
+        Parameters
+        ----------
+        message : str
+            The comment
+        id : int
+            If specified, the comment with this ID will be replaced
+        """
+
+        data = {}
+        data['body'] = body
+
+        if comment_id is None:
+            url = self._url_issue_comment
+        else:
+            url = f'{HOST}/repos/{self.repo}/issues/comments/{comment_id}'
+
+        response = requests.post(url, json=data, headers=self._headers)
+        assert response.ok, response.content
+
+    def find_comments(self, login):
+        """
+        Find comments by a given user.
+        """
+        comments = paged_github_json_request(self._url_issue_comment, headers=self._headers)
+        return [comment['id'] for comment in comments if comment['user']['login'] == login]
+
+    @property
+    def labels(self):
+        response = requests.get(self._url_labels, headers=self._headers)
+        assert response.ok, response.content
+        return [label['name'] for label in response.json()]
+
+
+class PullRequestHandler(IssueHandler):
+
+    @property
+    def _url_pull_request(self):
+        return f'{HOST}/repos/{self.repo}/pulls/{self.number}'
 
     @property
     def _url_review_comment(self):
@@ -71,8 +208,8 @@ class PullRequestHandler(object):
         return f'{HOST}/repos/{self.repo}/statuses/{self.head_sha}'
 
     @property
-    def _url_labels(self):
-        return f'{HOST}/repos/{self.repo}/issues/{self.number}/labels'
+    def _url_timeline(self):
+        return f'https://api.github.com/repos/{self.repo}/issues/{self.number}/timeline'
 
     @property
     def json(self):
@@ -105,12 +242,6 @@ class PullRequestHandler(object):
             return ''
         else:
             return milestone['title']
-
-    @property
-    def labels(self):
-        response = requests.get(self._url_labels, headers=self._headers)
-        assert response.ok, response.content
-        return [label['name'] for label in response.json()]
 
     def submit_review(self, decision, body):
         """
@@ -156,57 +287,19 @@ class PullRequestHandler(object):
         response = requests.post(self._url_head_status, json=data, headers=self._headers)
         assert response.ok, response.content
 
-    def find_comments(self, login):
-        """
-        Find comments by a given user.
-        """
-
-        # Get comments
-        response = requests.get(self._url_issue_comment, headers=self._headers)
-        assert response.ok, response.content
-        comments = response.json()
-
-        # We need to check if there were any other pages of results
-
-        if 'Link' in response.headers:
-
-            links = response.headers['Link']
-
-            # There are likely better ways to parse/extract the link information
-            # but here we just find the last page number mentioned in the header
-            # 'Link' section and then loop over all pages to get the comments
-            last_match = list(re.finditer('page=[0-9]+', links))[-1]
-            last_page = int(links[last_match.start():last_match.end()].split('=')[1])
-
-            # If there are other pages, just loop over them and get all the
-            # comments
-            if last_page > 1:
-                for page in range(2, last_page + 1):
-                    response = requests.get(self._url_issue_comment + '?page={0}'.format(page), headers=self._headers)
-                    assert response.ok, response.content
-                    comments += response.json()
-
-        return [comment['id'] for comment in comments if comment['user']['login'] == login]
-
-    def submit_comment(self, body, comment_id=None):
-        """
-        Submit a comment to the pull request
-
-        Parameters
-        ----------
-        message : str
-            The comment
-        id : int
-            If specified, the comment with this ID will be replaced
-        """
-
-        data = {}
-        data['body'] = body
-
-        if comment_id is None:
-            url = self._url_issue_comment
+    @property
+    def last_commit_date(self):
+        if self._headers is None:
+            headers = {}
         else:
-            url = f'{HOST}/repos/{self.repo}/issues/comments/{comment_id}'
-
-        response = requests.post(url, json=data, headers=self._headers)
-        assert response.ok, response.content
+            headers = deepcopy(self._headers)
+        headers['Accept'] = 'application/vnd.github.mockingbird-preview'
+        events = paged_github_json_request(self._url_timeline, headers=headers)
+        date = None
+        print(events)
+        for event in events:
+            if event['event'] == 'committed':
+                date = event['committer']['date']
+        if date is None:
+            raise Exception(f'No commit found in {url}')
+        return dateutil.parser.parse(date).timestamp()
