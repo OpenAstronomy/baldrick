@@ -199,6 +199,9 @@ class IssueHandler(object):
                 q = random.choice(QUOTES)
             except Exception as e:
                 q = str(e) # Need a way to find out what went wrong
+                
+        else:
+            q = ''
 
         data = {}
         data['body'] = f'{body}\n*{q}*\n'
