@@ -145,7 +145,6 @@ class IssueHandler(object):
 
         for d in result:
             if 'label' in d and d['label']['name'] == label:
-                #print(d['event'])
                 if d['event'] == 'labeled':
                     last_labeled = d['created_at']
                 elif d['event'] == 'unlabeled':
