@@ -198,7 +198,7 @@ class IssueHandler(object):
     def close(self):
         url = f'{HOST}/repos/{self.repo}/issues/{self.number}'
         parameters = {'state': 'closed'}
-        response = requests.patch(url, data=parameters, headers=self._headers)
+        response = requests.patch(url, json=parameters, headers=self._headers)
         assert response.ok, response.content
 
 
