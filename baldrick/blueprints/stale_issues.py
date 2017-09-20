@@ -24,19 +24,19 @@ I'm going to close this issue as per my previous message. But if you feel that w
 """
 
 
-def process_issues(repository):
+def process_issues(repository, installation):
 
     now = time.time()
 
     # Get issues labeled as 'Close?'
-    repo = RepoHandler(repository, 'master', None)
+    repo = RepoHandler(repository, 'master', installation)
     issuelist = repo.get_issues('open', 'Close?')
 
     for n in issuelist:
 
         print(f'Checking {n}')
 
-        issue = IssueHandler(repository, n, None)
+        issue = IssueHandler(repository, n, installation)
         labeled_time = issue.get_label_added_date('Close?')
         if labeled_time is None:
             continue
