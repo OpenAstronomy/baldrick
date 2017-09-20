@@ -179,18 +179,27 @@ class IssueHandler(object):
         response = requests.post(url, json=data, headers=self._headers)
         assert response.ok, response.content
 
-    def find_comments(self, login):
+    def find_comments(self, login, filter_keep=None):
         """
         Find comments by a given user.
         """
+        if filter_keep is None:
+            def filter_keep(message):
+                return True
         comments = paged_github_json_request(self._url_issue_comment, headers=self._headers)
-        return [comment['id'] for comment in comments if comment['user']['login'] == login]
+        return [comment['id'] for comment in comments if comment['user']['login'] == login and filter_keep(comment['body'])]
 
     @property
     def labels(self):
         response = requests.get(self._url_labels, headers=self._headers)
         assert response.ok, response.content
         return [label['name'] for label in response.json()]
+
+    def close(self):
+        url = f'{HOST}/repos/{self.repo}/issues/{self.number}'
+        parameters = {'state': 'closed'}
+        response = requests.patch(url, data=parameters, headers=self._headers)
+        assert response.ok, response.content
 
 
 class PullRequestHandler(IssueHandler):
