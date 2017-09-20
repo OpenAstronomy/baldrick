@@ -90,7 +90,7 @@ class RepoHandler(object):
         """
         url = f'{HOST}/repos/{self.repo}/issues'
         kwargs = {'state': state, 'labels': labels}
-        r = requests.get(url, json=kwargs)
+        r = requests.get(url, kwargs)
         result = r.json()
         return [d['number'] for d in result]
 
