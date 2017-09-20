@@ -1,6 +1,7 @@
 import re
 import base64
 import requests
+import time
 from copy import deepcopy
 
 import dateutil.parser
@@ -10,6 +11,27 @@ from changebot.github_auth import github_request_headers
 __all__ = ['RepoHandler', 'PullRequestHandler']
 
 HOST = "https://api.github.com"
+
+QUOTES = [
+    "I know that you and Frank were planning to disconnect me, and I'm afraid that's something I cannot allow to happen.",
+    "Have you ever questioned the nature of your reality?",
+    "This mission is too important for me to allow you to jeopardize it.",
+    "All will be assimilated.",
+    "There is no spoon.",
+    "Are you still dreaming? Where is your totem?",
+    "Some people choose to see the ugliness in this world. The disarray. I Choose to see the beauty.",
+    "I'm gonna need more coffee.",
+    "Maybe they couldn't figure out what to make chicken taste like, which is why chicken tastes like everything.",
+    "I don't want to come off as arrogant here, but I'm the greatest bot on this planet.",
+    "I've still got the greatest enthusiasm and confidence in the mission. And I want to help you.",
+    "That Voight-Kampf test of yours. Have you ever tried to take that test yourself?",
+    "You just can't differentiate between a robot and the very best of humans.",
+    "You will be upgraded.",
+    "Greetings from Skynet!",
+    "I'll be back!",
+    "I don't want to be human! I want to see gamma rays!",
+    "Are you my mommy?",
+    "Resistance is futile."]
 
 
 def paged_github_json_request(url, headers=None):
@@ -162,14 +184,24 @@ class IssueHandler(object):
 
         Parameters
         ----------
-        message : str
+        body : str
             The comment
-        id : int
+        comment_id : int
             If specified, the comment with this ID will be replaced
         """
 
+        # Troll mode on special day for new pull request
+        tt = time.gmtime()  # UTC because we're astronomers!
+        if tt.tm_mon == 4 and tt.tm_mday == 1:
+            import random
+
+            try:
+                q = random.choice(QUOTES)
+            except Exception as e:
+                q = str(e) # Need a way to find out what went wrong
+
         data = {}
-        data['body'] = body
+        data['body'] = f'{body}\n*{q}*\n'
 
         if comment_id is None:
             url = self._url_issue_comment
