@@ -243,10 +243,6 @@ class PullRequestHandler(IssueHandler):
         else:
             return milestone['title']
 
-    def get_last_commit_date(self):
-        # RETURN datetime object
-        return
-
     def submit_review(self, decision, body):
         """
         Submit a review comment to the pull request
