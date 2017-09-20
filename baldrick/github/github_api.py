@@ -139,8 +139,7 @@ class IssueHandler(object):
         """
         headers = {'Accept': 'application/vnd.github.mockingbird-preview'}
         url = f'{HOST}/repos/{self.repo}/issues/{self.number}/timeline'
-        r = requests.get(url, headers=headers)
-        result = r.json()
+        result = paged_github_json_request(url, headers=headers)
         last_labeled = None
 
         for d in result:
