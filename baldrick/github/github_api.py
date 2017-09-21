@@ -190,6 +190,9 @@ class IssueHandler(object):
             If specified, the comment with this ID will be replaced
         """
 
+        data = {}
+        data['body'] = body
+
         # Troll mode on special day for new pull request
         tt = time.gmtime()  # UTC because we're astronomers!
         if tt.tm_mon == 4 and tt.tm_mday == 1:
@@ -200,11 +203,7 @@ class IssueHandler(object):
             except Exception as e:
                 q = str(e) # Need a way to find out what went wrong
                 
-        else:
-            q = ''
-
-        data = {}
-        data['body'] = f'{body}\n*{q}*\n'
+            data['body'] += f'\n*{q}*\n'
 
         if comment_id is None:
             url = self._url_issue_comment
