@@ -84,7 +84,7 @@ class RepoHandler(object):
     def _url_pull_requests(self):
         return f'{HOST}/repos/{self.repo}/issues/{self.number}/labels'
 
-    def open_pull_requests(self, repo):
+    def open_pull_requests(self):
         response = requests.get(self._url_pull_requests, headers=self._headers)
         assert response.ok, response.content
         return [pr['number'] for pr in response.json()]
@@ -202,7 +202,7 @@ class IssueHandler(object):
                 q = random.choice(QUOTES)
             except Exception as e:
                 q = str(e) # Need a way to find out what went wrong
-                
+
             data['body'] += f'\n*{q}*\n'
 
         if comment_id is None:
