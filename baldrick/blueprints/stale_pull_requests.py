@@ -9,7 +9,7 @@ If you **really** want to keep this PR open beyond because it needs more discuss
 
 In any case, I will close this within a month unless there is a new commit or the **keep-open** label has been added. Thanks!
 
-*If you believe I commented on this issue incorrectly, please report this at https://github.com/astropy/astropy-bot/issues*
+*If you believe I commented on this issue incorrectly, please report this [here](https://github.com/astropy/astropy-bot/issues)*
 """
 
 
@@ -22,7 +22,7 @@ PRS_CLOSE_EPILOGUE = """
 
 I'm going to close this pull request as per my previous message. If you think what is being added/fixed here is still important, please remember to open an issue to keep track of it. Thanks!
 
-*If this is the first time I am commenting on this issue, or if you believe I closed this issue incorrectly, please report this at https://github.com/astropy/astropy-bot/issues*
+*If this is the first time I am commenting on this issue, or if you believe I closed this issue incorrectly, please report this [here](https://github.com/astropy/astropy-bot/issues)*
 """
 
 

@@ -7,7 +7,7 @@ Hi humans :wave: - this issue was labeled as **Close?** approximately 5 months a
 
 If you think this issue should not be closed, a maintainer should remove the **Close?** label - otherwise, I'm just gonna have to close this issue in a month. Your time starts now! Tick tock :clock10:
 
-*If you believe I commented on this issue incorrectly, please report this at https://github.com/astropy/astropy-bot/issues*
+*If you believe I commented on this issue incorrectly, please report this [here](https://github.com/astropy/astropy-bot/issues)*
 """
 
 
@@ -20,7 +20,7 @@ ISSUE_CLOSE_EPILOGUE = """
 
 I'm going to close this issue as per my previous message. But if you feel that we should really really keep this open, then feel free to re-open and remove the **Close?** label. But no one has done anything for 6 months, so... Just sayin!
 
-*If this is the first time I am commenting on this issue, or if you believe I closed this issue incorrectly, please report this at https://github.com/astropy/astropy-bot/issues*
+*If this is the first time I am commenting on this issue, or if you believe I closed this issue incorrectly, please report this [here](https://github.com/astropy/astropy-bot/issues)*
 """
 
 
