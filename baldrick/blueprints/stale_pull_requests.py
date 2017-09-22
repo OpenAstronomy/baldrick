@@ -1,9 +1,10 @@
 import time
+from humanize import naturaldelta
 from changebot.github_api import PullRequestHandler, RepoHandler
 
 
 PRS_CLOSE_WARNING = """
-Hi humans :wave: - this PR hasn't had any new commits for approximately 5 months. Of course, in this day and age we all have way too much on our plates (especially me!) but in the interest on making sure that we don't keep pull requests open if they are no longer relevant, **I plan to close this in a month if the pull request doesn't have any new commits by then.**
+Hi humans :wave: - this PR hasn't had any new commits for approximately {pasttime}. Of course, in this day and age we all have way too much on our plates (especially me!) but in the interest on making sure that we don't keep pull requests open if they are no longer relevant, **I plan to close this in {futuretime} if the pull request doesn't have any new commits by then.**
 
 If you **really** want to keep this PR open beyond because it needs more discussion, then you can get a maintainer to add the **keep-open** label, but please only use this in rare cases. A better solution if you don't agree to merge this now is to close this and open a new issue to remind ourselves this should be done (for example if this PR is the wrong approach).
 
@@ -64,7 +65,8 @@ def process_prs(repository, installation):
             comment_ids = pr.find_comments('astropy-bot[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
                 print(f'-> WARNING issue {n}')
-                pr.submit_comment(PRS_CLOSE_WARNING)
+                pr.submit_comment(PRS_CLOSE_WARNING.format(pasttime=naturaldelta(app.stale_prs_warn_seconds),
+                                                           futuretime=naturaldelta(app.stale_prs_close_seconds - app.stale_prs_warn_seconds)))
             else:
                 print(f'-> Skipping issue {n} (already warned)')
         else:

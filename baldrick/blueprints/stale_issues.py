@@ -1,11 +1,12 @@
 import time
+from humanize import naturaltime, naturaldelta
 from changebot.github_api import IssueHandler, RepoHandler
 
 
 ISSUE_CLOSE_WARNING = """
-Hi humans :wave: - this issue was labeled as **Close?** approximately 5 months ago. So..... any news? :newspaper_roll:
+Hi humans :wave: - this issue was labeled as **Close?** approximately {pasttime}. So..... any news? :newspaper_roll:
 
-If you think this issue should not be closed, a maintainer should remove the **Close?** label - otherwise, I'm just gonna have to close this issue in a month. Your time starts now! Tick tock :clock10:
+If you think this issue should not be closed, a maintainer should remove the **Close?** label - otherwise, I'm just gonna have to close this issue in {futuretime}. Your time starts now! Tick tock :clock10:
 
 *If you believe I commented on this issue incorrectly, please report this [here](https://github.com/astropy/astropy-bot/issues)*
 """
@@ -61,7 +62,8 @@ def process_issues(repository, installation):
             comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
                 print(f'-> WARNING issue {n}')
-                issue.submit_comment(ISSUE_CLOSE_WARNING)
+                issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(app.stale_issue_warn_seconds),
+                                                                futuretime=naturaldelta(app.stale_issue_close_seconds - app.stale_issue_warn_seconds)))
             else:
                 print(f'-> Skipping issue {n} (already warned)')
         else:
