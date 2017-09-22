@@ -82,7 +82,7 @@ class RepoHandler(object):
 
     @property
     def _url_pull_requests(self):
-        return f'{HOST}/repos/{self.repo}/issues/{self.number}/labels'
+        return f'{HOST}/repos/{self.repo}/pulls'
 
     def open_pull_requests(self):
         response = requests.get(self._url_pull_requests, headers=self._headers)
