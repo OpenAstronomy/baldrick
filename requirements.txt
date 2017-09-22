@@ -4,3 +4,4 @@ pygithub
 requests
 cryptography
 python-dateutil
+humanize
