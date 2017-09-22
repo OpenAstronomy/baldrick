@@ -143,6 +143,10 @@ class IssueHandler(object):
     def _url_issue_comment(self):
         return f'{HOST}/repos/{self.repo}/issues/{self.number}/comments'
 
+    @property
+    def _url_timeline(self):
+        return f'{HOST}/repos/{self.repo}/issues/{self.number}/timeline'
+
     def get_label_added_date(self, label):
         """
         Get last added date for a label.
@@ -160,8 +164,7 @@ class IssueHandler(object):
 
         """
         headers = {'Accept': 'application/vnd.github.mockingbird-preview'}
-        url = f'{HOST}/repos/{self.repo}/issues/{self.number}/timeline'
-        result = paged_github_json_request(url, headers=headers)
+        result = paged_github_json_request(self._url_timeline, headers=headers)
         last_labeled = None
 
         for d in result:
@@ -251,10 +254,6 @@ class PullRequestHandler(IssueHandler):
         return f'{HOST}/repos/{self.repo}/statuses/{self.head_sha}'
 
     @property
-    def _url_timeline(self):
-        return f'https://api.github.com/repos/{self.repo}/issues/{self.number}/timeline'
-
-    @property
     def json(self):
         if 'json' not in self._cache:
             response = requests.get(self._url_pull_request, headers=self._headers)
@@ -332,11 +331,7 @@ class PullRequestHandler(IssueHandler):
 
     @property
     def last_commit_date(self):
-        if self._headers is None:
-            headers = {}
-        else:
-            headers = deepcopy(self._headers)
-        headers['Accept'] = 'application/vnd.github.mockingbird-preview'
+        headers = {'Accept': 'application/vnd.github.mockingbird-preview'}
         events = paged_github_json_request(self._url_timeline, headers=headers)
         date = None
         print(events)
