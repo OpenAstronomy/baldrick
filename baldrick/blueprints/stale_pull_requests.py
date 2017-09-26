@@ -78,7 +78,7 @@ def process_pull_requests(repository, installation):
             if len(comment_ids) == 0:
                 print(f'-> WARNING issue {n}')
                 pr.submit_comment(PULL_REQUESTS_CLOSE_WARNING.format(pasttime=naturaldelta(current_app.stale_pull_requests_warn_seconds),
-                                                           futuretime=naturaldelta(current_app.stale_pull_requests_close_seconds - current_app.stale_pull_requests_warn_seconds)))
+                                                                     futuretime=naturaldelta(current_app.stale_pull_requests_close_seconds - current_app.stale_pull_requests_warn_seconds)))
             else:
                 print(f'-> Skipping issue {n} (already warned)')
         else:
