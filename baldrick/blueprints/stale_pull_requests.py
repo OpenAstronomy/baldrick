@@ -77,7 +77,7 @@ def process_pull_requests(repository, installation):
             comment_ids = pr.find_comments('astropy-bot[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
                 print(f'-> WARNING issue {n}')
-                pr.submit_comment(PULL_REQUESTS_CLOSE_WARNING.format(pasttime=naturaldelta(current_app.stale_pull_requests_warn_seconds),
+                pr.submit_comment(PULL_REQUESTS_CLOSE_WARNING.format(pasttime=naturaldelta(dt),
                                                                      futuretime=naturaldelta(current_app.stale_pull_requests_close_seconds - current_app.stale_pull_requests_warn_seconds)))
             else:
                 print(f'-> Skipping issue {n} (already warned)')
