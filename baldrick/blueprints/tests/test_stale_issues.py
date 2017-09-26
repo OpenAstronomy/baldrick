@@ -1,5 +1,5 @@
 import time
-from mock import MagicMock, patch
+from mock import patch
 
 from ..webapp import app
 from ..github_api import RepoHandler, IssueHandler
