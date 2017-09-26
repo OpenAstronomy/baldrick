@@ -1,6 +1,22 @@
 import time
+import json
 from humanize import naturaldelta
 from changebot.github_api import PullRequestHandler, RepoHandler
+from flask import Blueprint, request, current_app
+
+stale_prs = Blueprint('stale_prs', __name__)
+
+
+@stale_prs.route('/close_stale_prs', methods=['POST'])
+def close_stale_prs():
+    payload = json.loads(request.data)
+    for keyword in ['repository', 'cron_token', 'installation']:
+        if keyword not in payload:
+            return f'Payload mising {keyword}'
+    if payload['cron_token'] != current_app.cron_token:
+        return "Incorrect cron_token"
+    process_prs(payload['repository'], payload['installation'])
+    return "All good"
 
 
 PRS_CLOSE_WARNING = """

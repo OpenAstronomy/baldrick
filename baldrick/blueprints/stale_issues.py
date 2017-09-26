@@ -1,6 +1,22 @@
+import json
 import time
 from humanize import naturaltime, naturaldelta
 from changebot.github_api import IssueHandler, RepoHandler
+from flask import Blueprint, request, current_app
+
+stale_issues = Blueprint('stale_issues', __name__)
+
+
+@stale_issues.route('/close_stale_issues', methods=['POST'])
+def close_stale_issues():
+    payload = json.loads(request.data)
+    for keyword in ['repository', 'cron_token', 'installation']:
+        if keyword not in payload:
+            return f'Payload mising {keyword}'
+    if payload['cron_token'] != current_app.cron_token:
+        return "Incorrect cron_token"
+    process_issues(payload['repository'], payload['installation'])
+    return "All good"
 
 
 ISSUE_CLOSE_WARNING = """
