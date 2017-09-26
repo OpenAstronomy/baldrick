@@ -20,9 +20,9 @@ def close_stale_prs():
 
 
 PRS_CLOSE_WARNING = """
-Hi humans :wave: - this PR hasn't had any new commits for approximately {pasttime}. Of course, in this day and age we all have way too much on our plates (especially me!) but in the interest on making sure that we don't keep pull requests open if they are no longer relevant, **I plan to close this in {futuretime} if the pull request doesn't have any new commits by then.**
+Hi humans :wave: - this pull request hasn't had any new commits for approximately {pasttime}. Of course, in this day and age we all have way too much on our plates (especially me!) but in the interest on making sure that we don't keep pull requests open if they are no longer relevant, **I plan to close this in {futuretime} if the pull request doesn't have any new commits by then.**
 
-If you **really** want to keep this PR open beyond because it needs more discussion, then you can get a maintainer to add the **keep-open** label, but please only use this in rare cases. A better solution if you don't agree to merge this now is to close this and open a new issue to remind ourselves this should be done (for example if this PR is the wrong approach).
+If you **really** want to keep this pull request open beyond because it needs more discussion, then you can get a maintainer to add the **keep-open** label, but please only use this in rare cases. A better solution if you don't agree to merge this now is to close this and open a new issue to remind ourselves this should be done (for example if this pull request is the wrong approach).
 
 In any case, I will close this within a month unless there is a new commit or the **keep-open** label has been added. Thanks!
 
@@ -31,7 +31,7 @@ In any case, I will close this within a month unless there is a new commit or th
 
 
 def is_close_warning(message):
-    return 'Hi humans :wave: - this PR hasn\'t had any new commits' in message
+    return 'Hi humans :wave: - this pull request hasn\'t had any new commits' in message
 
 
 PRS_CLOSE_EPILOGUE = """
