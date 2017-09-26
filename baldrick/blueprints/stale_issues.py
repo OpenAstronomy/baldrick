@@ -1,6 +1,22 @@
+import json
 import time
 from humanize import naturaltime, naturaldelta
-from changebot.github_api import IssueHandler, RepoHandler
+from changebot.github.github_api import IssueHandler, RepoHandler
+from flask import Blueprint, request, current_app
+
+stale_issues = Blueprint('stale_issues', __name__)
+
+
+@stale_issues.route('/close_stale_issues', methods=['POST'])
+def close_stale_issues():
+    payload = json.loads(request.data)
+    for keyword in ['repository', 'cron_token', 'installation']:
+        if keyword not in payload:
+            return f'Payload mising {keyword}'
+    if payload['cron_token'] != current_app.cron_token:
+        return "Incorrect cron_token"
+    process_issues(payload['repository'], payload['installation'])
+    return "All good"
 
 
 ISSUE_CLOSE_WARNING = """
@@ -31,8 +47,6 @@ def is_close_epilogue(message):
 
 def process_issues(repository, installation):
 
-    from .webapp import app
-
     now = time.time()
 
     # Get issues labeled as 'Close?'
@@ -50,7 +64,7 @@ def process_issues(repository, installation):
 
         dt = now - labeled_time
 
-        if app.stale_issue_close and dt > app.stale_issue_close_seconds:
+        if current_app.stale_issue_close and dt > current_app.stale_issue_close_seconds:
             comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
             if len(comment_ids) == 0:
                 print(f'-> CLOSING issue {n}')
@@ -58,12 +72,12 @@ def process_issues(repository, installation):
                 issue.close()
             else:
                 print(f'-> Skipping issue {n} (already closed)')
-        elif dt > app.stale_issue_warn_seconds:
+        elif dt > current_app.stale_issue_warn_seconds:
             comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
                 print(f'-> WARNING issue {n}')
-                issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(app.stale_issue_warn_seconds),
-                                                                futuretime=naturaldelta(app.stale_issue_close_seconds - app.stale_issue_warn_seconds)))
+                issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(current_app.stale_issue_warn_seconds),
+                                                                futuretime=naturaldelta(current_app.stale_issue_close_seconds - current_app.stale_issue_warn_seconds)))
             else:
                 print(f'-> Skipping issue {n} (already warned)')
         else:
