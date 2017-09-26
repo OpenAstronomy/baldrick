@@ -6,7 +6,17 @@ from changebot.webapp import app
 from changebot.github.github_api import RepoHandler, IssueHandler
 from changebot.blueprints.stale_issues import (process_issues,
                                                ISSUE_CLOSE_EPILOGUE,
-                                               ISSUE_CLOSE_WARNING)
+                                               ISSUE_CLOSE_WARNING,
+                                               is_close_warning,
+                                               is_close_epilogue)
+
+
+def test_is_close_warning():
+    assert is_close_warning(ISSUE_CLOSE_WARNING)
+
+
+def test_is_close_epilogue():
+    assert is_close_epilogue(ISSUE_CLOSE_EPILOGUE)
 
 
 def now():
