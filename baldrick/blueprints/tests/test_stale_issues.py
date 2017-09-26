@@ -1,3 +1,4 @@
+import json
 import time
 from mock import patch
 
@@ -8,6 +9,36 @@ from ..issues import process_issues, ISSUE_CLOSE_EPILOGUE, ISSUE_CLOSE_WARNING
 
 def now():
     return time.time()
+
+
+class TestHook:
+
+    def setup_method(self, method):
+        self.client = app.test_client()
+
+    @patch.object(app, 'cron_token', '12345')
+    def test_valid(self):
+        data = {'repository': 'test-repo', 'cron_token': '12345', 'installation': '123'}
+        with patch('changebot.issues.process_issues') as p:
+            self.client.post('/close_stale_issues', data=json.dumps(data),
+                             content_type='application/json')
+            assert p.call_count == 1
+
+    @patch.object(app, 'cron_token', '12345')
+    def test_invalid_cron(self):
+        data = {'repository': 'test-repo', 'cron_token': '12344', 'installation': '123'}
+        with patch('changebot.issues.process_issues') as p:
+            self.client.post('/close_stale_issues', data=json.dumps(data),
+                             content_type='application/json')
+            assert p.call_count == 0
+
+    @patch.object(app, 'cron_token', '12345')
+    def test_missing_keyword(self):
+        data = {'cron_token': '12344', 'installation': '123'}
+        with patch('changebot.issues.process_issues') as p:
+            self.client.post('/close_stale_issues', data=json.dumps(data),
+                             content_type='application/json')
+            assert p.call_count == 0
 
 
 @patch.object(app, 'stale_issue_close', True)
