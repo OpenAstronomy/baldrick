@@ -96,6 +96,8 @@ def process_changelog_consistency(repository, number, installation):
 
         message += "Everything looks good from my point of view! :+1:"
 
+    message += "\n\n*If there are any issues with this message, please report them [here](https://github.com/astropy/astropy-bot/issues)*"
+
     pr_handler.submit_comment(message, comment_id=comment_id)
 
     if len(issues) == 0:
