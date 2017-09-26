@@ -6,7 +6,17 @@ from changebot.webapp import app
 from changebot.github.github_api import RepoHandler, PullRequestHandler
 from changebot.blueprints.stale_pull_requests import (process_prs,
                                                       PRS_CLOSE_EPILOGUE,
-                                                      PRS_CLOSE_WARNING)
+                                                      PRS_CLOSE_WARNING,
+                                                      is_close_warning,
+                                                      is_close_epilogue)
+
+
+def test_is_close_warning():
+    assert is_close_warning(PRS_CLOSE_WARNING)
+
+
+def test_is_close_epilogue():
+    assert is_close_epilogue(PRS_CLOSE_EPILOGUE)
 
 
 def now():
