@@ -131,7 +131,7 @@ class TestProcessIssues:
                 process_issues('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
-        expected = ISSUE_CLOSE_WARNING.format(pasttime='3 hours ago', futuretime='5 hours')
+        expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
 
@@ -163,7 +163,7 @@ class TestProcessIssues:
             process_issues('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
-        expected = ISSUE_CLOSE_WARNING.format(pasttime='3 hours ago', futuretime='5 hours')
+        expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
 

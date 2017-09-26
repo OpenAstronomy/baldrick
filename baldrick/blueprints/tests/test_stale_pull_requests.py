@@ -132,7 +132,7 @@ class TestProcessIssues:
                 process_pull_requests('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
-        expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='3 minutes', futuretime='20 seconds')
+        expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='4 minutes', futuretime='20 seconds')
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
 
@@ -150,7 +150,7 @@ class TestProcessIssues:
                 process_pull_requests('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
-        expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='3 minutes', futuretime='20 seconds')
+        expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='4 minutes', futuretime='20 seconds')
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
 
