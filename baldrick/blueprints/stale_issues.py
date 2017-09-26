@@ -76,7 +76,7 @@ def process_issues(repository, installation):
             comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
                 print(f'-> WARNING issue {n}')
-                issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(current_app.stale_issue_warn_seconds),
+                issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(dt),
                                                                 futuretime=naturaldelta(current_app.stale_issue_close_seconds - current_app.stale_issue_warn_seconds)))
             else:
                 print(f'-> Skipping issue {n} (already warned)')
