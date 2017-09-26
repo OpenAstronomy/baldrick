@@ -1,6 +1,6 @@
 import json
 import time
-from mock import patch
+from unittest.mock import patch
 
 from changebot.webapp import app
 from changebot.github.github_api import RepoHandler, IssueHandler
