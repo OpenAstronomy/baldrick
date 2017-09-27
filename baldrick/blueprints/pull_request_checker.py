@@ -43,6 +43,10 @@ def hook():
     return process_changelog_consistency(payload['repository']['full_name'], number, installation)
 
 
+def is_changelog_message(message):
+    return 'issues related to the changelog' in message
+
+
 def process_changelog_consistency(repository, number, installation):
 
     # TODO: cache handlers and invalidate the internal cache of the handlers on
@@ -56,7 +60,7 @@ def process_changelog_consistency(repository, number, installation):
     issues = check_changelog_consistency(repo_handler, pr_handler)
 
     # Find previous comments by this app
-    comment_ids = pr_handler.find_comments('astropy-bot[bot]')
+    comment_ids = pr_handler.find_comments('astropy-bot[bot]', filter_keep=is_changelog_message)
 
     if len(comment_ids) == 0:
         comment_id = None
