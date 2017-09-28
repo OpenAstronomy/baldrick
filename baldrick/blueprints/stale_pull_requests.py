@@ -68,6 +68,10 @@ def process_pull_requests(repository, installation):
     repo = RepoHandler(repository, 'master', installation)
     pull_requests = repo.open_pull_requests()
 
+    # User config
+    enable_autoclose = repo.get_config_from_cache(
+        'AUTOCLOSE_STALE_PULL_REQUEST', True)
+
     for n in pull_requests:
 
         print(f'Checking {n}')
@@ -82,7 +86,9 @@ def process_pull_requests(repository, installation):
 
         if current_app.stale_pull_requests_close and dt > current_app.stale_pull_requests_close_seconds:
             comment_ids = pr.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
-            if len(comment_ids) == 0:
+            if not enable_autoclose:
+                print(f'-> Skipping issue {n} (auto-close disabled)')
+            elif len(comment_ids) == 0:
                 print(f'-> CLOSING issue {n}')
                 pr.submit_comment(PULL_REQUESTS_CLOSE_EPILOGUE)
                 pr.close()
