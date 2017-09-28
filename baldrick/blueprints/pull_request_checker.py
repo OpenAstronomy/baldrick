@@ -60,6 +60,10 @@ def process_changelog_consistency(repository, number, installation):
     repo_handler = RepoHandler(pr_handler.head_repo_name,
                                pr_handler.head_branch, installation)
 
+    # No-op if user so desires
+    if not repo_handler.get_config_from_cache('CHANGELOG_CHECK', True):
+        return
+
     # Run checks
     issues = check_changelog_consistency(repo_handler, pr_handler)
 
