@@ -22,9 +22,9 @@ def close_stale_pull_requests():
 PULL_REQUESTS_CLOSE_WARNING = """
 Hi humans :wave: - this pull request hasn't had any new commits for approximately {pasttime}. **I plan to close this in {futuretime} if the pull request doesn't have any new commits by then.**
 
-In lieu of a stalled pull request, please close this and open an issue instead to revisit in the future. Maintainers may also choose to add `keep-open` label to keep this PR open but it is discouraged unless absolutely necessary.
+In lieu of a stalled pull request, please consider closing this and open an issue instead if a reminder is needed to revisit in the future. Maintainers may also choose to add `keep-open` label to keep this PR open but it is discouraged unless absolutely necessary.
 
-*If you believe I commented on this issue incorrectly, please report this [here](https://github.com/astropy/astropy-bot/issues).*
+*If you believe I commented on this pull request incorrectly, please report this [here](https://github.com/astropy/astropy-bot/issues).*
 """
 
 
