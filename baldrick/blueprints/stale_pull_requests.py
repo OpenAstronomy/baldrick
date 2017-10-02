@@ -1,3 +1,4 @@
+import re
 import time
 import json
 from humanize import naturaldelta
@@ -19,7 +20,7 @@ def close_stale_pull_requests():
     return "All good"
 
 
-PULL_REQUESTS_CLOSE_WARNING = """
+PULL_REQUESTS_CLOSE_WARNING = re.sub('(\w+)\n', r'\1', """
 Hi humans :wave: - this pull request hasn't had any new commits for
 approximately {pasttime}. **I plan to close this in {futuretime} if the pull
 request doesn't have any new commits by then.**
@@ -35,20 +36,24 @@ to the [astropy-dev mailing list](http://groups.google.com/group/astropy-dev).
 
 *If you believe I commented on this pull request incorrectly, please report
  this [here](https://github.com/astropy/astropy-bot/issues).*
-"""
+""").strip()
 
 
 def is_close_warning(message):
     return 'Hi humans :wave: - this pull request hasn\'t had any new commits' in message
 
 
-PULL_REQUESTS_CLOSE_EPILOGUE = """
+PULL_REQUESTS_CLOSE_EPILOGUE = re.sub('(\w+)\n', r'\1', """
 :alarm_clock: Time's up! :alarm_clock:
 
-I'm going to close this pull request as per my previous message. If you think what is being added/fixed here is still important, please remember to open an issue to keep track of it. Thanks!
+I'm going to close this pull request as per my previous message. If you
+think what is being added/fixed here is still important, please remember to
+open an issue to keep track of it. Thanks!
 
-*If this is the first time I am commenting on this issue, or if you believe I closed this issue incorrectly, please report this [here](https://github.com/astropy/astropy-bot/issues)*
-"""
+*If this is the first time I am commenting on this issue, or if you believe
+ I closed this issue incorrectly, please report this
+ [here](https://github.com/astropy/astropy-bot/issues)*
+""").strip()
 
 
 def is_close_epilogue(message):
