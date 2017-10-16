@@ -1,9 +1,9 @@
 import json
-import time
 from unittest.mock import patch
 
+import pytest
+
 from changebot.webapp import app
-from changebot.github.github_api import RepoHandler, IssueHandler
 
 
 class TestHook:
@@ -25,9 +25,10 @@ class TestHook:
                              content_type='application/json')
             p.assert_called_with('test-repo', '1234', '123')
 
-    def test_invalid(self):
+    @pytest.mark.parametrize('state', ['open', 'closed'])
+    def test_invalid(self, state):
 
-        data = {'pull_request': {'number': '1234'},
+        data = {'pull_request': {'number': '1234', 'state': state},
                 'repository': {'full_name': 'test-repo'},
                 'action': 'invalid_action',
                 'installation': {'id': '123'}}

@@ -53,6 +53,10 @@ def process_changelog_consistency(repository, number, installation):
     # certain events.
     pr_handler = PullRequestHandler(repository, number, installation)
 
+    # Don't comment on closed PR
+    if pr_handler.is_closed:
+        return
+
     repo_handler = RepoHandler(pr_handler.head_repo_name,
                                pr_handler.head_branch, installation)
 
