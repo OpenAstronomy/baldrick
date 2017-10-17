@@ -61,7 +61,7 @@ def process_changelog_consistency(repository, number, installation):
                                pr_handler.head_branch, installation)
 
     # No-op if user so desires
-    if not repo_handler.get_config_from_cache('CHANGELOG_CHECK', True):
+    if not repo_handler.get_config_value('CHANGELOG_CHECK', True):
         return
 
     # Run checks
