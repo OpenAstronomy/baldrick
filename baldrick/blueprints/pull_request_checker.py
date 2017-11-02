@@ -39,7 +39,7 @@ def hook():
     elif event == 'issues':
         number = payload['issue']['number']
     else:
-        return
+        return "Not an issue or pull request"
 
     # TODO: in future, make this more generic so that any checks can be run.
     # we could have a registry of checks and concatenate the responses
@@ -91,14 +91,14 @@ def process_changelog_consistency(repository, number, installation):
 
     # Don't comment on closed PR
     if pr_handler.is_closed:
-        return
+        return "Pull request already close, no need to check"
 
     repo_handler = RepoHandler(pr_handler.head_repo_name,
                                pr_handler.head_branch, installation)
 
     # No-op if user so desires
     if not repo_handler.get_config_value('CHANGELOG_CHECK', True):
-        return
+        return "Repo owner does not want to check change log"
 
     # Find previous comments by this app
     comment_ids = pr_handler.find_comments(
