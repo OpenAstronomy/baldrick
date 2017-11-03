@@ -97,7 +97,7 @@ def process_changelog_consistency(repository, number, installation):
                                pr_handler.head_branch, installation)
 
     # No-op if user so desires
-    if not repo_handler.get_config_value('CHANGELOG_CHECK', True):
+    if not repo_handler.get_config_value('changelog_check', True):
         return "Repo owner does not want to check change log"
 
     # Find previous comments by this app
