@@ -60,6 +60,7 @@ class TestProcessIssues:
 
     def setup_method(self, method):
 
+        self.patch_repo_config = patch.object(RepoHandler, 'get_config_value')
         self.patch_open_pull_requests = patch.object(RepoHandler, 'open_pull_requests')
         self.patch_labels = patch.object(PullRequestHandler, 'labels', new_callable=PropertyMock)
         self.patch_last_commit_date = patch.object(PullRequestHandler, 'last_commit_date', new_callable=PropertyMock)
@@ -67,6 +68,7 @@ class TestProcessIssues:
         self.patch_submit_comment = patch.object(PullRequestHandler, 'submit_comment')
         self.patch_close = patch.object(PullRequestHandler, 'close')
 
+        self.autoclose_stale = self.patch_repo_config.start()
         self.open_pull_requests = self.patch_open_pull_requests.start()
         self.labels = self.patch_labels.start()
         self.last_commit_date = self.patch_last_commit_date.start()
@@ -76,6 +78,7 @@ class TestProcessIssues:
 
     def teardown_method(self, method):
 
+        self.patch_repo_config.stop()
         self.patch_open_pull_requests.stop()
         self.patch_labels.stop()
         self.patch_last_commit_date.stop()
@@ -116,6 +119,22 @@ class TestProcessIssues:
         expected = PULL_REQUESTS_CLOSE_EPILOGUE
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 1
+
+    def test_close_noclose(self):
+
+        # Time is beyond close deadline, and there is no comment yet but the
+        # YAML says don't autoclose.
+
+        self.autoclose_stale.return_value = False
+        self.open_pull_requests.return_value = ['123']
+        self.last_commit_date.return_value = now() - 241
+        self.find_comments.return_value = []
+
+        with app.app_context():
+            process_pull_requests('repo', 'installation')
+
+        assert self.submit_comment.call_count == 0
+        assert self.close.call_count == 0
 
     def test_close_disabled(self):
 
