@@ -71,7 +71,7 @@ def process_pull_requests(repository, installation):
 
     # User config
     enable_autoclose = repo.get_config_value(
-        'AUTOCLOSE_STALE_PULL_REQUEST', True)
+        'autoclose_stale_pull_request', True)
 
     for n in pull_requests:
 
