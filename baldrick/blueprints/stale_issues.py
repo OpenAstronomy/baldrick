@@ -15,8 +15,13 @@ def close_stale_issues():
             return f'Payload mising {keyword}'
     if payload['cron_token'] != current_app.cron_token:
         return "Incorrect cron_token"
-    process_issues(payload['repository'], payload['installation'])
-    return "All good"
+    # process_issues is a generator so that we can continuously return a
+    # response to the requester - this prevents Heroku from thinking the
+    # request has timed out (https://librenepal.com/article/flask-and-heroku-timeout/)
+    for status in process_issues(payload['repository'], payload['installation']):
+        print(status)
+        yield status
+    return "Finished checking for stale issues"
 
 
 ISSUE_CLOSE_WARNING = """
@@ -55,7 +60,7 @@ def process_issues(repository, installation):
 
     for n in issuelist:
 
-        print(f'Checking {n}')
+        yield f'Checking {n}'
 
         issue = IssueHandler(repository, n, installation)
         labeled_time = issue.get_label_added_date('Close?')
@@ -68,18 +73,19 @@ def process_issues(repository, installation):
             comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
             if len(comment_ids) == 0:
                 print(f'-> CLOSING issue {n}')
+                yield f'-> CLOSING issue {n}'
                 issue.set_labels(['closed-by-bot'])
                 issue.submit_comment(ISSUE_CLOSE_EPILOGUE)
                 issue.close()
             else:
-                print(f'-> Skipping issue {n} (already closed)')
+                yield f'-> Skipping issue {n} (already closed)'
         elif dt > current_app.stale_issue_warn_seconds:
             comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
-                print(f'-> WARNING issue {n}')
+                yield f'-> WARNING issue {n}'
                 issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(dt),
                                                                 futuretime=naturaldelta(current_app.stale_issue_close_seconds - current_app.stale_issue_warn_seconds)))
             else:
-                print(f'-> Skipping issue {n} (already warned)')
+                yield f'-> Skipping issue {n} (already warned)'
         else:
-            print(f'-> OK issue {n}')
+            yield f'-> OK issue {n}'
