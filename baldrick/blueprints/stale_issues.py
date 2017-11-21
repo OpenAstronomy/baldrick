@@ -35,7 +35,7 @@ def is_close_warning(message):
 ISSUE_CLOSE_EPILOGUE = """
 :alarm_clock: Time's up! :alarm_clock:
 
-I'm going to close this issue as per my previous message. But if you feel that we should really really keep this open, then feel free to re-open and remove the **Close?** label. But no one has done anything for 6 months, so... Just sayin!
+I'm going to close this issue as per my previous message. But if you feel that we should really really keep this open, then feel free to re-open and remove the **Close?** label. But no one has done anything for 6 months, so... Just sayin'!
 
 *If this is the first time I am commenting on this issue, or if you believe I closed this issue incorrectly, please report this [here](https://github.com/astropy/astropy-bot/issues)*
 """
