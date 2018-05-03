@@ -65,12 +65,14 @@ class TestProcessIssues:
         self.patch_close = patch.object(IssueHandler, 'close')
         self.patch_get_label_added_date = patch.object(IssueHandler, 'get_label_added_date')
         self.patch_find_comments = patch.object(IssueHandler, 'find_comments')
+        self.patch_set_labels = patch.object(IssueHandler, 'set_labels')
 
         self.get_issues = self.patch_get_issues.start()
         self.submit_comment = self.patch_submit_comment.start()
         self.close = self.patch_close.start()
         self.get_label_added_date = self.patch_get_label_added_date.start()
         self.find_comments = self.patch_find_comments.start()
+        self.set_labels = self.patch_set_labels.start()
 
     def teardown_method(self, method):
 
@@ -79,6 +81,7 @@ class TestProcessIssues:
         self.patch_close.stop()
         self.patch_get_label_added_date.stop()
         self.patch_find_comments.stop()
+        self.patch_set_labels.stop()
 
     def test_close_comment_exists(self):
 
@@ -98,6 +101,7 @@ class TestProcessIssues:
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
 
     def test_close(self):
 
@@ -115,6 +119,7 @@ class TestProcessIssues:
         expected = ISSUE_CLOSE_EPILOGUE
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 1
+        assert self.set_labels.call_count == 1
 
     def test_close_disabled(self):
 
@@ -134,6 +139,7 @@ class TestProcessIssues:
         expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
 
     def test_warn_comment_exists(self):
 
@@ -149,6 +155,7 @@ class TestProcessIssues:
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
 
     def test_warn(self):
 
@@ -166,6 +173,7 @@ class TestProcessIssues:
         expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
 
     def test_keep_open(self):
 
@@ -181,3 +189,4 @@ class TestProcessIssues:
         assert self.find_comments.call_count == 0
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
