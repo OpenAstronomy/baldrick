@@ -3,7 +3,7 @@ import time
 import json
 from humanize import naturaldelta
 from changebot.github.github_api import PullRequestHandler, RepoHandler
-from flask import Blueprint, request, current_app
+from flask import Blueprint, request, current_app, Response
 
 stale_pull_requests = Blueprint('stale_pull_requests', __name__)
 
@@ -19,10 +19,8 @@ def close_stale_pull_requests():
     # process_pull_requests is a generator so that we can continuously return a
     # response to the requester - this prevents Heroku from thinking the
     # request has timed out (https://librenepal.com/article/flask-and-heroku-timeout/)
-    for status in process_pull_requests(payload['repository'], payload['installation']):
-        print(status)
-        yield status
-    return "Finished checking for stale pull requests"
+    return Response(process_pull_requests(payload['repository'], payload['installation']),
+                    mimetype='text/plain')
 
 
 PULL_REQUESTS_CLOSE_WARNING = re.sub('(\w+)\n', r'\1', """
@@ -80,10 +78,12 @@ def process_pull_requests(repository, installation):
 
     for n in pull_requests:
 
+        print(f'Checking {n}')
         yield f'Checking {n}'
 
         pr = PullRequestHandler(repository, n, installation)
         if 'keep-open' in pr.labels:
+            print('-> PROTECTED by label, skipping')
             yield '-> PROTECTED by label, skipping'
             continue
         commit_time = pr.last_commit_date
@@ -93,20 +93,29 @@ def process_pull_requests(repository, installation):
         if current_app.stale_pull_requests_close and dt > current_app.stale_pull_requests_close_seconds:
             comment_ids = pr.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
             if not enable_autoclose:
+                print(f'-> Skipping issue {n} (auto-close disabled)')
                 yield f'-> Skipping issue {n} (auto-close disabled)'
             elif len(comment_ids) == 0:
+                print(f'-> CLOSING issue {n}')
                 yield f'-> CLOSING issue {n}'
                 pr.submit_comment(PULL_REQUESTS_CLOSE_EPILOGUE)
                 pr.close()
             else:
+                print(f'-> Skipping issue {n} (already closed)')
                 yield f'-> Skipping issue {n} (already closed)'
         elif dt > current_app.stale_pull_requests_warn_seconds:
             comment_ids = pr.find_comments('astropy-bot[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
+                print(f'-> WARNING issue {n}')
                 yield f'-> WARNING issue {n}'
                 pr.submit_comment(PULL_REQUESTS_CLOSE_WARNING.format(pasttime=naturaldelta(dt),
                                                                      futuretime=naturaldelta(current_app.stale_pull_requests_close_seconds - current_app.stale_pull_requests_warn_seconds)))
             else:
+                print(f'-> Skipping issue {n} (already warned)')
                 yield f'-> Skipping issue {n} (already warned)'
         else:
+            print(f'-> OK issue {n}')
             yield f'-> OK issue {n}'
+
+    print('Finished checking for stale pull requests')
+    yield 'Finished checking for stale pull requests'
