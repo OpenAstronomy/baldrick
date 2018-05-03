@@ -68,6 +68,7 @@ def process_issues(repository, installation):
             comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
             if len(comment_ids) == 0:
                 print(f'-> CLOSING issue {n}')
+                issue.set_labels(['closed-by-bot'])
                 issue.submit_comment(ISSUE_CLOSE_EPILOGUE)
                 issue.close()
             else:
