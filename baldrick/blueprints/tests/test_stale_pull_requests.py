@@ -70,6 +70,7 @@ class TestProcessIssues:
         self.patch_find_comments = patch.object(PullRequestHandler, 'find_comments')
         self.patch_submit_comment = patch.object(PullRequestHandler, 'submit_comment')
         self.patch_close = patch.object(PullRequestHandler, 'close')
+        self.patch_set_labels = patch.object(PullRequestHandler, 'set_labels')
 
         self.autoclose_stale = self.patch_repo_config.start()
         self.open_pull_requests = self.patch_open_pull_requests.start()
@@ -78,6 +79,7 @@ class TestProcessIssues:
         self.find_comments = self.patch_find_comments.start()
         self.submit_comment = self.patch_submit_comment.start()
         self.close = self.patch_close.start()
+        self.set_labels = self.patch_set_labels.start()
 
     def teardown_method(self, method):
 
@@ -88,6 +90,7 @@ class TestProcessIssues:
         self.patch_find_comments.stop()
         self.patch_submit_comment.stop()
         self.patch_close.stop()
+        self.patch_set_labels.stop()
 
     def test_close_comment_exists(self):
 
@@ -106,6 +109,7 @@ class TestProcessIssues:
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
 
     def test_close(self):
 
@@ -124,6 +128,7 @@ class TestProcessIssues:
         expected = PULL_REQUESTS_CLOSE_EPILOGUE
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 1
+        assert self.set_labels.call_count == 1
 
     def test_close_noclose(self):
 
@@ -141,6 +146,7 @@ class TestProcessIssues:
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
 
     def test_close_disabled(self):
 
@@ -161,6 +167,7 @@ class TestProcessIssues:
         expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='4 minutes', futuretime='20 seconds')
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
 
     def test_close_keep_open_label(self):
 
@@ -180,6 +187,7 @@ class TestProcessIssues:
         expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='4 minutes', futuretime='20 seconds')
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
 
     def test_warn_comment_exists(self):
 
@@ -196,6 +204,7 @@ class TestProcessIssues:
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
 
     def test_warn(self):
 
@@ -214,6 +223,7 @@ class TestProcessIssues:
         expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='3 minutes', futuretime='20 seconds')
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
 
     def test_keep_open(self):
 
@@ -230,3 +240,4 @@ class TestProcessIssues:
         assert self.find_comments.call_count == 0
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
+        assert self.set_labels.call_count == 0
