@@ -98,6 +98,7 @@ def process_pull_requests(repository, installation):
             elif len(comment_ids) == 0:
                 print(f'-> CLOSING issue {n}')
                 yield f'-> CLOSING issue {n}'
+                pr.set_labels(['closed-by-bot'])
                 pr.submit_comment(PULL_REQUESTS_CLOSE_EPILOGUE)
                 pr.close()
             else:
