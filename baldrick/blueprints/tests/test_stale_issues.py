@@ -32,24 +32,27 @@ class TestHook:
     def test_valid(self):
         data = {'repository': 'test-repo', 'cron_token': '12345', 'installation': '123'}
         with patch('changebot.blueprints.stale_issues.process_issues') as p:
-            self.client.post('/close_stale_issues', data=json.dumps(data),
-                             content_type='application/json')
+            response = self.client.post('/close_stale_issues', data=json.dumps(data),
+                                        content_type='application/json')
+            assert response.data == b''
             assert p.call_count == 1
 
     @patch.object(app, 'cron_token', '12345')
     def test_invalid_cron(self):
         data = {'repository': 'test-repo', 'cron_token': '12344', 'installation': '123'}
         with patch('changebot.blueprints.stale_issues.process_issues') as p:
-            self.client.post('/close_stale_issues', data=json.dumps(data),
-                             content_type='application/json')
+            response = self.client.post('/close_stale_issues', data=json.dumps(data),
+                                        content_type='application/json')
+            assert response.data == b'Incorrect cron_token'
             assert p.call_count == 0
 
     @patch.object(app, 'cron_token', '12345')
     def test_missing_keyword(self):
         data = {'cron_token': '12344', 'installation': '123'}
         with patch('changebot.blueprints.stale_issues.process_issues') as p:
-            self.client.post('/close_stale_issues', data=json.dumps(data),
-                             content_type='application/json')
+            response = self.client.post('/close_stale_issues', data=json.dumps(data),
+                                        content_type='application/json')
+            assert response.data == b'Payload mising repository'
             assert p.call_count == 0
 
 
@@ -94,7 +97,8 @@ class TestProcessIssues:
         self.find_comments.return_value = ['1']
 
         with app.app_context():
-            process_issues('repo', 'installation')
+            # The list() call is to forge the generator to run fully
+            list(process_issues('repo', 'installation'))
 
         self.get_issues.assert_called_with('open', 'Close?')
         self.get_label_added_date.assert_called_with('Close?')
@@ -113,7 +117,8 @@ class TestProcessIssues:
         self.find_comments.return_value = []
 
         with app.app_context():
-            process_issues('repo', 'installation')
+            # The list() call is to forge the generator to run fully
+            list(process_issues('repo', 'installation'))
 
         assert self.submit_comment.call_count == 1
         expected = ISSUE_CLOSE_EPILOGUE
@@ -133,7 +138,8 @@ class TestProcessIssues:
 
         with app.app_context():
             with patch.object(app, 'stale_issue_close', False):
-                process_issues('repo', 'installation')
+                # The list() call is to forge the generator to run fully
+                list(process_issues('repo', 'installation'))
 
         assert self.submit_comment.call_count == 1
         expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
@@ -151,7 +157,7 @@ class TestProcessIssues:
         self.find_comments.return_value = ['1']
 
         with app.app_context():
-            process_issues('repo', 'installation')
+            list(process_issues('repo', 'installation'))
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
@@ -167,7 +173,7 @@ class TestProcessIssues:
         self.find_comments.return_value = []
 
         with app.app_context():
-            process_issues('repo', 'installation')
+            list(process_issues('repo', 'installation'))
 
         assert self.submit_comment.call_count == 1
         expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
@@ -184,7 +190,7 @@ class TestProcessIssues:
         self.find_comments.return_value = []
 
         with app.app_context():
-            process_issues('repo', 'installation')
+            list(process_issues('repo', 'installation'))
 
         assert self.find_comments.call_count == 0
         assert self.submit_comment.call_count == 0
