@@ -3,7 +3,7 @@ import time
 import json
 from humanize import naturaldelta
 from changebot.github.github_api import PullRequestHandler, RepoHandler
-from flask import Blueprint, request, current_app, Response
+from flask import Blueprint, request, current_app, Response, stream_with_context
 
 stale_pull_requests = Blueprint('stale_pull_requests', __name__)
 
@@ -19,7 +19,7 @@ def close_stale_pull_requests():
     # process_pull_requests is a generator so that we can continuously return a
     # response to the requester - this prevents Heroku from thinking the
     # request has timed out (https://librenepal.com/article/flask-and-heroku-timeout/)
-    return Response(process_pull_requests(payload['repository'], payload['installation']),
+    return Response(stream_with_context(process_pull_requests(payload['repository'], payload['installation'])),
                     mimetype='text/plain')
 
 
