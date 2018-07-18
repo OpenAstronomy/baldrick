@@ -2,7 +2,7 @@ import json
 import time
 from humanize import naturaltime, naturaldelta
 from changebot.github.github_api import IssueHandler, RepoHandler
-from flask import Blueprint, request, current_app, Response
+from flask import Blueprint, request, current_app, Response, stream_with_context
 
 stale_issues = Blueprint('stale_issues', __name__)
 
@@ -18,7 +18,7 @@ def close_stale_issues():
     # process_issues is a generator so that we can continuously return a
     # response to the requester - this prevents Heroku from thinking the
     # request has timed out (https://librenepal.com/article/flask-and-heroku-timeout/)
-    return Response(process_issues(payload['repository'], payload['installation']),
+    return Response(stream_with_context(process_issues(payload['repository'], payload['installation'])),
                     mimetype='text/plain')
 
 
