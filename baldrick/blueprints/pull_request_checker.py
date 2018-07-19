@@ -1,13 +1,32 @@
 import json
-import os
-import re
 
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
 
-from changebot.blueprints.changelog_helpers import check_changelog_consistency
 from changebot.github.github_api import RepoHandler, PullRequestHandler
 
 pull_request_checker = Blueprint('pull_request_checker', __name__)
+
+
+PULL_REQUEST_CHECKS = []
+
+
+def pull_request_check(func):
+    """
+    A decorator to add functions to the pull request checker.
+
+
+    The functions decorated with this decorator will be passed ``(pr_handler,
+    repo_handler)`` and are expected to return ``messages, status` where
+    messages is a list of strings to be concatenated together with the prolog
+    and epilog to form a comment message (if this is an empty list, no comment
+    will be posted) and status is either a boolean (`True` for PR passes,
+    `False` for fail) or `None` for no status check.
+
+    These functions should return a list of strings to be appended to the
+    comment on the PR.
+    """
+    PULL_REQUEST_CHECKS.append(func)
+    return func
 
 
 @pull_request_checker.route('/hook', methods=['POST'])
@@ -41,50 +60,10 @@ def hook():
     else:
         return "Not an issue or pull request"
 
-    # TODO: in future, make this more generic so that any checks can be run.
-    # we could have a registry of checks and concatenate the responses
-    return process_changelog_consistency(payload['repository']['full_name'], number, installation)
+    return process_pull_request(payload['repository']['full_name'], number, installation)
 
 
-CHANGELOG_PROLOGUE = re.sub('(\w+)\n', r'\1', """
-Hi there @{user} :wave: - thanks for the pull request! I'm just
- a friendly :robot: that checks for
- issues related to the changelog and making sure that this
- pull request is milestoned and labeled correctly. This is
- mainly intended for the maintainers, so if you are not
- a maintainer you can ignore this, and a maintainer will let
- you know if any action is required on your part :smiley:.
-""").strip() + os.linesep + os.linesep
-
-CHANGELOG_NOT_DONE = re.sub('(\w+)\n', r'\1', """
-I see this is {status} pull request. I'll report back
- on the checks once the PR {is_done}.
-""").strip()
-
-CHANGELOG_BAD_LIST = re.sub('(\w+)\n', r'\1', """
-I noticed the following issues with this pull request:
-""").strip() + os.linesep + os.linesep
-
-CHANGELOG_BAD_EPILOGUE = os.linesep + re.sub('(\w+)\n', r'\1', """
-Would it be possible to fix these? Thanks!
-""").strip()
-
-CHANGELOG_GOOD = re.sub('(\w+)\n', r'\1', """
-Everything looks good from my point of view! :+1:
-""").strip()
-
-CHANGELOG_EPILOGUE = os.linesep + os.linesep + re.sub('(\w+)\n', r'\1', """
-*If there are any issues with this message, please report them
- [here](https://github.com/astropy/astropy-bot/issues).*
-""").strip()
-
-
-def is_changelog_message(message):
-    return 'issues related to the changelog' in message
-
-
-def process_changelog_consistency(repository, number, installation):
-
+def process_pull_request(repository, number, installation):
     # TODO: cache handlers and invalidate the internal cache of the handlers on
     # certain events.
     pr_handler = PullRequestHandler(repository, number, installation)
@@ -96,64 +75,49 @@ def process_changelog_consistency(repository, number, installation):
     repo_handler = RepoHandler(pr_handler.head_repo_name,
                                pr_handler.head_branch, installation)
 
-    # No-op if user so desires
-    if not repo_handler.get_config_value('changelog_check', True):
-        return "Repo owner does not want to check change log"
+    def is_changelog_message(message):
+        return current_app.pull_request_substring in message
 
     # Find previous comments by this app
     comment_ids = pr_handler.find_comments(
-        'astropy-bot[bot]', filter_keep=is_changelog_message)
+        f'{current_app.bot_username}[bot]', filter_keep=is_changelog_message)
 
     if len(comment_ids) == 0:
         comment_id = None
     else:
         comment_id = comment_ids[-1]
 
-    # Construct message
+    comments = []
+    set_status = False  # Do not send a status unless we need to.
+    status = True  # True is passing
+    for function in PULL_REQUEST_CHECKS:
+        f_comments, f_status = function(pr_handler, repo_handler)
+        if f_status is not None:
+            set_status = True
+            status = status and f_status
+        comments += f_comments
 
-    message = CHANGELOG_PROLOGUE.format(user=pr_handler.user)
-    approve = False  # This is so that WIP and EXP shall not pass
+    if comments:
+        message = current_app.pull_request_prolog.format(pr_handler=pr_handler, repo_handler=repo_handler)
+        message += ''.join(comments) + current_app.pull_request_epilog
 
-    if 'Work in progress' in pr_handler.labels:
-        message += CHANGELOG_NOT_DONE.format(
-            status='a work in progress', is_done='is ready for review')
-
-    elif 'Experimental' in pr_handler.labels:
-        message += CHANGELOG_NOT_DONE.format(
-            status='an experimental', is_done='discussion in settled')
-
+        comment_url = pr_handler.submit_comment(message, comment_id=comment_id,
+                                                return_url=True)
     else:
-        # Run checks
-        issues = check_changelog_consistency(repo_handler, pr_handler)
+        all_passed_message = repo_handler.get_config_value("all_passed_message", '')
+        all_passed_message = all_passed_message.format(pr_handler=pr_handler, repo_handler=repo_handler)
+        if comment_id and all_passed_message:
+            pr_handler.submit_comment(all_passed_message, comment_id=comment_id)
 
-        if len(issues) > 0:
+        comment_url = None
+        message = ''
 
-            message += CHANGELOG_BAD_LIST
-            for issue in issues:
-                message += "* {0}\n".format(issue)
-
-            message += CHANGELOG_BAD_EPILOGUE
-
-            if len(issues) == 1:
-                message = (message.replace('issues with', 'issue with')
-                           .replace('fix these', 'fix this'))
-
+    if set_status:
+        if status:
+            pr_handler.set_status('success', current_app.pull_request_passed, current_app.bot_username,
+                                  target_url=comment_url)
         else:
-
-            message += CHANGELOG_GOOD
-            approve = True
-
-    message += CHANGELOG_EPILOGUE
-
-    comment_url = pr_handler.submit_comment(message, comment_id=comment_id,
-                                            return_url=True)
-
-    if approve:
-        pr_handler.set_status('success', 'All checks passed', 'astropy-bot',
-                              target_url=comment_url)
-    else:
-        pr_handler.set_status('failure', 'There were failures in checks - see '
-                              'comments by @astropy-bot above', 'astropy-bot',
-                              target_url=comment_url)
+            pr_handler.set_status('failure', current_app.pull_request_failed, current_app.bot_username,
+                                  target_url=comment_url)
 
     return message
