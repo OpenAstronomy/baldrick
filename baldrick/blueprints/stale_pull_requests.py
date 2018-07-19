@@ -79,12 +79,12 @@ def process_pull_requests(repository, installation):
     for n in pull_requests:
 
         print(f'Checking {n}')
-        yield f'Checking {n}'
+        yield f'Checking {n}\n'
 
         pr = PullRequestHandler(repository, n, installation)
         if 'keep-open' in pr.labels:
             print('-> PROTECTED by label, skipping')
-            yield '-> PROTECTED by label, skipping'
+            yield '-> PROTECTED by label, skipping\n'
             continue
 
         commit_time = pr.last_commit_date
@@ -107,29 +107,29 @@ def process_pull_requests(repository, installation):
             comment_ids = pr.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
             if not current_app.stale_pull_requests_close or not enable_autoclose:
                 print(f'-> Skipping pull request {n} (auto-close disabled)')
-                yield f'-> Skipping pull request {n} (auto-close disabled)'
+                yield f'-> Skipping pull request {n} (auto-close disabled)\n'
             elif len(comment_ids) == 0:
                 print(f'-> CLOSING pull request {n}')
-                yield f'-> CLOSING pull request {n}'
+                yield f'-> CLOSING pull request {n}\n'
                 pr.set_labels(['closed-by-bot'])
                 pr.submit_comment(PULL_REQUESTS_CLOSE_EPILOGUE)
                 pr.close()
             else:
                 print(f'-> Skipping pull request {n} (already closed)')
-                yield f'-> Skipping pull request {n} (already closed)'
+                yield f'-> Skipping pull request {n} (already closed)\n'
         elif time_since_last_commit > current_app.stale_pull_requests_warn_seconds:
             # A negative time_since_last_warning means no warning since last commit.
             if time_since_last_warning < 0.:
                 print(f'-> WARNING pull request {n}')
-                yield f'-> WARNING pull request {n}'
+                yield f'-> WARNING pull request {n}\n'
                 pr.submit_comment(PULL_REQUESTS_CLOSE_WARNING.format(pasttime=naturaldelta(time_since_last_commit),
                                                                      futuretime=naturaldelta(current_app.stale_pull_requests_close_seconds)))
             else:
                 print(f'-> Skipping pull request {n} (already warned)')
-                yield f'-> Skipping pull request {n} (already warned)'
+                yield f'-> Skipping pull request {n} (already warned)\n'
         else:
             print(f'-> OK pull request {n}')
-            yield f'-> OK pull request {n}'
+            yield f'-> OK pull request {n}\n'
 
     print('Finished checking for stale pull requests')
-    yield 'Finished checking for stale pull requests'
+    yield 'Finished checking for stale pull requests\n'

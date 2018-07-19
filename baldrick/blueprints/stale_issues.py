@@ -59,7 +59,7 @@ def process_issues(repository, installation):
     for n in issuelist:
 
         print(f'Checking {n}')
-        yield f'Checking {n}'
+        yield f'Checking {n}\n'
 
         issue = IssueHandler(repository, n, installation)
         labeled_time = issue.get_label_added_date('Close?')
@@ -72,26 +72,26 @@ def process_issues(repository, installation):
             comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
             if len(comment_ids) == 0:
                 print(f'-> CLOSING issue {n}')
-                yield f'-> CLOSING issue {n}'
+                yield f'-> CLOSING issue {n}\n'
                 issue.set_labels(['closed-by-bot'])
                 issue.submit_comment(ISSUE_CLOSE_EPILOGUE)
                 issue.close()
             else:
                 print(f'-> Skipping issue {n} (already closed)')
-                yield f'-> Skipping issue {n} (already closed)'
+                yield f'-> Skipping issue {n} (already closed)\n'
         elif dt > current_app.stale_issue_warn_seconds:
             comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
                 print(f'-> WARNING issue {n}')
-                yield f'-> WARNING issue {n}'
+                yield f'-> WARNING issue {n}\n'
                 issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(dt),
                                                                 futuretime=naturaldelta(current_app.stale_issue_close_seconds - current_app.stale_issue_warn_seconds)))
             else:
                 print(f'-> Skipping issue {n} (already warned)')
-                yield f'-> Skipping issue {n} (already warned)'
+                yield f'-> Skipping issue {n} (already warned)\n'
         else:
             print(f'-> OK issue {n}')
-            yield f'-> OK issue {n}'
+            yield f'-> OK issue {n}\n'
 
     print('Finished checking for stale issues')
-    yield 'Finished checking for stale issues'
+    yield 'Finished checking for stale issues\n'
