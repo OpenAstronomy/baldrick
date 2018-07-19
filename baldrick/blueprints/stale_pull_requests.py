@@ -86,37 +86,51 @@ def process_pull_requests(repository, installation):
             print('-> PROTECTED by label, skipping')
             yield '-> PROTECTED by label, skipping'
             continue
+
         commit_time = pr.last_commit_date
+        time_since_last_commit = now - commit_time
 
-        dt = now - commit_time
+        # Note: if warning time is before commit time, it's as if the warning
+        # didn't exist since it's no longer relevant.
+        warning_time = pr.last_comment_date('astropy-bot[bot]', filter_keep=is_close_warning)
+        if warning_time is None or warning_time < commit_time:
+            has_warning = False
+            time_since_last_warning = 0.
+        else:
+            has_warning = True
+            time_since_last_warning = now - warning_time
 
-        if current_app.stale_pull_requests_close and dt > current_app.stale_pull_requests_close_seconds:
+        # We only close pull requests if there has been a warning before, and
+        # the time since the warning exceeds the threshold specified by
+        # stale_pull_requests_close_seconds.
+
+        if has_warning and time_since_last_warning > current_app.stale_pull_requests_close_seconds:
             comment_ids = pr.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
-            if not enable_autoclose:
-                print(f'-> Skipping issue {n} (auto-close disabled)')
-                yield f'-> Skipping issue {n} (auto-close disabled)'
+            if not current_app.stale_pull_requests_close or not enable_autoclose:
+                print(f'-> Skipping pull request {n} (auto-close disabled)')
+                yield f'-> Skipping pull request {n} (auto-close disabled)'
             elif len(comment_ids) == 0:
-                print(f'-> CLOSING issue {n}')
-                yield f'-> CLOSING issue {n}'
+                print(f'-> CLOSING pull request {n}')
+                yield f'-> CLOSING pull request {n}'
                 pr.set_labels(['closed-by-bot'])
                 pr.submit_comment(PULL_REQUESTS_CLOSE_EPILOGUE)
                 pr.close()
             else:
-                print(f'-> Skipping issue {n} (already closed)')
-                yield f'-> Skipping issue {n} (already closed)'
-        elif dt > current_app.stale_pull_requests_warn_seconds:
+                print(f'-> Skipping pull request {n} (already closed)')
+                yield f'-> Skipping pull request {n} (already closed)'
+        elif time_since_last_commit > current_app.stale_pull_requests_warn_seconds:
             comment_ids = pr.find_comments('astropy-bot[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
-                print(f'-> WARNING issue {n}')
-                yield f'-> WARNING issue {n}'
-                pr.submit_comment(PULL_REQUESTS_CLOSE_WARNING.format(pasttime=naturaldelta(dt),
-                                                                     futuretime=naturaldelta(current_app.stale_pull_requests_close_seconds - current_app.stale_pull_requests_warn_seconds)))
+                print(f'-> WARNING pull request {n}')
+                yield f'-> WARNING pull request {n}'
+                pr.submit_comment(PULL_REQUESTS_CLOSE_WARNING.format(pasttime=naturaldelta(time_since_last_commit),
+                                                                     futuretime=naturaldelta(current_app.stale_pull_requests_close_seconds)))
             else:
-                print(f'-> Skipping issue {n} (already warned)')
-                yield f'-> Skipping issue {n} (already warned)'
+                print(f'-> Skipping pull request {n} (already warned)')
+                yield f'-> Skipping pull request {n} (already warned)'
         else:
-            print(f'-> OK issue {n}')
-            yield f'-> OK issue {n}'
+            print(f'-> OK pull request {n}')
+            yield f'-> OK pull request {n}'
 
     print('Finished checking for stale pull requests')
     yield 'Finished checking for stale pull requests'
