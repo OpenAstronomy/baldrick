@@ -1,26 +1,34 @@
-import json
+from flask import current_app
 
-from flask import Blueprint, request, current_app
+from baldrick.github.github_api import RepoHandler, PullRequestHandler
+from baldrick.blueprints.github import github_webhook_handler
 
-from changebot.github.github_api import RepoHandler, PullRequestHandler
-
-pull_request_checker = Blueprint('pull_request_checker', __name__)
-
+__all__ = ['pull_request_handler']
 
 PULL_REQUEST_CHECKS = []
 
 
-def pull_request_check(func):
+def pull_request_handler(func):
     """
     A decorator to add functions to the pull request checker.
 
+    Functions decorated with this decorator will be passed events which match
+    the following actions:
 
-    The functions decorated with this decorator will be passed ``(pr_handler,
-    repo_handler)`` and are expected to return ``messages, status` where
-    messages is a list of strings to be concatenated together with the prolog
-    and epilog to form a comment message (if this is an empty list, no comment
-    will be posted) and status is either a boolean (`True` for PR passes,
-    `False` for fail) or `None` for no status check.
+    * unlabeled
+    * labeled
+    * synchronize
+    * opened
+    * milestoned
+    * demilestoned
+
+
+    They will be passed ``(pr_handler, repo_handler)`` and are expected to
+    return ``messages, status` where messages is a list of strings to be
+    concatenated together with the prolog and epilog to form a comment message
+    (if this is an empty list, no comment will be posted) and status is either
+    a boolean (`True` for PR passes, `False` for fail) or `None` for no status
+    check.
 
     These functions should return a list of strings to be appended to the
     comment on the PR.
@@ -29,29 +37,24 @@ def pull_request_check(func):
     return func
 
 
-@pull_request_checker.route('/hook', methods=['POST'])
-def hook():
+@github_webhook_handler
+def handle_pull_requests(repo_handler, payload, headers):
+    """
+    Handle pull request events which match the following event types:
+    """
 
-    event = request.headers['X-GitHub-Event']
+    event = headers['X-GitHub-Event']
 
     if event not in ('pull_request', 'issues'):
         return "Not a pull_request or issues event"
 
-    # Parse the JSON sent by GitHub
-    payload = json.loads(request.data)
-
-    if 'installation' not in payload:
-        return "No installation key found in payload"
-    else:
-        installation = payload['installation']['id']
-
     # We only need to listen to certain kinds of events:
     if event == 'pull_request':
         if payload['action'] not in ('unlabeled', 'labeled', 'synchronize', 'opened'):
-            return 'Action \'' + payload['action'] + '\' does not require action'
+            return "Action '" + payload['action'] + "' does not require action"
     elif event == 'issues':
         if payload['action'] not in ('milestoned', 'demilestoned'):
-            return 'Action \'' + payload['action'] + '\' does not require action'
+            return "Action '" + payload['action'] + "' does not require action"
 
     if event == 'pull_request':
         number = payload['pull_request']['number']
@@ -60,7 +63,7 @@ def hook():
     else:
         return "Not an issue or pull request"
 
-    return process_pull_request(payload['repository']['full_name'], number, installation)
+    return process_pull_request(repo_handler.repository, number, repo_handler.installation)
 
 
 def process_pull_request(repository, number, installation):

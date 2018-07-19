@@ -68,11 +68,12 @@ def paged_github_json_request(url, headers=None):
     return results
 
 
-class RepoHandler(object):
-
-    def __init__(self, repo, branch='master', installation=None):
+class GitHubHandler:
+    """
+    A base class for things that represent things the github app can operate on.
+    """
+    def __init__(self, repo, installation=None):
         self.repo = repo
-        self.branch = branch
         self.installation = installation
         self._cache = {}
 
@@ -85,6 +86,49 @@ class RepoHandler(object):
             return None
         else:
             return github_request_headers(self.installation)
+
+    def set_status(self, commit_hash, state, description, context, target_url=None):
+        """
+        Set status message in a pull request on GitHub.
+
+        Parameters
+        ----------
+        commit_hash: `str`
+            The commit hash to set the status on.
+
+        state : { 'pending' | 'success' | 'error' | 'failure' }
+            The state to set for the pull request.
+
+        description : str
+            The message that appears in the status line.
+
+        context : str
+            A string used to identify the status line.
+
+        target_url : str or `None`
+            Link to bot comment that is relevant to this status, if given.
+
+        """
+
+        data = {}
+        data['state'] = state
+        data['description'] = description
+        data['context'] = context
+
+        if target_url is not None:
+            data['target_url'] = target_url
+
+        url = f'{HOST}/repos/{self.repo}/statuses/{commit_hash}'
+        response = requests.post(url, json=data,
+                                 headers=self._headers)
+        assert response.ok, response.content
+
+
+class RepoHandler(GitHubHandler):
+
+    def __init__(self, repo, branch='master', installation=None):
+        self.branch = branch
+        super().__init__(repo, installation=installation)
 
     @property
     def _url_contents(self):
@@ -194,23 +238,11 @@ class RepoHandler(object):
         return [label['name'] for label in response.json()]
 
 
-class IssueHandler(object):
+class IssueHandler(GitHubHandler):
 
     def __init__(self, repo, number, installation=None):
-        self.repo = repo
         self.number = number
-        self.installation = installation
-        self._cache = {}
-
-    @property
-    def _headers(self):
-        if self.installation is None:
-            return None
-        else:
-            return github_request_headers(self.installation)
-
-    def invalidate_cache(self):
-        self._cache.clear()
+        super().__init__(repo, installation=installation)
 
     @property
     def _url_issue(self):
@@ -478,38 +510,6 @@ class PullRequestHandler(IssueHandler):
         data['event'] = decision.upper()
 
         response = requests.post(self._url_review_comment, json=data, headers=self._headers)
-        assert response.ok, response.content
-
-    def set_status(self, state, description, context, target_url=None):
-        """
-        Set status message in a pull request on GitHub.
-
-        Parameters
-        ----------
-        state : { 'pending' | 'success' | 'error' | 'failure' }
-            The state to set for the pull request.
-
-        description : str
-            The message that appears in the status line.
-
-        context : str
-            A string used to identify the status line.
-
-        target_url : str or `None`
-            Link to bot comment that is relevant to this status, if given.
-
-        """
-
-        data = {}
-        data['state'] = state
-        data['description'] = description
-        data['context'] = context
-
-        if target_url is not None:
-            data['target_url'] = target_url
-
-        response = requests.post(self._url_head_status, json=data,
-                                 headers=self._headers)
         assert response.ok, response.content
 
     @property
