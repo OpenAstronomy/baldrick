@@ -145,7 +145,7 @@ class TestProcessIssues:
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 241
         self.last_comment_date.return_value = now() - 21
-        self.find_comments.return_value = []
+        self.find_comments.return_value = [222]
 
         with app.app_context():
             # The list() call is to forge the generator to run fully
@@ -279,7 +279,7 @@ class TestProcessIssues:
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 221
         self.last_comment_date.return_value = now() - 300
-        self.find_comments.return_value = []
+        self.find_comments.return_value = [122331]
 
         with app.app_context():
             # The list() call is to forge the generator to run fully
