@@ -94,17 +94,15 @@ def process_pull_requests(repository, installation):
         # didn't exist since it's no longer relevant.
         warning_time = pr.last_comment_date('astropy-bot[bot]', filter_keep=is_close_warning)
         if warning_time is None or warning_time < commit_time:
-            has_warning = False
             time_since_last_warning = 0.
         else:
-            has_warning = True
             time_since_last_warning = now - warning_time
 
         # We only close pull requests if there has been a warning before, and
         # the time since the warning exceeds the threshold specified by
         # stale_pull_requests_close_seconds.
 
-        if has_warning and time_since_last_warning > current_app.stale_pull_requests_close_seconds:
+        if time_since_last_warning > current_app.stale_pull_requests_close_seconds:
             comment_ids = pr.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
             if not current_app.stale_pull_requests_close or not enable_autoclose:
                 print(f'-> Skipping pull request {n} (auto-close disabled)')
