@@ -25,7 +25,7 @@ def get_json_web_token():
     global json_web_token
     global json_web_token_expiry
 
-    from changebot.webapp import app
+    from baldrick.webapp import app
 
     now = datetime.datetime.now()
 

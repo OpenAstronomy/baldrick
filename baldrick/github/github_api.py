@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import dateutil.parser
 import toml
 
-from changebot.github.github_auth import github_request_headers
+from baldrick.github.github_auth import github_request_headers
 
 __all__ = ['RepoHandler', 'PullRequestHandler']
 

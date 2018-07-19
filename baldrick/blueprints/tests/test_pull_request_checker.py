@@ -3,9 +3,9 @@ from unittest.mock import patch, PropertyMock
 
 import pytest
 
-from changebot.webapp import app
-from changebot.github.github_api import RepoHandler, PullRequestHandler
-from changebot.blueprints.pull_request_checker import (
+from baldrick.webapp import app
+from baldrick.github.github_api import RepoHandler, PullRequestHandler
+from baldrick.blueprints.pull_request_checker import (
     process_changelog_consistency, CHANGELOG_PROLOGUE, CHANGELOG_NOT_DONE,
     CHANGELOG_BAD_LIST, CHANGELOG_BAD_EPILOGUE, CHANGELOG_GOOD,
     CHANGELOG_EPILOGUE)
@@ -25,7 +25,7 @@ class TestHook:
 
         headers = {'X-GitHub-Event': 'pull_request'}
 
-        with patch('changebot.blueprints.pull_request_checker.process_changelog_consistency') as p:
+        with patch('baldrick.blueprints.pull_request_checker.process_changelog_consistency') as p:
             self.client.post('/hook', data=json.dumps(data), headers=headers,
                              content_type='application/json')
             p.assert_called_with('test-repo', '1234', '123')
@@ -40,7 +40,7 @@ class TestHook:
 
         headers = {'X-GitHub-Event': 'pull_request'}
 
-        with patch('changebot.blueprints.pull_request_checker.process_changelog_consistency') as p:
+        with patch('baldrick.blueprints.pull_request_checker.process_changelog_consistency') as p:
             self.client.post('/hook', data=json.dumps(data), headers=headers,
                              content_type='application/json')
             assert p.call_count == 0
@@ -67,7 +67,7 @@ class TestProcessChangelog:
         self.patch_submit_comment = patch.object(
             PullRequestHandler, 'submit_comment', return_value='url')
         self.patch_set_status = patch.object(PullRequestHandler, 'set_status')
-        self.patch_check_changelog = patch('changebot.blueprints.pull_request_checker.check_changelog_consistency')
+        self.patch_check_changelog = patch('baldrick.blueprints.pull_request_checker.check_changelog_consistency')
 
         self.changelog_cfg = self.patch_repo_config.start()
         self.patch_pr_json.start()

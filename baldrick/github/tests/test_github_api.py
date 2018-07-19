@@ -6,8 +6,8 @@ from unittest.mock import patch, Mock, PropertyMock, MagicMock
 
 import pytest
 
-from changebot.github import github_api
-from changebot.github.github_api import (RepoHandler, IssueHandler,
+from baldrick.github import github_api
+from baldrick.github.github_api import (RepoHandler, IssueHandler,
                                          PullRequestHandler)
 
 
@@ -114,14 +114,14 @@ class TestIssueHandler:
     @pytest.mark.parametrize(('state', 'answer'),
                              [('open', False), ('closed', True)])
     def test_is_closed(self, state, answer):
-        with patch('changebot.github.github_api.IssueHandler.json', new_callable=PropertyMock) as mock_json:  # noqa
+        with patch('baldrick.github.github_api.IssueHandler.json', new_callable=PropertyMock) as mock_json:  # noqa
             mock_json.return_value = {'state': state}
             assert self.issue.is_closed is answer
 
     def test_missing_labels(self):
-        with patch('changebot.github.github_api.IssueHandler.labels', new_callable=PropertyMock) as mock_issue_labels:  # noqa
+        with patch('baldrick.github.github_api.IssueHandler.labels', new_callable=PropertyMock) as mock_issue_labels:  # noqa
             mock_issue_labels.return_value = ['io.fits']
-            with patch('changebot.github.github_api.RepoHandler.get_all_labels') as mock_repo_labels:  # noqa
+            with patch('baldrick.github.github_api.RepoHandler.get_all_labels') as mock_repo_labels:  # noqa
                 mock_repo_labels.return_value = ['io.fits', 'closed-by-bot']
 
                 # closed-by-bot label will be added to issue in POST
@@ -166,13 +166,13 @@ class TestPullRequestHandler:
             "contents_url": "https://api.github.com/repos/blah/blah/contents/file1.txt?ref=hash",
             "patch": "@@ -132,7 +132,7 @@ module Test @@ -1000,7 +1000,7 @@ module Test"
         }])
-        with patch('changebot.github.github_api.paged_github_json_request', mock):  # noqa
+        with patch('baldrick.github.github_api.paged_github_json_request', mock):  # noqa
             assert self.pr.has_modified(['file1.txt'])
             assert self.pr.has_modified(['file1.txt', 'notthis.txt'])
             assert not self.pr.has_modified(['notthis.txt'])
 
 
-@patch('changebot.github.github_api.datetime')
+@patch('baldrick.github.github_api.datetime')
 def test_special_msg(mock_time):
     import datetime
     import random
