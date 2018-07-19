@@ -111,3 +111,27 @@ def github_request_headers(installation):
     headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
 
     return headers
+
+
+def repo_to_installationid_mapping():
+    """
+    Returns a dictionary mapping full repository name to installation id.
+    """
+    url = 'https://api.github.com/app/installations'
+    headers = {}
+    headers['Authorization'] = 'Bearer {0}'.format(get_json_web_token())
+    headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
+    resp = requests.get(url, headers=headers)
+    payload = resp.json()
+
+    ids = [p['id'] for p in payload]
+
+    repos = {}
+    for iid in ids:
+        headers = github_request_headers(iid)
+        resp = requests.get('https://api.github.com/installation/repositories', headers=headers)
+        payload = resp.json()
+        for repo in payload['repositories']:
+            repos[repo['full_name']] = iid
+
+    return repos
