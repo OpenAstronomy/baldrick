@@ -132,10 +132,11 @@ WRONG_NUMBER = "The number in the changelog file does not match this pull reques
 
 @pull_request_handler
 def process_towncrier_changelog(pr_handler, repo_handler, headers):
-    if not repo_handler.get_config_value("check_towncrier_changelog", False):
-        return [], None
 
     cl_config = repo_handler.get_config_value('towncrier_changelog', {})
+
+    if not cl_config:
+        return [], None
 
     skip_label = cl_config.get('changelog_skip_label', None)
 

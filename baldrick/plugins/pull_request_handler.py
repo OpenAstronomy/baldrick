@@ -75,6 +75,7 @@ def process_pull_request(repository, number, installation):
     if pr_handler.is_closed:
         return "Pull request already close, no need to check"
 
+    # TODO: Config only from master?
     repo_handler = RepoHandler(pr_handler.head_repo_name,
                                pr_handler.head_branch, installation)
 
