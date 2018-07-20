@@ -89,7 +89,7 @@ class GitHubHandler:
 
     def set_status(self, commit_hash, state, description, context, target_url=None):
         """
-        Set status message in a pull request on GitHub.
+        Set status message on a commit on GitHub.
 
         Parameters
         ----------

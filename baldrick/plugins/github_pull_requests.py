@@ -73,18 +73,18 @@ def process_pull_request(repository, number, installation):
 
     # Don't comment on closed PR
     if pr_handler.is_closed:
-        return "Pull request already close, no need to check"
+        return "Pull request already closed, no need to check"
 
     # TODO: Config only from master?
     repo_handler = RepoHandler(pr_handler.head_repo_name,
                                pr_handler.head_branch, installation)
 
-    def is_changelog_message(message):
+    def is_previous_comment(message):
         return current_app.pull_request_substring in message
 
     # Find previous comments by this app
     comment_ids = pr_handler.find_comments(
-        f'{current_app.bot_username}[bot]', filter_keep=is_changelog_message)
+        f'{current_app.bot_username}[bot]', filter_keep=is_previous_comment)
 
     if len(comment_ids) == 0:
         comment_id = None

@@ -5,6 +5,7 @@ from collections import defaultdict
 import dateutil.parser
 
 import jwt
+from flask import current_app
 
 import requests
 
@@ -25,8 +26,6 @@ def get_json_web_token():
     global json_web_token
     global json_web_token_expiry
 
-    from baldrick.webapp import app
-
     now = datetime.datetime.now()
 
     # Include a one-minute buffer otherwise token might expire by the time we
@@ -44,10 +43,10 @@ def get_json_web_token():
         payload['exp'] = int(json_web_token_expiry.timestamp())
 
         # Integration's GitHub identifier
-        payload['iss'] = app.integration_id
+        payload['iss'] = current_app.integration_id
 
         json_web_token = jwt.encode(payload,
-                                    app.private_key.encode('ascii'),
+                                    current_app.private_key.encode('ascii'),
                                     algorithm='RS256').decode('ascii')
 
     return json_web_token

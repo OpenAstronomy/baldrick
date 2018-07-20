@@ -1,7 +1,6 @@
 import os
 
 from flask import Flask
-
 from werkzeug.contrib.fixers import ProxyFix
 
 from baldrick.blueprints import github, circleci
@@ -15,9 +14,9 @@ def create_app(name, register_blueprints=True):
 
     Parameters
     ----------
-
     name : `str`
-        The name to be passed to ``Flask``.
+        The name to be passed to ``Flask``. This will also be used as the bot
+        user name. This can be overridden with ``app.bot_username``.
 
     register_blueprints : `bool`
         Register the default blueprints included with Baldrick.
@@ -28,17 +27,18 @@ def create_app(name, register_blueprints=True):
 
     """
 
-    app = Flask('sunpy-bot')
+    app = Flask(name)
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
 
     app.integration_id = int(os.environ['GITHUB_APP_INTEGRATION_ID'])
     app.private_key = os.environ['GITHUB_APP_PRIVATE_KEY']
 
-    app.bot_username = 'sunpy-bot'
+    app.bot_username = name
 
-    app.register_blueprint(github)
-    app.register_blueprint(circleci)
+    if register_blueprints:
+        app.register_blueprint(github)
+        app.register_blueprint(circleci)
 
     @app.route("/")
     def index():

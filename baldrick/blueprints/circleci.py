@@ -18,7 +18,6 @@ def circleci_webhook_handler(func):
     The functions decorated with this decorator will be called with
     ``(repo_handler, payload, headers)``. Nothing will be done with the return values.
     """
-
     CIRCLECI_HANDLERS.append(func)
     return func
 
