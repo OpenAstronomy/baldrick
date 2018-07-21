@@ -12,15 +12,15 @@ def process_milestone(pr_handler, repo_handler):
     """
     A very simple set a failing status if the milestone is not set.
     """
-    mc_config = repo_handler.get_config_value("milestone_checker", {})
+    mc_config = repo_handler.get_config_value("milestones", None)
 
-    if not mc_config:
+    if mc_config is None:
         return [], None
 
-    fail_message = repo_handler.get_config_value("milestone_checker", {}).get("missing_message", MISSING_MESSAGE)
-    pass_message = repo_handler.get_config_value("milestone_checker", {}).get("present_message", PRESENT_MESSAGE)
+    fail_message = mc_config.get("missing_message", MISSING_MESSAGE)
+    pass_message = mc_config.get("present_message", PRESENT_MESSAGE)
 
-    if not repo_handler.get_config_value('post_pr_comment', False):
+    if not repo_handler.get_config_value('pull_requests', {}).get("post_pr_comment", False):
         if not pr_handler.milestone:
             pr_handler.set_status('failure', fail_message, current_app.bot_username + ": milestone")
         else:

@@ -71,11 +71,16 @@ def process_pull_request(repository, number, installation):
     # certain events.
     pr_handler = PullRequestHandler(repository, number, installation)
 
+    pr_config = pr_handler.get_config_value("pull_requests", None)
+
+    # Disable if the config is not present
+    if pr_config is None:
+        return
+
     # Don't comment on closed PR
     if pr_handler.is_closed:
         return "Pull request already closed, no need to check"
 
-    # TODO: Config only from master?
     repo_handler = RepoHandler(pr_handler.head_repo_name,
                                pr_handler.head_branch, installation)
 
@@ -108,7 +113,7 @@ def process_pull_request(repository, number, installation):
         comment_url = pr_handler.submit_comment(message, comment_id=comment_id,
                                                 return_url=True)
     else:
-        all_passed_message = repo_handler.get_config_value("all_passed_message", '')
+        all_passed_message = pr_config.get("all_passed_message", '')
         all_passed_message = all_passed_message.format(pr_handler=pr_handler, repo_handler=repo_handler)
         if comment_id and all_passed_message:
             pr_handler.submit_comment(all_passed_message, comment_id=comment_id)
@@ -118,10 +123,10 @@ def process_pull_request(repository, number, installation):
 
     if set_status:
         if status:
-            pr_handler.set_status('success', current_app.pull_request_passed, current_app.bot_username,
-                                  target_url=comment_url)
+            pr_handler.set_status('success', pr_config.get("pr_passed_status", "Passed all checks"),
+                                  current_app.bot_username, target_url=comment_url)
         else:
-            pr_handler.set_status('failure', current_app.pull_request_failed, current_app.bot_username,
-                                  target_url=comment_url)
+            pr_handler.set_status('failure', pr_config.get("pr_failed_status", "Failed some checks"),
+                                  current_app.bot_username, target_url=comment_url)
 
     return message

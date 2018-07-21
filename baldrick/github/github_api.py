@@ -5,8 +5,9 @@ import requests
 import warnings
 from datetime import datetime, timedelta
 
-import dateutil.parser
 import toml
+import dateutil.parser
+from flask import current_app
 
 from baldrick.github.github_auth import github_request_headers
 
@@ -87,6 +88,67 @@ class GitHubHandler:
         else:
             return github_request_headers(self.installation)
 
+    def get_file_contents(self, path_to_file, branch=None):
+        if not branch:
+            branch = 'master'
+        url_file = self._url_contents + path_to_file
+        data = {'ref': branch}
+        response = requests.get(url_file, params=data, headers=self._headers)
+        if not response.ok and response.json()['message'] == 'Not Found':
+            raise FileNotFoundError(path_to_file)
+        assert response.ok, response.content
+        contents_base64 = response.json()['content']
+        return base64.b64decode(contents_base64).decode()
+
+    def get_user_config(self, branch=None, path_to_file='pyproject.toml',
+                        warn_on_failure=True):
+        """
+        Load user configuration for bot.
+
+        Parameters
+        ----------
+        branch : `str`
+            The branch to read the config file from. (Will default to 'master')
+
+        path_to_file : `str`
+            Path to the ``pyproject.toml`` file in the repository. Will default
+            to the root of the repository.
+
+        warn_on_failure : `bool`
+            Emit warning on failure to load the pyproject file.
+
+        Returns
+        -------
+        cfg : dict
+            Configuration parameters.
+
+        """
+        # Allow non-existent file but raise error when cannot parse
+        try:
+            file_content = self.get_file_contents(path_to_file, branch=branch)
+            cfg = toml.loads(file_content)
+            cfg = cfg['tool'][current_app.bot_username]
+        except Exception as e:
+            if warn_on_failure:
+                warnings.warn(str(e))
+            # Empty dict means calling code set the default
+            cfg = {}
+
+        return cfg
+
+    def get_config_value(self, cfg_key, cfg_default, branch=None):
+        """
+        Convenience method to extract user config from global cache.
+        """
+        global cfg_cache
+
+        cfg_cache_key = (self.repo, branch, self.installation)
+        if cfg_cache_key not in cfg_cache:
+            cfg_cache[cfg_cache_key] = self.get_user_config(branch=branch)
+
+        cfg = cfg_cache.get(cfg_cache_key, {})
+        return cfg.get(cfg_key, cfg_default)
+
     def set_status(self, commit_hash, state, description, context, target_url=None):
         """
         Set status message on a commit on GitHub.
@@ -141,62 +203,6 @@ class RepoHandler(GitHubHandler):
     def open_pull_requests(self):
         pull_requests = paged_github_json_request(self._url_pull_requests, headers=self._headers)
         return [pr['number'] for pr in pull_requests]
-
-    def get_file_contents(self, path_to_file):
-        url_file = self._url_contents + path_to_file
-        data = {'ref': self.branch}
-        response = requests.get(url_file, params=data, headers=self._headers)
-        if not response.ok and response.json()['message'] == 'Not Found':
-            raise FileNotFoundError(path_to_file)
-        assert response.ok, response.content
-        contents_base64 = response.json()['content']
-        return base64.b64decode(contents_base64).decode()
-
-    def get_user_config(self, path_to_file='pyproject.toml',
-                        warn_on_failure=True):
-        """
-        Load user configuration for bot.
-
-        Parameters
-        ----------
-        path_to_file : str
-            Path to the ``pyproject.toml`` file in the repository. Will default
-            to the root of the repository.
-
-        warn_on_failure : bool
-            Emit warning on failure to load the pyproject file.
-
-        Returns
-        -------
-        cfg : dict
-            Configuration parameters.
-
-        """
-        # Allow non-existent file but raise error when cannot parse
-        try:
-            file_content = self.get_file_contents(path_to_file)
-            cfg = toml.loads(file_content)
-            cfg = cfg['tool']['astropy-bot']
-        except Exception as e:
-            if warn_on_failure:
-                warnings.warn(str(e))
-            # Empty dict means calling code set the default
-            cfg = {}
-
-        return cfg
-
-    def get_config_value(self, cfg_key, cfg_default):
-        """
-        Convenience method to extract user config from global cache.
-        """
-        global cfg_cache
-
-        cfg_cache_key = (self.repo, self.branch, self.installation)
-        if cfg_cache_key not in cfg_cache:
-            cfg_cache[cfg_cache_key] = self.get_user_config()
-
-        cfg = cfg_cache.get(cfg_cache_key, {})
-        return cfg.get(cfg_key, cfg_default)
 
     def get_issues(self, state, labels, exclude_pr=True):
         """
@@ -473,12 +479,59 @@ class PullRequestHandler(IssueHandler):
         return self.json['head']['ref']
 
     @property
+    def base_branch(self):
+        return self.json['base']['ref']
+
+    @property
+    def base_sha(self):
+        return self.json['base']['sha']
+
+    @property
     def milestone(self):
         milestone = self.json['milestone']
         if milestone is None:
             return ''
         else:
             return milestone['title']
+
+    def get_file_contents(self, path_to_file, branch=None):
+        """
+        Get the contents of a file.
+
+        This will get the file from the head branch of the PR by default.
+        """
+        if not branch:
+            branch = self.head_branch
+        return super().get_file_contents(path_to_file, branch=branch)
+
+    def get_user_config(self, branch=None, path_to_file='pyproject.toml',
+                        warn_on_failure=True):
+        """
+        Load user configuration for bot.
+
+        Parameters
+        ----------
+        branch : `str`
+            The branch to read the config file from. (Will default to the base
+            branch of the PR i.e. the one the PR is opened against.)
+
+        path_to_file : `str`
+            Path to the ``pyproject.toml`` file in the repository. Will default
+            to the root of the repository.
+
+        warn_on_failure : `bool`
+            Emit warning on failure to load the pyproject file.
+
+        Returns
+        -------
+        cfg : dict
+            Configuration parameters.
+
+        """
+        if not branch:
+            branch = self.base_branch
+        return super().get_user_config(branch=branch, path_to_file=path_to_file,
+                                       warn_on_failure=warn_on_failure)
 
     def has_modified(self, filelist):
         """Check if PR has modified any of the given list of filename(s)."""
