@@ -3,7 +3,7 @@
 [ tool.baldrick ]
 
   [ tool.baldrick.pull_requests ]
-    post_pr_comment = True
+    post_pr_comment = true
     all_passed_message = ''
    
   [ tool.baldrick.milestones ]
