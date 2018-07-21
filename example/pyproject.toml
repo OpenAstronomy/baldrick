@@ -1,0 +1,50 @@
+[ tool.sunpy-bot ]
+
+  [ tool.sunpy-bot.pull_request_checker ]
+    post_pr_comment = true
+
+    all_passed_message = """
+
+  Thanks for the pull request @{pr_handler.user}! Everything looks great!
+"""
+
+  [ tool.sunpy-bot.milestone_checker ]
+
+    missing_message = """
+
+
+* This pull request does not have a milestone assigned to it. Only maintainers can change this, so you don't need to worry about it. :smile:
+"""
+
+  [ tool.sunpy-bot.towncrier_changelog ]
+   verify_pr_number = True
+   changelog_skip_label = "No Changelog Entry Needed"
+   help_url = "https://github.com/sunpy/sunpy/blob/towncrier/changelog/README.rst"
+
+  # Thanks for the pull request @{pr_handler.user}!
+  # 
+  # I am a bot that checks pull requests for milestones and changelog entries. I
+  #  have the following to report on this pull request:
+
+    missing_file_message = """
+
+
+* I didn't detect a changelog file in this pull request, and it is not labelled 'No Changelog Entry Needed'.
+  Please add a changelog file to the `changelog/` directory following the instructions in the changelog [README](https://github.com/Cadair/sunpy/blob/towncrier/changelog/README.rst).
+"""
+    wrong_type_message = """
+
+
+* The changelog file you added, is not one of the allowed types. Please use one of the types described in the changelog [README](https://github.com/Cadair/sunpy/blob/towncrier/changelog/README.rst)
+"""
+
+    wrong_number_message = """
+
+
+* The number in the changelog file you added does not match the number of this pull request. Please rename the file.
+"""
+
+[tool.towncrier]
+    package = "changebot"
+    filename = "CHANGELOG.rst"
+    directory = "changelog/"

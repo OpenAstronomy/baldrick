@@ -1,0 +1,7 @@
+flask
+requests
+cryptography
+toml
+git+https://github.com/Cadair/baldrick
+python-dateutil
+pygithub
