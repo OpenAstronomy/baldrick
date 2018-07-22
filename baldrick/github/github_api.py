@@ -149,15 +149,12 @@ class GitHubHandler:
         cfg = cfg_cache.get(cfg_cache_key, {})
         return cfg.get(cfg_key, cfg_default)
 
-    def set_status(self, commit_hash, state, description, context, target_url=None):
+    def set_status(self, state, description, context, commit_hash, target_url=None):
         """
         Set status message on a commit on GitHub.
 
         Parameters
         ----------
-        commit_hash: `str`
-            The commit hash to set the status on.
-
         state : { 'pending' | 'success' | 'error' | 'failure' }
             The state to set for the pull request.
 
@@ -166,6 +163,9 @@ class GitHubHandler:
 
         context : str
             A string used to identify the status line.
+
+        commit_hash: `str`
+            The commit hash to set the status on.
 
         target_url : str or `None`
             Link to bot comment that is relevant to this status, if given.
@@ -433,6 +433,35 @@ class IssueHandler(GitHubHandler):
 
 
 class PullRequestHandler(IssueHandler):
+
+    def set_status(self, state, description, context, commit_hash="head", target_url=None):
+        """
+        Set status message on a commit on GitHub.
+
+        Parameters
+        ----------
+        state : { 'pending' | 'success' | 'error' | 'failure' }
+            The state to set for the pull request.
+
+        description : str
+            The message that appears in the status line.
+
+        context : str
+            A string used to identify the status line.
+
+        commit_hash: `str`
+            The commit hash to set the status on. Defaults to "head" can also be "base".
+
+        target_url : str or `None`
+            Link to bot comment that is relevant to this status, if given.
+
+        """
+        if commit_hash == "head":
+            commit_hash = self.head_sha
+        elif commit_hash == "base":
+            commit_hash = self.base_sha
+
+        super().set_status(state, description, context, commit_hash, target_url)
 
     @property
     def _url_pull_request(self):

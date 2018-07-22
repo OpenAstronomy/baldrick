@@ -163,11 +163,11 @@ def process_towncrier_changelog(pr_handler, repo_handler, headers):
     if not repo_handler.get_config_value('post_pr_comment', False):
         if messages:
             message = ' '.join(messages)
-            pr_handler.set_status(pr_handler.head_sha, 'failure', message, current_app.bot_username + ': changelog',
+            pr_handler.set_status('failure', message, current_app.bot_username + ': changelog',
                                   target_url=cl_config.get('help_url', None))
             return [], None
         else:
-            pr_handler.set_status(pr_handler.head_sha, 'success', "The changelog looks good.", current_app.bot_username + ': changelog')
+            pr_handler.set_status('success', "The changelog looks good.", current_app.bot_username + ': changelog')
             return [], None
     else:
         if messages:

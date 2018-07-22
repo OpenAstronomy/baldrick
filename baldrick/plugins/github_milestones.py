@@ -22,9 +22,9 @@ def process_milestone(pr_handler, repo_handler):
 
     if not repo_handler.get_config_value('pull_requests', {}).get("post_pr_comment", False):
         if not pr_handler.milestone:
-            pr_handler.set_status(pr_handler.head_sha, 'failure', fail_message, current_app.bot_username + ": milestone")
+            pr_handler.set_status('failure', fail_message, current_app.bot_username + ": milestone")
         else:
-            pr_handler.set_status(pr_handler.head_sha, 'success', pass_message, current_app.bot_username + ": milestone")
+            pr_handler.set_status('success', pass_message, current_app.bot_username + ": milestone")
 
         return [], None
 

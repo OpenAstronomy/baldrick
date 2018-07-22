@@ -118,11 +118,11 @@ def process_pull_request(repository, number, installation):
 
     if set_status:
         if status:
-            pr_handler.set_status(pr_handler.head_sha, 'success',
+            pr_handler.set_status('success',
                                   pr_config.get("pr_passed_status", "Passed all checks"),
                                   current_app.bot_username, target_url=comment_url)
         else:
-            pr_handler.set_status(pr_handler.head_sha, 'failure',
+            pr_handler.set_status('failure',
                                   pr_config.get("pr_failed_status", "Failed some checks"),
                                   current_app.bot_username, target_url=comment_url)
 
