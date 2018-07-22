@@ -117,12 +117,7 @@ def requests_patch(url, headers=None):
     return req
 
 
-def test_repo_to_installationid_mapping():
-
-    os.environ['GITHUB_APP_INTEGRATION_ID'] = '22223'
-    os.environ['GITHUB_APP_PRIVATE_KEY'] = PRIVATE_KEY
-
-    app = create_app('testbot')
+def test_repo_to_installationid_mapping(app):
 
     with app.app_context():
         with patch('requests.post') as post:

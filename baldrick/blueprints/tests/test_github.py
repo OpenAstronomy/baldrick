@@ -1,9 +1,7 @@
-import os
 import json
 from copy import copy
 from unittest.mock import MagicMock
 
-from baldrick import create_app
 from baldrick.blueprints.github import github_webhook_handler, GITHUB_WEBHOOK_HANDLERS
 
 
@@ -21,16 +19,12 @@ def teardown_module(module):
 
 class TestHook:
 
-    def setup_class(self):
-        os.environ['GITHUB_APP_INTEGRATION_ID'] = '22223'
-        os.environ['GITHUB_APP_PRIVATE_KEY'] = 'ABCD'
-        self.app = create_app('testbot')
-
     def setup_method(self, method):
-        self.client = self.app.test_client()
         test_hook.resetmock()
 
-    def test_valid(self):
+    def test_valid(self, app):
+
+        client = app.test_client()
 
         data = {'pull_request': {'number': '1234'},
                 'repository': {'full_name': 'test-repo'},
@@ -39,13 +33,15 @@ class TestHook:
 
         headers = {'X-GitHub-Event': 'pull_request'}
 
-        self.client.post('/github', data=json.dumps(data), headers=headers,
-                         content_type='application/json')
+        client.post('/github', data=json.dumps(data), headers=headers,
+                    content_type='application/json')
 
         assert test_hook.call_args[0][1]['pull_request']['number'] == '1234'
         assert test_hook.call_args[0][1]['installation']['id'] == '123'
 
-    def test_missing_installation(self):
+    def test_missing_installation(self, app):
+
+        client = app.test_client()
 
         data = {'pull_request': {'number': '1234'},
                 'repository': {'full_name': 'test-repo'},
@@ -53,16 +49,18 @@ class TestHook:
 
         headers = {'X-GitHub-Event': 'pull_request'}
 
-        result = self.client.post('/github', data=json.dumps(data), headers=headers,
-                                  content_type='application/json')
+        result = client.post('/github', data=json.dumps(data), headers=headers,
+                             content_type='application/json')
 
         assert result.get_data() == b'No installation key found in payload'
 
-    def test_missing_payload(self):
+    def test_missing_payload(self, app):
+
+        client = app.test_client()
 
         headers = {'X-GitHub-Event': 'pull_request'}
 
-        result = self.client.post('/github', headers=headers,
-                                  content_type='application/json')
+        result = client.post('/github', headers=headers,
+                             content_type='application/json')
 
         assert result.get_data() == b'No payload received'
