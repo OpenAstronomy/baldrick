@@ -6,9 +6,10 @@ from unittest.mock import patch, Mock, PropertyMock, MagicMock
 
 import pytest
 
+from baldrick.conftest import app
 from baldrick.github import github_api
-from baldrick.github.github_api import (RepoHandler, IssueHandler,
-                                         PullRequestHandler)
+from baldrick.github.github_api import (GitHubHandler, RepoHandler, IssueHandler,
+                                        PullRequestHandler)
 
 
 # TODO: Add more tests to increase coverage.
@@ -47,33 +48,34 @@ class TestRepoHandler:
         assert self.repo._headers is None
 
 
-# NOTE: Might hit API limit?
+
+TEST_CONFIG = """
+[tool.testbot]
+changelog_check = false
+autoclose_stale_pull_request = false
+"""
+
+
 class TestRealRepoHandler:
     def setup_class(self):
         self.repo = RepoHandler('astropy/astropy-bot')
 
     def test_get_config(self):
-        # These are set to False in YAML; defaults must not be used.
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            do_changelog_check = self.repo.get_config_value(
-                'changelog_check', True)
-            do_autoclose_pr = self.repo.get_config_value(
-                'autoclose_stale_pull_request', True)
 
-        hit_api_limit = False
-        other_warns = []
-        for ww in w:
-            s = str(ww.message)
-            if 'API rate limit' in s:
-                hit_api_limit = True
-            else:
-                other_warns.append(s)
+        with app.app_context():
 
-        if hit_api_limit:
-            pytest.xfail(s)
-        elif len(other_warns) > 0:
-            raise AssertionError(os.linesep.join(other_warns))
+            with patch.object(self.repo, 'get_file_contents') as mock_get:  # noqa
+
+                mock_get.return_value = TEST_CONFIG
+
+                # These are set to False in YAML; defaults must not be used.
+                with warnings.catch_warnings(record=True) as w:
+                    warnings.simplefilter('always')
+                    do_changelog_check = self.repo.get_config_value('changelog_check', True)
+                    do_autoclose_pr = self.repo.get_config_value('autoclose_stale_pull_request', True)
+
+        if len(w) > 0:
+            raise AssertionError(os.linesep.join(w))
         else:
             assert not (do_changelog_check or do_autoclose_pr)
 

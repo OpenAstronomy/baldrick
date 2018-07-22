@@ -11,7 +11,7 @@ from flask import current_app
 
 from baldrick.github.github_auth import github_request_headers
 
-__all__ = ['RepoHandler', 'PullRequestHandler']
+__all__ = ['GitHubHandler', 'RepoHandler', 'PullRequestHandler']
 
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
