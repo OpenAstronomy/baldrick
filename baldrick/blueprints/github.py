@@ -7,10 +7,10 @@ from baldrick.github.github_api import RepoHandler
 __all__ = ['github', 'github_webhook_handler']
 
 
-github = Blueprint('github', __name__)
+github_blueprint = Blueprint('github', __name__)
 
 
-GITHUB_WEBOOK_HANDLERS = []
+GITHUB_WEBHOOK_HANDLERS = []
 
 
 def github_webhook_handler(func):
@@ -21,12 +21,15 @@ def github_webhook_handler(func):
     The functions decorated with this decorator will be passed
     ``(repo_handler, payload, headers)``
     """
-    GITHUB_WEBOOK_HANDLERS.append(func)
+    GITHUB_WEBHOOK_HANDLERS.append(func)
     return func
 
 
-@github.route('/github', methods=['POST'])
+@github_blueprint.route('/github', methods=['POST'])
 def github_webhook():
+
+    if not request.data:
+        return "No payload received"
 
     # Parse the JSON sent by GitHub
     payload = json.loads(request.data)
@@ -39,5 +42,5 @@ def github_webhook():
     repo_name = payload['repository']['full_name']
     repo = RepoHandler(repo_name, installation=installation)
 
-    for handler in GITHUB_WEBOOK_HANDLERS:
+    for handler in GITHUB_WEBHOOK_HANDLERS:
         handler(repo, payload, request.headers)

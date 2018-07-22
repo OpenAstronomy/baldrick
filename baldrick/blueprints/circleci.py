@@ -5,10 +5,10 @@ from baldrick.github.github_api import RepoHandler
 
 from flask import Blueprint, request
 
-circleci = Blueprint('circleci', __name__)
+circleci_blueprint = Blueprint('circleci', __name__)
 
 
-CIRCLECI_HANDLERS = []
+CIRCLECI_WEBHOOK_HANDLERS = []
 
 
 def circleci_webhook_handler(func):
@@ -18,15 +18,15 @@ def circleci_webhook_handler(func):
     The functions decorated with this decorator will be called with
     ``(repo_handler, payload, headers)``. Nothing will be done with the return values.
     """
-    CIRCLECI_HANDLERS.append(func)
+    CIRCLECI_WEBHOOK_HANDLERS.append(func)
     return func
 
 
-@circleci.route('/circleci', methods=['POST'])
+@circleci_blueprint.route('/circleci', methods=['POST'])
 def circleci_handler():
 
     if not request.data:
-        print("No payload received")
+        return "No payload received"
 
     payload = json.loads(request.data)['payload']
 
@@ -49,5 +49,5 @@ def circleci_handler():
 
     repo_handler = RepoHandler(repo, branch="master", installation=repos[repo])
 
-    for handler in CIRCLECI_HANDLERS:
+    for handler in CIRCLECI_WEBHOOK_HANDLERS:
         handler(repo_handler, payload, request.headers)
