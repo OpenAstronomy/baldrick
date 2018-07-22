@@ -1,10 +1,11 @@
 import os
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from baldrick import create_app
-from baldrick.github.github_auth import get_json_web_token, get_installation_token
+from baldrick.github.github_auth import (get_json_web_token, get_installation_token,
+                                         github_request_headers, repo_to_installationid_mapping)
 
 
 PRIVATE_KEY = """
@@ -94,3 +95,40 @@ def test_get_installation_token_invalid_without_message():
         with pytest.raises(Exception) as exc:
             get_installation_token(12345)
         assert exc.value.args[0] == "An error occurred when requesting token"
+
+
+def test_github_request_headers():
+
+    with patch('requests.post') as post:
+        post.return_value.ok = True
+        post.return_value.json.return_value = TOKEN_RESPONSE_VALID
+        headers = github_request_headers(12345)
+
+    assert headers['Authorization'] == 'token v1.1f699f1069f60xxx'
+
+
+def requests_patch(url, headers=None):
+    req = MagicMock()
+    if url == 'https://api.github.com/app/installations':
+        req.json.return_value = [{'id': 3331}]
+    elif url == 'https://api.github.com/installation/repositories':
+        req.json.return_value = {'repositories': [{'full_name': 'test1'},
+                                                  {'full_name': 'test2'}]}
+    return req
+
+
+def test_repo_to_installationid_mapping():
+
+    os.environ['GITHUB_APP_INTEGRATION_ID'] = '22223'
+    os.environ['GITHUB_APP_PRIVATE_KEY'] = PRIVATE_KEY
+
+    app = create_app('testbot')
+
+    with app.app_context():
+        with patch('requests.post') as post:
+            post.return_value.ok = True
+            post.return_value.json.return_value = TOKEN_RESPONSE_VALID
+            with patch('requests.get', requests_patch):
+                mapping = repo_to_installationid_mapping()
+
+    assert mapping == {'test1': 3331, 'test2': 3331}
