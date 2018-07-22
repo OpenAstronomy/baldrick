@@ -22,16 +22,12 @@ def pull_request_handler(func):
     * milestoned
     * demilestoned
 
-
     They will be passed ``(pr_handler, repo_handler)`` and are expected to
     return ``messages, status` where messages is a list of strings to be
-    concatenated together with the prolog and epilog to form a comment message
-    (if this is an empty list, no comment will be posted) and status is either
-    a boolean (`True` for PR passes, `False` for fail) or `None` for no status
+    concatenated together with the prolog and epilogue to form a comment message
+    (if this is an empty list, no comment will be posted) and status is either a
+    boolean (`True` for PR passes, `False` for fail) or `None` for no status
     check.
-
-    These functions should return a list of strings to be appended to the
-    comment on the PR.
     """
     PULL_REQUEST_CHECKS.append(func)
     return func
