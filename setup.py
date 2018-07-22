@@ -9,7 +9,7 @@ setup(version='0.0.dev0',
       install_requires=[
           "flask",
           "flask-dance",
-          "jwt",
+          "pyjwt",
           "requests",
           "cryptography",
           "python-dateutil",

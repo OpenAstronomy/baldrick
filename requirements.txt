@@ -1,6 +1,6 @@
 flask
 flask-dance
-jwt
+pyjwt
 requests
 cryptography
 python-dateutil
