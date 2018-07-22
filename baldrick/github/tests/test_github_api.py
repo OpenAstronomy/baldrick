@@ -8,7 +8,7 @@ import pytest
 
 from baldrick.conftest import app
 from baldrick.github import github_api
-from baldrick.github.github_api import (GitHubHandler, RepoHandler, IssueHandler,
+from baldrick.github.github_api import (RepoHandler, IssueHandler,
                                         PullRequestHandler)
 
 
@@ -46,7 +46,6 @@ class TestRepoHandler:
         assert self.repo._url_contents == 'https://api.github.com/repos/fakerepo/doesnotexist/contents/'
         assert self.repo._url_pull_requests == 'https://api.github.com/repos/fakerepo/doesnotexist/pulls'
         assert self.repo._headers is None
-
 
 
 TEST_CONFIG = """
