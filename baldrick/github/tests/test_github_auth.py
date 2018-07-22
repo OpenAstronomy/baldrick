@@ -1,9 +1,6 @@
-import os
-
 import pytest
 from unittest.mock import patch, MagicMock
 
-from baldrick import create_app
 from baldrick.github.github_auth import (get_json_web_token, get_installation_token,
                                          github_request_headers, repo_to_installationid_mapping)
 

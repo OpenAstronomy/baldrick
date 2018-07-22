@@ -15,6 +15,7 @@ post_pr_comment = {post_pr_comment}
 all_passed_message = {all_passed_message}
 """
 
+
 def setup_module(module):
     module.PULL_REQUEST_CHECKS_ORIG = copy(PULL_REQUEST_CHECKS)
     pull_request_handler(test_hook)
