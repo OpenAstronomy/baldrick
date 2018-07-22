@@ -22,10 +22,10 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers):
             url = get_documentation_url_from_artifacts(artifacts, config['url'])
 
             if url:
-                repo_handler.set_status(name,
-                                        "success",
-                                        config['message'],
-                                        payload['vcs_revision'],
+                repo_handler.set_status("success",
+                                        config["message"],
+                                        name,
+                                        payload["vcs_revision"],
                                         url)
 
     return "All good"
