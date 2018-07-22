@@ -1,0 +1,10 @@
+[run]
+source = baldrick
+omit = baldrick/tests/*
+       baldrick/*/tests/*
+       baldrick/*/*/tests/*
+
+[report]
+omit = baldrick/tests/*
+       baldrick/*/tests/*
+       baldrick/*/*/tests/*
