@@ -9,6 +9,7 @@ test_hook = MagicMock()
 
 def setup_module(module):
     module.CIRCLECI_WEBOOK_HANDLERS_ORIGINAL = copy(CIRCLECI_WEBHOOK_HANDLERS)
+    CIRCLECI_WEBHOOK_HANDLERS[:] = []
     circleci_webhook_handler(test_hook)
 
 

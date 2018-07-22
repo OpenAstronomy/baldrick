@@ -10,6 +10,7 @@ test_hook = MagicMock()
 
 def setup_module(module):
     module.GITHUB_WEBOOK_HANDLERS_ORIGINAL = copy(GITHUB_WEBHOOK_HANDLERS)
+    GITHUB_WEBHOOK_HANDLERS[:] = []
     github_webhook_handler(test_hook)
 
 

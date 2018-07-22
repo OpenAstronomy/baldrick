@@ -59,7 +59,7 @@ def handle_pull_requests(repo_handler, payload, headers):
     else:
         return "Not an issue or pull request"
 
-    return process_pull_request(repo_handler.repository, number, repo_handler.installation)
+    return process_pull_request(repo_handler.repo, number, repo_handler.installation)
 
 
 def process_pull_request(repository, number, installation):
@@ -119,10 +119,12 @@ def process_pull_request(repository, number, installation):
 
     if set_status:
         if status:
-            pr_handler.set_status('success', pr_config.get("pr_passed_status", "Passed all checks"),
+            pr_handler.set_status(pr_handler.head_sha, 'success',
+                                  pr_config.get("pr_passed_status", "Passed all checks"),
                                   current_app.bot_username, target_url=comment_url)
         else:
-            pr_handler.set_status('failure', pr_config.get("pr_failed_status", "Failed some checks"),
+            pr_handler.set_status(pr_handler.head_sha, 'failure',
+                                  pr_config.get("pr_failed_status", "Failed some checks"),
                                   current_app.bot_username, target_url=comment_url)
 
     return message
