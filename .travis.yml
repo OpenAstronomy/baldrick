@@ -27,4 +27,4 @@ script:
     - $MAIN_CMD
 
 after_success:
-    - if [[ $MAIN_CMD == *--cov* ]]; then coveralls; fi;
+    - codecov
