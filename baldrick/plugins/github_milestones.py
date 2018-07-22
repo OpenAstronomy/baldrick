@@ -1,13 +1,13 @@
 from flask import current_app
 
-from .github_pull_requests import pull_request_check
+from .github_pull_requests import pull_request_handler
 
 
 MISSING_MESSAGE = 'This pull request has no milestone set.'
 PRESENT_MESSAGE = 'This pull request has a milestone set.'
 
 
-@pull_request_check
+@pull_request_handler
 def process_milestone(pr_handler, repo_handler):
     """
     A very simple set a failing status if the milestone is not set.
