@@ -21,9 +21,7 @@ class TestHook:
     def setup_method(self, method):
         test_hook.resetmock()
 
-    def test_valid(self, app):
-
-        client = app.test_client()
+    def test_valid(self, app, client):
 
         payload = {'vcs_revision': '2.0',
                    'username': 'test',
@@ -40,9 +38,7 @@ class TestHook:
 
         assert test_hook.call_args[0][1]['vcs_revision'] == '2.0'
 
-    def test_incorrect_repo(self, app):
-
-        client = app.test_client()
+    def test_incorrect_repo(self, app, client):
 
         payload = {'vcs_revision': '2.0',
                    'username': 'test',
@@ -59,9 +55,7 @@ class TestHook:
 
         assert result.get_data() == b'circleci: Not installed for test/testbot2'
 
-    def test_missing_payload_key(self, app):
-
-        client = app.test_client()
+    def test_missing_payload_key(self, app, client):
 
         payload = {'vcs_revision': '2.0',
                    'username': 'test',
@@ -75,9 +69,7 @@ class TestHook:
 
         assert result.get_data() == b'Payload missing reponame'
 
-    def test_missing_payload(self, app):
-
-        client = app.test_client()
+    def test_missing_payload(self, app, client):
 
         headers = {'X-GitHub-Event': 'pull_request'}
 

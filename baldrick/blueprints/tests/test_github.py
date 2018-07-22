@@ -22,9 +22,7 @@ class TestHook:
     def setup_method(self, method):
         test_hook.resetmock()
 
-    def test_valid(self, app):
-
-        client = app.test_client()
+    def test_valid(self, app, client):
 
         data = {'pull_request': {'number': '1234'},
                 'repository': {'full_name': 'test-repo'},
@@ -39,9 +37,7 @@ class TestHook:
         assert test_hook.call_args[0][1]['pull_request']['number'] == '1234'
         assert test_hook.call_args[0][1]['installation']['id'] == '123'
 
-    def test_missing_installation(self, app):
-
-        client = app.test_client()
+    def test_missing_installation(self, app, client):
 
         data = {'pull_request': {'number': '1234'},
                 'repository': {'full_name': 'test-repo'},
@@ -54,9 +50,7 @@ class TestHook:
 
         assert result.get_data() == b'No installation key found in payload'
 
-    def test_missing_payload(self, app):
-
-        client = app.test_client()
+    def test_missing_payload(self, app, client):
 
         headers = {'X-GitHub-Event': 'pull_request'}
 
