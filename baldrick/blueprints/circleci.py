@@ -5,6 +5,8 @@ from baldrick.github.github_api import RepoHandler
 
 from flask import Blueprint, request
 
+__all__ = ['circleci_blueprint', 'circleci_webhook_handler']
+
 circleci_blueprint = Blueprint('circleci', __name__)
 
 

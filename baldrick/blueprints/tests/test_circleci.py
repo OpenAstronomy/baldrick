@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 from baldrick import create_app
 from baldrick.blueprints.circleci import circleci_webhook_handler, CIRCLECI_WEBHOOK_HANDLERS
 
-
 test_hook = MagicMock()
 
 
@@ -64,8 +63,7 @@ class TestHook:
 
         assert result.get_data() == b'circleci: Not installed for test/testbot2'
 
-
-    def test_valid(self):
+    def test_missing_payload_key(self):
 
         payload = {'vcs_revision': '2.0',
                    'username': 'test',
@@ -75,10 +73,9 @@ class TestHook:
         data = {'payload': payload}
 
         result = self.client.post('/circleci', data=json.dumps(data),
-                         content_type='application/json')
+                                  content_type='application/json')
 
         assert result.get_data() == b'Payload missing reponame'
-
 
     def test_missing_payload(self):
 

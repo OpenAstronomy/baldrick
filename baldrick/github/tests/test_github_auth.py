@@ -53,7 +53,7 @@ def test_get_json_web_token():
         # If we run it again immediately we should get the same token back
         token2 = get_json_web_token()
 
-    assert token1
+    assert token1 == token2
 
 
 TOKEN_RESPONSE_VALID = {"token": "v1.1f699f1069f60xxx", "expires_at": "2016-07-11T22:14:10Z"}

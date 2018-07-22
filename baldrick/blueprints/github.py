@@ -4,7 +4,7 @@ from flask import Blueprint, request
 
 from baldrick.github.github_api import RepoHandler
 
-__all__ = ['github', 'github_webhook_handler']
+__all__ = ['github_blueprint', 'github_webhook_handler']
 
 
 github_blueprint = Blueprint('github', __name__)
