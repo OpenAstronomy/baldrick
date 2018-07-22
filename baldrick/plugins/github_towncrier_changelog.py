@@ -6,7 +6,7 @@ import toml
 
 from flask import current_app
 
-from .pull_request_handler import pull_request_handler
+from .github_pull_requests import pull_request_handler
 
 
 try:

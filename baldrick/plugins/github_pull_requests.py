@@ -22,16 +22,12 @@ def pull_request_handler(func):
     * milestoned
     * demilestoned
 
-
     They will be passed ``(pr_handler, repo_handler)`` and are expected to
     return ``messages, status` where messages is a list of strings to be
-    concatenated together with the prolog and epilog to form a comment message
-    (if this is an empty list, no comment will be posted) and status is either
-    a boolean (`True` for PR passes, `False` for fail) or `None` for no status
+    concatenated together with the prolog and epilogue to form a comment message
+    (if this is an empty list, no comment will be posted) and status is either a
+    boolean (`True` for PR passes, `False` for fail) or `None` for no status
     check.
-
-    These functions should return a list of strings to be appended to the
-    comment on the PR.
     """
     PULL_REQUEST_CHECKS.append(func)
     return func
@@ -63,7 +59,7 @@ def handle_pull_requests(repo_handler, payload, headers):
     else:
         return "Not an issue or pull request"
 
-    return process_pull_request(repo_handler.repository, number, repo_handler.installation)
+    return process_pull_request(repo_handler.repo, number, repo_handler.installation)
 
 
 def process_pull_request(repository, number, installation):
@@ -109,13 +105,12 @@ def process_pull_request(repository, number, installation):
     if comments:
         message = current_app.pull_request_prolog.format(pr_handler=pr_handler, repo_handler=repo_handler)
         message += ''.join(comments) + current_app.pull_request_epilog
-
         comment_url = pr_handler.submit_comment(message, comment_id=comment_id,
                                                 return_url=True)
     else:
         all_passed_message = pr_config.get("all_passed_message", '')
         all_passed_message = all_passed_message.format(pr_handler=pr_handler, repo_handler=repo_handler)
-        if comment_id and all_passed_message:
+        if all_passed_message:
             pr_handler.submit_comment(all_passed_message, comment_id=comment_id)
 
         comment_url = None
@@ -123,10 +118,12 @@ def process_pull_request(repository, number, installation):
 
     if set_status:
         if status:
-            pr_handler.set_status('success', pr_config.get("pr_passed_status", "Passed all checks"),
+            pr_handler.set_status('success',
+                                  pr_config.get("pr_passed_status", "Passed all checks"),
                                   current_app.bot_username, target_url=comment_url)
         else:
-            pr_handler.set_status('failure', pr_config.get("pr_failed_status", "Failed some checks"),
+            pr_handler.set_status('failure',
+                                  pr_config.get("pr_failed_status", "Failed some checks"),
                                   current_app.bot_username, target_url=comment_url)
 
     return message

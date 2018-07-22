@@ -1,6 +1,6 @@
 import requests
 
-from .circleci import circleci_webhook_handler
+from baldrick.blueprints.circleci import circleci_webhook_handler
 
 
 HOST = "https://api.github.com"
@@ -22,10 +22,10 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers):
             url = get_documentation_url_from_artifacts(artifacts, config['url'])
 
             if url:
-                repo_handler.set_status(payload['vcs_revision'],
+                repo_handler.set_status("success",
+                                        config["message"],
                                         name,
-                                        "success",
-                                        config['message'],
+                                        payload["vcs_revision"],
                                         url)
 
     return "All good"

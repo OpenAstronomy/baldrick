@@ -1,2 +1,2 @@
-from .circleci import circleci
-from .github import github
+from .circleci import circleci_blueprint   # noqa
+from .github import github_blueprint   # noqa
