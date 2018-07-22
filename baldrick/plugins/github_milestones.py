@@ -1,6 +1,6 @@
 from flask import current_app
 
-from .pull_request_checker import pull_request_check
+from .github_pull_requests import pull_request_check
 
 
 MISSING_MESSAGE = 'This pull request has no milestone set.'
