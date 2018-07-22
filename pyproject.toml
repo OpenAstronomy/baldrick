@@ -1,0 +1,16 @@
+# This is an example config file showing all the config options
+# in general the presence of, or lack of, a config section should enable or disable the plugin.
+[ tool.baldrick ]
+
+  [ tool.baldrick.pull_requests ]
+    post_pr_comment = true
+    all_passed_message = ''
+   
+  [ tool.baldrick.milestones ]
+    missing_message = 'This pull request has no milestone set.'
+    present_message = 'This pull request has a milestone set.'
+
+
+  [ tool.baldrick.towncrier_changelog ]
+    changelog_skip_label = "No Changelog Entry Needed"
+    help_url = "https://github.com/Cadair/sunpy/blob/towncrier/changelog/README.rst"

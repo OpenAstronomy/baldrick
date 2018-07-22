@@ -1,6 +1,6 @@
-from changebot.webapp import app
+from baldrick.webapp import app
 from unittest.mock import patch
-from changebot.github.github_auth import get_json_web_token
+from baldrick.github.github_auth import get_json_web_token
 
 
 PRIVATE_KEY = """

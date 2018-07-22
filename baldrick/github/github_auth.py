@@ -5,6 +5,7 @@ from collections import defaultdict
 import dateutil.parser
 
 import jwt
+from flask import current_app
 
 import requests
 
@@ -25,8 +26,6 @@ def get_json_web_token():
     global json_web_token
     global json_web_token_expiry
 
-    from changebot.webapp import app
-
     now = datetime.datetime.now()
 
     # Include a one-minute buffer otherwise token might expire by the time we
@@ -44,10 +43,10 @@ def get_json_web_token():
         payload['exp'] = int(json_web_token_expiry.timestamp())
 
         # Integration's GitHub identifier
-        payload['iss'] = app.integration_id
+        payload['iss'] = current_app.integration_id
 
         json_web_token = jwt.encode(payload,
-                                    app.private_key.encode('ascii'),
+                                    current_app.private_key.encode('ascii'),
                                     algorithm='RS256').decode('ascii')
 
     return json_web_token
@@ -111,3 +110,27 @@ def github_request_headers(installation):
     headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
 
     return headers
+
+
+def repo_to_installationid_mapping():
+    """
+    Returns a dictionary mapping full repository name to installation id.
+    """
+    url = 'https://api.github.com/app/installations'
+    headers = {}
+    headers['Authorization'] = 'Bearer {0}'.format(get_json_web_token())
+    headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
+    resp = requests.get(url, headers=headers)
+    payload = resp.json()
+
+    ids = [p['id'] for p in payload]
+
+    repos = {}
+    for iid in ids:
+        headers = github_request_headers(iid)
+        resp = requests.get('https://api.github.com/installation/repositories', headers=headers)
+        payload = resp.json()
+        for repo in payload['repositories']:
+            repos[repo['full_name']] = iid
+
+    return repos
