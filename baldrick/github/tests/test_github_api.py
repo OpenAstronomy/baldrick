@@ -6,7 +6,7 @@ from unittest.mock import patch, Mock, PropertyMock, MagicMock
 
 import pytest
 
-from baldrick.conftest import app
+from baldrick import create_app
 from baldrick.github import github_api
 from baldrick.github.github_api import (RepoHandler, IssueHandler,
                                         PullRequestHandler)
@@ -15,7 +15,11 @@ from baldrick.github.github_api import (RepoHandler, IssueHandler,
 # TODO: Add more tests to increase coverage.
 
 class TestRepoHandler:
+
     def setup_class(self):
+        os.environ['GITHUB_APP_INTEGRATION_ID'] = '22223'
+        os.environ['GITHUB_APP_PRIVATE_KEY'] = 'ABCD'
+        self.app = create_app('testbot')
         self.repo = RepoHandler('fakerepo/doesnotexist', branch='awesomebot')
 
     @patch('requests.get')
@@ -56,12 +60,16 @@ autoclose_stale_pull_request = false
 
 
 class TestRealRepoHandler:
+
     def setup_class(self):
+        os.environ['GITHUB_APP_INTEGRATION_ID'] = '22223'
+        os.environ['GITHUB_APP_PRIVATE_KEY'] = 'ABCD'
+        self.app = create_app('testbot')
         self.repo = RepoHandler('astropy/astropy-bot')
 
     def test_get_config(self):
 
-        with app.app_context():
+        with self.app.app_context():
 
             with patch.object(self.repo, 'get_file_contents') as mock_get:  # noqa
 
