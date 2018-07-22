@@ -5,4 +5,13 @@ setup(version='0.0.dev0',
       description="Helpers for GitHub bots",
       url='https://github.com/astrofrog/baldrick',
       packages=find_packages(),
-      author='Stuart Mumford and Thomas Robitaille')
+      author='Stuart Mumford and Thomas Robitaille',
+      install_requires=[
+          "flask",
+          "flask-dance",
+          "jwt",
+          "requests",
+          "cryptography",
+          "python-dateutil",
+          "humanize",
+          "toml"])
