@@ -1,6 +1,10 @@
 import os
+
+import pytest
+from unittest.mock import patch
+
 from baldrick import create_app
-from baldrick.github.github_auth import get_json_web_token
+from baldrick.github.github_auth import get_json_web_token, get_installation_token
 
 
 PRIVATE_KEY = """
@@ -49,4 +53,44 @@ def test_get_json_web_token():
         # If we run it again immediately we should get the same token back
         token2 = get_json_web_token()
 
-    assert token1 == token2
+    assert token1
+
+
+TOKEN_RESPONSE_VALID = {"token": "v1.1f699f1069f60xxx", "expires_at": "2016-07-11T22:14:10Z"}
+
+
+def test_get_installation_token_valid():
+
+    with patch('requests.post') as post:
+        post.return_value.ok = True
+        post.return_value.json.return_value = TOKEN_RESPONSE_VALID
+        token = get_installation_token(12345)
+
+    assert token == "v1.1f699f1069f60xxx"
+
+
+TOKEN_RESPONSE_INVALID_WITH_MESSAGE = {"message": "This is the error message",
+                                       "documentation_url": "https://developer.github.com/v3"}
+
+
+def test_get_installation_token_invalid_with_message():
+
+    with patch('requests.post') as post:
+        post.return_value.ok = False
+        post.return_value.json.return_value = TOKEN_RESPONSE_INVALID_WITH_MESSAGE
+        with pytest.raises(Exception) as exc:
+            get_installation_token(12345)
+        assert exc.value.args[0] == TOKEN_RESPONSE_INVALID_WITH_MESSAGE['message']
+
+
+TOKEN_RESPONSE_INVALID_WITHOUT_MESSAGE = {}
+
+
+def test_get_installation_token_invalid_without_message():
+
+    with patch('requests.post') as post:
+        post.return_value.ok = False
+        post.return_value.json.return_value = TOKEN_RESPONSE_INVALID_WITHOUT_MESSAGE
+        with pytest.raises(Exception) as exc:
+            get_installation_token(12345)
+        assert exc.value.args[0] == "An error occurred when requesting token"
