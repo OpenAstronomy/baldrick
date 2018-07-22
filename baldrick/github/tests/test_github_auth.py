@@ -1,4 +1,4 @@
-from baldrick.webapp import app
+from baldrick.conftest import app
 from unittest.mock import patch
 from baldrick.github.github_auth import get_json_web_token
 
@@ -38,10 +38,12 @@ IJVMoU0lvK0zKm5VlXh3jbRXt/M5cTNu/1+xZxUbGJ0b+Go3FYc=
 @patch.object(app, 'integration_id', 'dummy id')
 def test_get_json_web_token():
 
-    # The first time we run this we should get a token
-    token1 = get_json_web_token()
+    with app.app_context():
 
-    # If we run it again immediately we should get the same token back
-    token2 = get_json_web_token()
+        # The first time we run this we should get a token
+        token1 = get_json_web_token()
+
+        # If we run it again immediately we should get the same token back
+        token2 = get_json_web_token()
 
     assert token1 == token2
