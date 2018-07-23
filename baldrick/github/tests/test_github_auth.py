@@ -2,7 +2,8 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from baldrick.github.github_auth import (get_json_web_token, get_installation_token,
-                                         github_request_headers, repo_to_installation_id_mapping)
+                                         github_request_headers, repo_to_installation_id_mapping,
+                                         repo_to_installation_id)
 
 
 def test_get_json_web_token(app):
@@ -88,3 +89,18 @@ def test_repo_to_installation_id_mapping(app):
                 mapping = repo_to_installation_id_mapping()
 
     assert mapping == {'test1': 3331, 'test2': 3331}
+
+
+def test_repo_to_installation_id(app):
+
+    with app.app_context():
+        with patch('requests.post') as post:
+            post.return_value.ok = True
+            post.return_value.json.return_value = TOKEN_RESPONSE_VALID
+            with patch('requests.get', requests_patch):
+
+                assert repo_to_installation_id('test1') == 3331
+
+                with pytest.raises(ValueError) as exc:
+                    repo_to_installation_id('test3')
+                assert exc.value.args[0] == 'Repository not recognized - should be one of:\n\n  - test1\n  - test2'
