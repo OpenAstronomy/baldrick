@@ -1,13 +1,13 @@
 import json
 import time
 from humanize import naturaltime, naturaldelta
-from changebot.github.github_api import IssueHandler, RepoHandler
+from baldrick.github.github_api import IssueHandler, RepoHandler
 from flask import Blueprint, request, current_app, Response, stream_with_context
 
-stale_issues = Blueprint('stale_issues', __name__)
+stale_issues_blueprint = Blueprint('stale_issues', __name__)
 
 
-@stale_issues.route('/close_stale_issues', methods=['POST'])
+@stale_issues_blueprint.route('/close_stale_issues', methods=['POST'])
 def close_stale_issues():
     payload = json.loads(request.data)
     for keyword in ['repository', 'cron_token', 'installation']:

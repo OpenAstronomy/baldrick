@@ -2,9 +2,8 @@ import json
 import time
 from unittest.mock import patch, PropertyMock
 
-from changebot.webapp import app
-from changebot.github.github_api import RepoHandler, PullRequestHandler
-from changebot.blueprints.stale_pull_requests import (process_pull_requests,
+from baldrick.github.github_api import RepoHandler, PullRequestHandler
+from baldrick.blueprints.stale_pull_requests import (process_pull_requests,
                                                       PULL_REQUESTS_CLOSE_EPILOGUE,
                                                       PULL_REQUESTS_CLOSE_WARNING,
                                                       is_close_warning,
@@ -25,40 +24,34 @@ def now():
 
 class TestHook:
 
-    def setup_method(self, method):
-        self.client = app.test_client()
-
-    @patch.object(app, 'cron_token', '12345')
-    def test_valid(self):
+    def test_valid(self, app, client):
+        app.cron_token = '12345'
         data = {'repository': 'test-repo', 'cron_token': '12345', 'installation': '123'}
-        with patch('changebot.blueprints.stale_pull_requests.process_pull_requests') as p:
-            response = self.client.post('/close_stale_pull_requests', data=json.dumps(data),
+        with patch('baldrick.blueprints.stale_pull_requests.process_pull_requests') as p:
+            response = client.post('/close_stale_pull_requests', data=json.dumps(data),
                                         content_type='application/json')
             assert response.data == b''
             assert p.call_count == 1
 
-    @patch.object(app, 'cron_token', '12345')
-    def test_invalid_cron(self):
+    def test_invalid_cron(self, app, client):
+        app.cron_token = '12345'
         data = {'repository': 'test-repo', 'cron_token': '12344', 'installation': '123'}
-        with patch('changebot.blueprints.stale_pull_requests.process_pull_requests') as p:
-            response = self.client.post('/close_stale_pull_requests', data=json.dumps(data),
+        with patch('baldrick.blueprints.stale_pull_requests.process_pull_requests') as p:
+            response = client.post('/close_stale_pull_requests', data=json.dumps(data),
                                         content_type='application/json')
             assert response.data == b'Incorrect cron_token'
             assert p.call_count == 0
 
-    @patch.object(app, 'cron_token', '12345')
-    def test_missing_keyword(self):
+    def test_missing_keyword(self, app, client):
+        app.cron_token = '12345'
         data = {'cron_token': '12344', 'installation': '123'}
-        with patch('changebot.blueprints.stale_pull_requests.process_pull_requests') as p:
-            response = self.client.post('/close_stale_pull_requests', data=json.dumps(data),
+        with patch('baldrick.blueprints.stale_pull_requests.process_pull_requests') as p:
+            response = client.post('/close_stale_pull_requests', data=json.dumps(data),
                                         content_type='application/json')
             assert response.data == b'Payload mising repository'
             assert p.call_count == 0
 
 
-@patch.object(app, 'stale_pull_requests_close', True)
-@patch.object(app, 'stale_pull_requests_close_seconds', 20)
-@patch.object(app, 'stale_pull_requests_warn_seconds', 220)
 class TestProcessIssues:
 
     def setup_method(self, method):
@@ -95,11 +88,15 @@ class TestProcessIssues:
         self.patch_close.stop()
         self.patch_set_labels.stop()
 
-    def test_close_comment_exists(self):
+    def test_close_comment_exists(self, app):
 
         # Time is beyond close deadline, and there is already a comment. In this
         # case no new comment should be posted and the issue should be kept open
         # since this likely indicates the issue was open again manually.
+
+        app.stale_pull_requests_close = True
+        app.stale_pull_requests_close_seconds = 20
+        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 241
@@ -115,11 +112,15 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_close(self):
+    def test_close(self, app):
 
         # Time is beyond close deadline, and there is no closing comment yet so
         # the closing comment can be posted and the issue closed. In this case
         # there is already also a warning comment posted already.
+
+        app.stale_pull_requests_close = True
+        app.stale_pull_requests_close_seconds = 20
+        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 241
@@ -136,10 +137,14 @@ class TestProcessIssues:
         assert self.close.call_count == 1
         assert self.set_labels.call_count == 1
 
-    def test_close_noclose(self):
+    def test_close_noclose(self, app):
 
         # Time is beyond close deadline, and there is no comment yet but the
         # YAML says don't autoclose.
+
+        app.stale_pull_requests_close = True
+        app.stale_pull_requests_close_seconds = 20
+        app.stale_pull_requests_warn_seconds = 220
 
         self.autoclose_stale.return_value = False
         self.open_pull_requests.return_value = ['123']
@@ -155,11 +160,15 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_close_disabled(self):
+    def test_close_disabled(self, app):
 
         # Time is beyond close deadline, and there is no comment yet but the
         # global option to allow closing has not been enabled. Since there is no
         # comment, the warning gets posted (rather than the 'epilogue')
+
+        app.stale_pull_requests_close = True
+        app.stale_pull_requests_close_seconds = 20
+        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 241
@@ -177,10 +186,14 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_close_keep_open_label(self):
+    def test_close_keep_open_label(self, app):
 
         # Time is beyond close deadline, and there is no comment yet but there
         # is a keep-open label so don't do anything.
+
+        app.stale_pull_requests_close = True
+        app.stale_pull_requests_close_seconds = 20
+        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 241
@@ -195,10 +208,14 @@ class TestProcessIssues:
 
         assert self.submit_comment.call_count == 0
 
-    def test_warn_comment_exists(self):
+    def test_warn_comment_exists(self, app):
 
         # Time is beyond warn deadline but within close deadline. There is
         # already a warning, so don't do anything.
+
+        app.stale_pull_requests_close = True
+        app.stale_pull_requests_close_seconds = 20
+        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 241
@@ -213,10 +230,14 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_warn(self):
+    def test_warn(self, app):
 
         # Time is beyond warn deadline but within close deadline. There isn't a
         # comment yet, so a comment should be posted.
+
+        app.stale_pull_requests_close = True
+        app.stale_pull_requests_close_seconds = 20
+        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 221
@@ -233,10 +254,14 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_warn_even_if_long_time(self):
+    def test_warn_even_if_long_time(self, app):
 
         # Time is way beyond warn deadline. There isn't a comment yet, so a
         # warning comment should be posted.
+
+        app.stale_pull_requests_close = True
+        app.stale_pull_requests_close_seconds = 20
+        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 2000
@@ -253,9 +278,13 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_keep_open(self):
+    def test_keep_open(self, app):
 
         # Time is before warn deadline so don't do anything.
+
+        app.stale_pull_requests_close = True
+        app.stale_pull_requests_close_seconds = 20
+        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 210
@@ -271,10 +300,14 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_warn_before_commit(self):
+    def test_warn_before_commit(self, app):
 
         # If a commit is more recent than the latest warning, ignore the latest
         # warning and warn again.
+
+        app.stale_pull_requests_close = True
+        app.stale_pull_requests_close_seconds = 20
+        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 221

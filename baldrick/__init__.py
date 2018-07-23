@@ -3,7 +3,8 @@ import os
 from flask import Flask
 from werkzeug.contrib.fixers import ProxyFix
 
-from baldrick.blueprints import github_blueprint, circleci_blueprint
+from baldrick.blueprints import (github_blueprint, circleci_blueprint,
+                                 stale_issues_blueprint, stale_pull_requests_blueprint)
 
 __all__ = ['create_app']
 
@@ -39,6 +40,8 @@ def create_app(name, register_blueprints=True):
     if register_blueprints:
         app.register_blueprint(github_blueprint)
         app.register_blueprint(circleci_blueprint)
+        app.register_blueprint(stale_issues_blueprint)
+        app.register_blueprint(stale_pull_requests_blueprint)
 
     @app.route("/")
     def index():

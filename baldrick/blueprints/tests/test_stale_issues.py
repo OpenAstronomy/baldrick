@@ -2,9 +2,8 @@ import json
 import time
 from unittest.mock import patch
 
-from changebot.webapp import app
-from changebot.github.github_api import RepoHandler, IssueHandler
-from changebot.blueprints.stale_issues import (process_issues,
+from baldrick.github.github_api import RepoHandler, IssueHandler
+from baldrick.blueprints.stale_issues import (process_issues,
                                                ISSUE_CLOSE_EPILOGUE,
                                                ISSUE_CLOSE_WARNING,
                                                is_close_warning,
@@ -25,40 +24,34 @@ def now():
 
 class TestHook:
 
-    def setup_method(self, method):
-        self.client = app.test_client()
-
-    @patch.object(app, 'cron_token', '12345')
-    def test_valid(self):
+    def test_valid(self, app, client):
+        app.cron_token = '12345'
         data = {'repository': 'test-repo', 'cron_token': '12345', 'installation': '123'}
-        with patch('changebot.blueprints.stale_issues.process_issues') as p:
-            response = self.client.post('/close_stale_issues', data=json.dumps(data),
+        with patch('baldrick.blueprints.stale_issues.process_issues') as p:
+            response = client.post('/close_stale_issues', data=json.dumps(data),
                                         content_type='application/json')
             assert response.data == b''
             assert p.call_count == 1
 
-    @patch.object(app, 'cron_token', '12345')
-    def test_invalid_cron(self):
+    def test_invalid_cron(self, app, client):
+        app.cron_token = '12345'
         data = {'repository': 'test-repo', 'cron_token': '12344', 'installation': '123'}
-        with patch('changebot.blueprints.stale_issues.process_issues') as p:
-            response = self.client.post('/close_stale_issues', data=json.dumps(data),
+        with patch('baldrick.blueprints.stale_issues.process_issues') as p:
+            response = client.post('/close_stale_issues', data=json.dumps(data),
                                         content_type='application/json')
             assert response.data == b'Incorrect cron_token'
             assert p.call_count == 0
 
-    @patch.object(app, 'cron_token', '12345')
-    def test_missing_keyword(self):
+    def test_missing_keyword(self, app, client):
+        app.cron_token = '12345'
         data = {'cron_token': '12344', 'installation': '123'}
-        with patch('changebot.blueprints.stale_issues.process_issues') as p:
-            response = self.client.post('/close_stale_issues', data=json.dumps(data),
+        with patch('baldrick.blueprints.stale_issues.process_issues') as p:
+            response = client.post('/close_stale_issues', data=json.dumps(data),
                                         content_type='application/json')
             assert response.data == b'Payload mising repository'
             assert p.call_count == 0
 
 
-@patch.object(app, 'stale_issue_close', True)
-@patch.object(app, 'stale_issue_close_seconds', 34442)
-@patch.object(app, 'stale_issue_warn_seconds', 14122)
 class TestProcessIssues:
 
     def setup_method(self, method):
@@ -86,11 +79,15 @@ class TestProcessIssues:
         self.patch_find_comments.stop()
         self.patch_set_labels.stop()
 
-    def test_close_comment_exists(self):
+    def test_close_comment_exists(self, app):
 
         # Time is beyond close deadline, and there is already a comment. In this
         # case no new comment should be posted and the issue should be kept open
         # since this likely indicates the issue was open again manually.
+
+        app.stale_issue_close = True
+        app.stale_issue_close_seconds = 34442
+        app.stale_issue_warn_seconds = 14122
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34443
@@ -107,10 +104,14 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_close(self):
+    def test_close(self, app):
 
         # Time is beyond close deadline, and there is no comment yet so the
         # closing comment can be posted and the issue closed.
+
+        app.stale_issue_close = True
+        app.stale_issue_close_seconds = 34442
+        app.stale_issue_warn_seconds = 14122
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34443
@@ -126,11 +127,15 @@ class TestProcessIssues:
         assert self.close.call_count == 1
         assert self.set_labels.call_count == 1
 
-    def test_close_disabled(self):
+    def test_close_disabled(self, app):
 
         # Second case: time is beyond close deadline, and there is no comment yet
         # but the global option to allow closing has not been enabled. Since there
         # is no comment, the warning gets posted (rather than the 'epilogue')
+
+        app.stale_issue_close = True
+        app.stale_issue_close_seconds = 34442
+        app.stale_issue_warn_seconds = 14122
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34443
@@ -147,10 +152,14 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_warn_comment_exists(self):
+    def test_warn_comment_exists(self, app):
 
         # Time is beyond warn deadline but within close deadline. There is
         # already a warning, so don't do anything.
+
+        app.stale_issue_close = True
+        app.stale_issue_close_seconds = 34442
+        app.stale_issue_warn_seconds = 14122
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34400
@@ -163,10 +172,14 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_warn(self):
+    def test_warn(self, app):
 
         # Time is beyond warn deadline but within close deadline. There isn't a
         # comment yet, so a comment should be posted.
+
+        app.stale_issue_close = True
+        app.stale_issue_close_seconds = 34442
+        app.stale_issue_warn_seconds = 14122
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34400
@@ -181,9 +194,13 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_keep_open(self):
+    def test_keep_open(self, app):
 
         # Time is before warn deadline so don't do anything.
+
+        app.stale_issue_close = True
+        app.stale_issue_close_seconds = 34442
+        app.stale_issue_warn_seconds = 14122
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 14000

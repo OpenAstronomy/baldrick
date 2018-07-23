@@ -2,13 +2,13 @@ import re
 import time
 import json
 from humanize import naturaldelta
-from changebot.github.github_api import PullRequestHandler, RepoHandler
+from baldrick.github.github_api import PullRequestHandler, RepoHandler
 from flask import Blueprint, request, current_app, Response, stream_with_context
 
-stale_pull_requests = Blueprint('stale_pull_requests', __name__)
+stale_pull_requests_blueprint = Blueprint('stale_pull_requests', __name__)
 
 
-@stale_pull_requests.route('/close_stale_pull_requests', methods=['POST'])
+@stale_pull_requests_blueprint.route('/close_stale_pull_requests', methods=['POST'])
 def close_stale_pull_requests():
     payload = json.loads(request.data)
     for keyword in ['repository', 'cron_token', 'installation']:
