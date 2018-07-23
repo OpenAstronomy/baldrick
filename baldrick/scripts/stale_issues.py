@@ -1,10 +1,8 @@
 import sys
 import time
 import argparse
-from flask import current_app
 from humanize import naturaltime, naturaldelta
 
-from baldrick import create_app
 from baldrick.github.github_auth import repo_to_installation_id
 from baldrick.github.github_api import IssueHandler, RepoHandler
 
@@ -55,8 +53,6 @@ def process_issues(repository, installation,
 
         dt = now - labeled_time
 
-        print(dt, close_seconds, warn_seconds)
-
         if dt > close_seconds:
             comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
             if len(comment_ids) == 0:
@@ -100,20 +96,7 @@ def main(argv=None):
 
     args = parser.parse_args(argv or sys.argv[1:])
 
-    try:
-        current_app.app_context
-    except RuntimeError:
-        if args.bot_name is None:
-            print('--bot-name is required since Flask application does not exist')
-            sys.exit(1)
-        else:
-            app = create_app(args.bot_name)
-    else:
-        app = current_app
+    installation = repo_to_installation_id(args.repository)
 
-    with app.app_context():
-
-        installation = repo_to_installation_id(args.repository)
-
-        process_issues(args.repository, installation,
-                       warn_seconds=args.warn_seconds, close_seconds=args.close_seconds)
+    process_issues(args.repository, installation,
+                   warn_seconds=args.warn_seconds, close_seconds=args.close_seconds)

@@ -3,9 +3,7 @@ import sys
 import time
 import argparse
 from humanize import naturaldelta
-from flask import current_app
 
-from baldrick import create_app
 from baldrick.github.github_auth import repo_to_installation_id
 from baldrick.github.github_api import PullRequestHandler, RepoHandler
 
@@ -134,20 +132,7 @@ def main(argv=None):
 
     args = parser.parse_args(argv or sys.argv[1:])
 
-    try:
-        current_app.app_context
-    except RuntimeError:
-        if args.bot_name is None:
-            print('--bot-name is required since Flask application does not exist')
-            sys.exit(1)
-        else:
-            app = create_app(args.bot_name)
-    else:
-        app = current_app
+    installation = repo_to_installation_id(args.repository)
 
-    with app.app_context():
-
-        installation = repo_to_installation_id(args.repository)
-
-        process_pull_requests(args.repository, installation,
-                              warn_seconds=args.warn_seconds, close_seconds=args.close_seconds)
+    process_pull_requests(args.repository, installation,
+                          warn_seconds=args.warn_seconds, close_seconds=args.close_seconds)

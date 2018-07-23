@@ -1,3 +1,4 @@
+import os
 import netrc
 import datetime
 from collections import defaultdict
@@ -5,7 +6,6 @@ from collections import defaultdict
 import dateutil.parser
 
 import jwt
-from flask import current_app
 
 import requests
 
@@ -43,10 +43,10 @@ def get_json_web_token():
         payload['exp'] = int(json_web_token_expiry.timestamp())
 
         # Integration's GitHub identifier
-        payload['iss'] = current_app.integration_id
+        payload['iss'] = int(os.environ['GITHUB_APP_INTEGRATION_ID'])
 
         json_web_token = jwt.encode(payload,
-                                    current_app.private_key.encode('ascii'),
+                                    os.environ['GITHUB_APP_PRIVATE_KEY'].encode('ascii'),
                                     algorithm='RS256').decode('ascii')
 
     return json_web_token
