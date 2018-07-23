@@ -98,7 +98,7 @@ def process_pull_requests(repository, installation,
                 pr.close()
             else:
                 print(f'-> Skipping pull request {n} (already closed)')
-        elif warn_seconds:
+        elif time_since_last_commit > warn_seconds:
             # A negative time_since_last_warning means no warning since last commit.
             if time_since_last_warning < 0.:
                 print(f'-> WARNING pull request {n}')

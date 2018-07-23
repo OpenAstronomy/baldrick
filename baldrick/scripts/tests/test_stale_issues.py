@@ -48,22 +48,17 @@ class TestProcessIssues:
         self.patch_find_comments.stop()
         self.patch_set_labels.stop()
 
-    def test_close_comment_exists(self, app):
+    def test_close_comment_exists(self):
 
         # Time is beyond close deadline, and there is already a comment. In this
         # case no new comment should be posted and the issue should be kept open
         # since this likely indicates the issue was open again manually.
 
-        app.stale_issue_close = True
-        app.stale_issue_close_seconds = 34442
-        app.stale_issue_warn_seconds = 14122
-
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34443
         self.find_comments.return_value = ['1']
 
-        with app.app_context():
-            process_issues('repo', 'installation')
+        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=34442)
 
         self.get_issues.assert_called_with('open', 'Close?')
         self.get_label_added_date.assert_called_with('Close?')
@@ -72,21 +67,16 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_close(self, app):
+    def test_close(self):
 
         # Time is beyond close deadline, and there is no comment yet so the
         # closing comment can be posted and the issue closed.
-
-        app.stale_issue_close = True
-        app.stale_issue_close_seconds = 34442
-        app.stale_issue_warn_seconds = 14122
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34443
         self.find_comments.return_value = []
 
-        with app.app_context():
-            process_issues('repo', 'installation')
+        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=34442)
 
         assert self.submit_comment.call_count == 1
         expected = ISSUE_CLOSE_EPILOGUE
@@ -94,65 +84,31 @@ class TestProcessIssues:
         assert self.close.call_count == 1
         assert self.set_labels.call_count == 1
 
-    def test_close_disabled(self, app):
-
-        # Second case: time is beyond close deadline, and there is no comment yet
-        # but the global option to allow closing has not been enabled. Since there
-        # is no comment, the warning gets posted (rather than the 'epilogue')
-
-        app.stale_issue_close = True
-        app.stale_issue_close_seconds = 34442
-        app.stale_issue_warn_seconds = 14122
-
-        self.get_issues.return_value = ['123']
-        self.get_label_added_date.return_value = now() - 34443
-        self.find_comments.return_value = []
-
-        with app.app_context():
-            with patch.object(app, 'stale_issue_close', False):
-                process_issues('repo', 'installation')
-
-        assert self.submit_comment.call_count == 1
-        expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
-        self.submit_comment.assert_called_with(expected)
-        assert self.close.call_count == 0
-        assert self.set_labels.call_count == 0
-
-    def test_warn_comment_exists(self, app):
+    def test_warn_comment_exists(self):
 
         # Time is beyond warn deadline but within close deadline. There is
         # already a warning, so don't do anything.
-
-        app.stale_issue_close = True
-        app.stale_issue_close_seconds = 34442
-        app.stale_issue_warn_seconds = 14122
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34400
         self.find_comments.return_value = ['1']
 
-        with app.app_context():
-            process_issues('repo', 'installation')
+        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=34442)
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_warn(self, app):
+    def test_warn(self):
 
         # Time is beyond warn deadline but within close deadline. There isn't a
         # comment yet, so a comment should be posted.
-
-        app.stale_issue_close = True
-        app.stale_issue_close_seconds = 34442
-        app.stale_issue_warn_seconds = 14122
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34400
         self.find_comments.return_value = []
 
-        with app.app_context():
-            process_issues('repo', 'installation')
+        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=34442)
 
         assert self.submit_comment.call_count == 1
         expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
@@ -160,20 +116,15 @@ class TestProcessIssues:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_keep_open(self, app):
+    def test_keep_open(self):
 
         # Time is before warn deadline so don't do anything.
-
-        app.stale_issue_close = True
-        app.stale_issue_close_seconds = 34442
-        app.stale_issue_warn_seconds = 14122
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 14000
         self.find_comments.return_value = []
 
-        with app.app_context():
-            process_issues('repo', 'installation')
+        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=34442)
 
         assert self.find_comments.call_count == 0
         assert self.submit_comment.call_count == 0

@@ -57,15 +57,11 @@ class TestProcessPullRequests:
         self.patch_close.stop()
         self.patch_set_labels.stop()
 
-    def test_close_comment_exists(self, app):
+    def test_close_comment_exists(self):
 
         # Time is beyond close deadline, and there is already a comment. In this
         # case no new comment should be posted and the issue should be kept open
         # since this likely indicates the issue was open again manually.
-
-        app.stale_pull_requests_close = True
-        app.stale_pull_requests_close_seconds = 20
-        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 241
@@ -73,30 +69,24 @@ class TestProcessPullRequests:
         self.find_comments.return_value = ['1']
         self.labels.return_value = ['io.fits', 'Bug']
 
-        with app.app_context():
-            process_pull_requests('repo', 'installation')
+        process_pull_requests('repo', 'installation', warn_seconds=220, close_seconds=20)
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_close(self, app):
+    def test_close(self):
 
         # Time is beyond close deadline, and there is no closing comment yet so
         # the closing comment can be posted and the issue closed. In this case
         # there is already also a warning comment posted already.
-
-        app.stale_pull_requests_close = True
-        app.stale_pull_requests_close_seconds = 20
-        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 241
         self.last_comment_date.return_value = now() - 21
         self.find_comments.return_value = []
 
-        with app.app_context():
-            process_pull_requests('repo', 'installation')
+        process_pull_requests('repo', 'installation', warn_seconds=220, close_seconds=20)
 
         assert self.submit_comment.call_count == 1
         expected = PULL_REQUESTS_CLOSE_EPILOGUE
@@ -104,14 +94,10 @@ class TestProcessPullRequests:
         assert self.close.call_count == 1
         assert self.set_labels.call_count == 1
 
-    def test_close_noclose(self, app):
+    def test_close_noclose(self):
 
         # Time is beyond close deadline, and there is no comment yet but the
         # YAML says don't autoclose.
-
-        app.stale_pull_requests_close = True
-        app.stale_pull_requests_close_seconds = 20
-        app.stale_pull_requests_warn_seconds = 220
 
         self.autoclose_stale.return_value = False
         self.open_pull_requests.return_value = ['123']
@@ -119,46 +105,16 @@ class TestProcessPullRequests:
         self.last_comment_date.return_value = now() - 21
         self.find_comments.return_value = [222]
 
-        with app.app_context():
-            process_pull_requests('repo', 'installation')
+        process_pull_requests('repo', 'installation', warn_seconds=220, close_seconds=20)
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_close_disabled(self, app):
-
-        # Time is beyond close deadline, and there is no comment yet but the
-        # global option to allow closing has not been enabled. Since there is no
-        # comment, the warning gets posted (rather than the 'epilogue')
-
-        app.stale_pull_requests_close = True
-        app.stale_pull_requests_close_seconds = 20
-        app.stale_pull_requests_warn_seconds = 220
-
-        self.open_pull_requests.return_value = ['123']
-        self.last_commit_date.return_value = now() - 241
-        self.last_comment_date.return_value = None
-        self.find_comments.return_value = []
-
-        with app.app_context():
-            with patch.object(app, 'stale_pull_requests_close', False):
-                process_pull_requests('repo', 'installation')
-
-        assert self.submit_comment.call_count == 1
-        expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='4 minutes', futuretime='20 seconds')
-        self.submit_comment.assert_called_with(expected)
-        assert self.close.call_count == 0
-        assert self.set_labels.call_count == 0
-
-    def test_close_keep_open_label(self, app):
+    def test_close_keep_open_label(self):
 
         # Time is beyond close deadline, and there is no comment yet but there
         # is a keep-open label so don't do anything.
-
-        app.stale_pull_requests_close = True
-        app.stale_pull_requests_close_seconds = 20
-        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 241
@@ -166,49 +122,37 @@ class TestProcessPullRequests:
         self.find_comments.return_value = []
         self.labels.return_value = ['keep-open']
 
-        with app.app_context():
-            with patch.object(app, 'stale_pull_requests_close', False):
-                process_pull_requests('repo', 'installation')
+        process_pull_requests('repo', 'installation', warn_seconds=220, close_seconds=20)
 
         assert self.submit_comment.call_count == 0
 
-    def test_warn_comment_exists(self, app):
+    def test_warn_comment_exists(self):
 
         # Time is beyond warn deadline but within close deadline. There is
         # already a warning, so don't do anything.
-
-        app.stale_pull_requests_close = True
-        app.stale_pull_requests_close_seconds = 20
-        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 241
         self.last_comment_date.return_value = now() - 18
         self.find_comments.return_value = ['1']
 
-        with app.app_context():
-            process_pull_requests('repo', 'installation')
+        process_pull_requests('repo', 'installation', warn_seconds=220, close_seconds=20)
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_warn(self, app):
+    def test_warn(self):
 
         # Time is beyond warn deadline but within close deadline. There isn't a
         # comment yet, so a comment should be posted.
-
-        app.stale_pull_requests_close = True
-        app.stale_pull_requests_close_seconds = 20
-        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 221
         self.last_comment_date.return_value = None
         self.find_comments.return_value = []
 
-        with app.app_context():
-            process_pull_requests('repo', 'installation')
+        process_pull_requests('repo', 'installation', warn_seconds=220, close_seconds=20)
 
         assert self.submit_comment.call_count == 1
         expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='3 minutes', futuretime='20 seconds')
@@ -216,22 +160,17 @@ class TestProcessPullRequests:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_warn_even_if_long_time(self, app):
+    def test_warn_even_if_long_time(self):
 
         # Time is way beyond warn deadline. There isn't a comment yet, so a
         # warning comment should be posted.
-
-        app.stale_pull_requests_close = True
-        app.stale_pull_requests_close_seconds = 20
-        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 2000
         self.last_comment_date.return_value = None
         self.find_comments.return_value = []
 
-        with app.app_context():
-            process_pull_requests('repo', 'installation')
+        process_pull_requests('repo', 'installation', warn_seconds=220, close_seconds=20)
 
         assert self.submit_comment.call_count == 1
         expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='33 minutes', futuretime='20 seconds')
@@ -239,43 +178,33 @@ class TestProcessPullRequests:
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_keep_open(self, app):
+    def test_keep_open(self):
 
         # Time is before warn deadline so don't do anything.
-
-        app.stale_pull_requests_close = True
-        app.stale_pull_requests_close_seconds = 20
-        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 210
         self.last_comment_date.return_value = None
         self.find_comments.return_value = []
 
-        with app.app_context():
-            process_pull_requests('repo', 'installation')
+        process_pull_requests('repo', 'installation', warn_seconds=220, close_seconds=20)
 
         assert self.find_comments.call_count == 0
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
 
-    def test_warn_before_commit(self, app):
+    def test_warn_before_commit(self):
 
         # If a commit is more recent than the latest warning, ignore the latest
         # warning and warn again.
-
-        app.stale_pull_requests_close = True
-        app.stale_pull_requests_close_seconds = 20
-        app.stale_pull_requests_warn_seconds = 220
 
         self.open_pull_requests.return_value = ['123']
         self.last_commit_date.return_value = now() - 221
         self.last_comment_date.return_value = now() - 300
         self.find_comments.return_value = [122331]
 
-        with app.app_context():
-            process_pull_requests('repo', 'installation')
+        process_pull_requests('repo', 'installation', warn_seconds=220, close_seconds=20)
 
         assert self.submit_comment.call_count == 1
         expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='3 minutes', futuretime='20 seconds')
