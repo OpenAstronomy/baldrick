@@ -88,6 +88,10 @@ class GitHubHandler:
         else:
             return github_request_headers(self.installation)
 
+    @property
+    def _url_contents(self):
+        return f'{HOST}/repos/{self.repo}/contents/'
+
     def get_file_contents(self, path_to_file, branch=None):
         if not branch:
             branch = 'master'
@@ -95,7 +99,7 @@ class GitHubHandler:
         data = {'ref': branch}
         response = requests.get(url_file, params=data, headers=self._headers)
         if not response.ok and response.json()['message'] == 'Not Found':
-            raise FileNotFoundError(path_to_file)
+            raise FileNotFoundError(url_file)
         assert response.ok, response.content
         contents_base64 = response.json()['content']
         return base64.b64decode(contents_base64).decode()
@@ -191,10 +195,6 @@ class RepoHandler(GitHubHandler):
     def __init__(self, repo, branch='master', installation=None):
         self.branch = branch
         super().__init__(repo, installation=installation)
-
-    @property
-    def _url_contents(self):
-        return f'{HOST}/repos/{self.repo}/contents/'
 
     @property
     def _url_pull_requests(self):
