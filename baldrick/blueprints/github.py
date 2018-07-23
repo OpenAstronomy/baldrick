@@ -44,3 +44,5 @@ def github_webhook():
 
     for handler in GITHUB_WEBHOOK_HANDLERS:
         handler(repo, payload, request.headers)
+
+    return "GitHub Webhook Finished"
