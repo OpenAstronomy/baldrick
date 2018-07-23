@@ -127,9 +127,6 @@ def main(argv=None):
                         type=int, required=True,
                         help='After how many seconds to close stale issues')
 
-    parser.add_argument('--bot-name', dest='bot_name', required=False,
-                        help='The name of the bot (used if a Flask application doe not already exist)')
-
     args = parser.parse_args(argv or sys.argv[1:])
 
     installation = repo_to_installation_id(args.repository)

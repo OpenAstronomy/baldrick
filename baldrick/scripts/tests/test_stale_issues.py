@@ -2,7 +2,7 @@ import time
 from unittest.mock import patch
 
 from baldrick.github.github_api import RepoHandler, IssueHandler
-from baldrick.scripts.stale_issues import (process_issues,
+from baldrick.scripts.stale_issues import (process_issues, main,
                                            ISSUE_CLOSE_EPILOGUE,
                                            ISSUE_CLOSE_WARNING,
                                            is_close_warning,
@@ -19,6 +19,15 @@ def test_is_close_epilogue():
 
 def now():
     return time.time()
+
+
+def test_main():
+
+    with patch('baldrick.scripts.stale_issues.process_issues') as process:
+        with patch('baldrick.scripts.stale_issues.repo_to_installation_id') as to_id:
+            to_id.return_value = '12431'
+            main('--repository testrepo --warn-seconds 10 --close-seconds 20'.split())
+        process.assert_called_with('testrepo', '12431', warn_seconds=10, close_seconds=20)
 
 
 class TestProcessIssues:

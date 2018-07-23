@@ -2,7 +2,7 @@ import time
 from unittest.mock import patch, PropertyMock
 
 from baldrick.github.github_api import RepoHandler, PullRequestHandler
-from baldrick.scripts.stale_pull_requests import (process_pull_requests,
+from baldrick.scripts.stale_pull_requests import (process_pull_requests, main,
                                                   PULL_REQUESTS_CLOSE_EPILOGUE,
                                                   PULL_REQUESTS_CLOSE_WARNING,
                                                   is_close_warning,
@@ -19,6 +19,15 @@ def test_is_close_epilogue():
 
 def now():
     return time.time()
+
+
+def test_main():
+
+    with patch('baldrick.scripts.stale_pull_requests.process_pull_requests') as process:
+        with patch('baldrick.scripts.stale_pull_requests.repo_to_installation_id') as to_id:
+            to_id.return_value = '12431'
+            main('--repository testrepo --warn-seconds 10 --close-seconds 20'.split())
+        process.assert_called_with('testrepo', '12431', warn_seconds=10, close_seconds=20)
 
 
 class TestProcessPullRequests:
