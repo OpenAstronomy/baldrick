@@ -1,6 +1,8 @@
 import requests
+from flask import current_app
 
 from baldrick.blueprints.circleci import circleci_webhook_handler
+from .utils import get_config_with_app_defaults
 
 
 HOST = "https://api.github.com"
@@ -8,16 +10,14 @@ HOST = "https://api.github.com"
 
 @circleci_webhook_handler
 def set_commit_status_for_artifacts(repo_handler, payload, headers):
+    ci_config = get_config_with_app_defaults(repo_handler, "circleci_artifacts")
+    if ci_config is None:
+        return "Skipping artifact check, no config"
+
     if payload['status'] == 'success':
         artifacts = get_artifacts_from_build(payload)
 
-        urls = repo_handler.get_config_value("circleci_artifacts",
-                                             {"sphinx": {
-                                                 "url": "html/index.html",
-                                                 "message":
-                                                 "Click details to preview the documentation build"}})
-
-        for name, config in urls.items():
+        for name, config in ci_config.items():
 
             url = get_documentation_url_from_artifacts(artifacts, config['url'])
 
