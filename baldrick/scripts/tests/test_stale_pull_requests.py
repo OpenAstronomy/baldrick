@@ -1,13 +1,12 @@
-import json
 import time
 from unittest.mock import patch, PropertyMock
 
 from baldrick.github.github_api import RepoHandler, PullRequestHandler
-from baldrick.blueprints.stale_pull_requests import (process_pull_requests,
-                                                      PULL_REQUESTS_CLOSE_EPILOGUE,
-                                                      PULL_REQUESTS_CLOSE_WARNING,
-                                                      is_close_warning,
-                                                      is_close_epilogue)
+from baldrick.scripts.stale_pull_requests import (process_pull_requests,
+                                                  PULL_REQUESTS_CLOSE_EPILOGUE,
+                                                  PULL_REQUESTS_CLOSE_WARNING,
+                                                  is_close_warning,
+                                                  is_close_epilogue)
 
 
 def test_is_close_warning():
@@ -22,37 +21,7 @@ def now():
     return time.time()
 
 
-class TestHook:
-
-    def test_valid(self, app, client):
-        app.cron_token = '12345'
-        data = {'repository': 'test-repo', 'cron_token': '12345', 'installation': '123'}
-        with patch('baldrick.blueprints.stale_pull_requests.process_pull_requests') as p:
-            response = client.post('/close_stale_pull_requests', data=json.dumps(data),
-                                        content_type='application/json')
-            assert response.data == b''
-            assert p.call_count == 1
-
-    def test_invalid_cron(self, app, client):
-        app.cron_token = '12345'
-        data = {'repository': 'test-repo', 'cron_token': '12344', 'installation': '123'}
-        with patch('baldrick.blueprints.stale_pull_requests.process_pull_requests') as p:
-            response = client.post('/close_stale_pull_requests', data=json.dumps(data),
-                                        content_type='application/json')
-            assert response.data == b'Incorrect cron_token'
-            assert p.call_count == 0
-
-    def test_missing_keyword(self, app, client):
-        app.cron_token = '12345'
-        data = {'cron_token': '12344', 'installation': '123'}
-        with patch('baldrick.blueprints.stale_pull_requests.process_pull_requests') as p:
-            response = client.post('/close_stale_pull_requests', data=json.dumps(data),
-                                        content_type='application/json')
-            assert response.data == b'Payload mising repository'
-            assert p.call_count == 0
-
-
-class TestProcessIssues:
+class TestProcessPullRequests:
 
     def setup_method(self, method):
 
@@ -105,8 +74,7 @@ class TestProcessIssues:
         self.labels.return_value = ['io.fits', 'Bug']
 
         with app.app_context():
-            # The list() call is to forge the generator to run fully
-            list(process_pull_requests('repo', 'installation'))
+            process_pull_requests('repo', 'installation')
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
@@ -128,8 +96,7 @@ class TestProcessIssues:
         self.find_comments.return_value = []
 
         with app.app_context():
-            # The list() call is to forge the generator to run fully
-            list(process_pull_requests('repo', 'installation'))
+            process_pull_requests('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
         expected = PULL_REQUESTS_CLOSE_EPILOGUE
@@ -153,8 +120,7 @@ class TestProcessIssues:
         self.find_comments.return_value = [222]
 
         with app.app_context():
-            # The list() call is to forge the generator to run fully
-            list(process_pull_requests('repo', 'installation'))
+            process_pull_requests('repo', 'installation')
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
@@ -177,8 +143,7 @@ class TestProcessIssues:
 
         with app.app_context():
             with patch.object(app, 'stale_pull_requests_close', False):
-                # The list() call is to forge the generator to run fully
-                list(process_pull_requests('repo', 'installation'))
+                process_pull_requests('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
         expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='4 minutes', futuretime='20 seconds')
@@ -203,8 +168,7 @@ class TestProcessIssues:
 
         with app.app_context():
             with patch.object(app, 'stale_pull_requests_close', False):
-                # The list() call is to forge the generator to run fully
-                list(process_pull_requests('repo', 'installation'))
+                process_pull_requests('repo', 'installation')
 
         assert self.submit_comment.call_count == 0
 
@@ -223,8 +187,7 @@ class TestProcessIssues:
         self.find_comments.return_value = ['1']
 
         with app.app_context():
-            # The list() call is to forge the generator to run fully
-            list(process_pull_requests('repo', 'installation'))
+            process_pull_requests('repo', 'installation')
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
@@ -245,8 +208,7 @@ class TestProcessIssues:
         self.find_comments.return_value = []
 
         with app.app_context():
-            # The list() call is to forge the generator to run fully
-            list(process_pull_requests('repo', 'installation'))
+            process_pull_requests('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
         expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='3 minutes', futuretime='20 seconds')
@@ -269,8 +231,7 @@ class TestProcessIssues:
         self.find_comments.return_value = []
 
         with app.app_context():
-            # The list() call is to forge the generator to run fully
-            list(process_pull_requests('repo', 'installation'))
+            process_pull_requests('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
         expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='33 minutes', futuretime='20 seconds')
@@ -292,8 +253,7 @@ class TestProcessIssues:
         self.find_comments.return_value = []
 
         with app.app_context():
-            # The list() call is to forge the generator to run fully
-            list(process_pull_requests('repo', 'installation'))
+            process_pull_requests('repo', 'installation')
 
         assert self.find_comments.call_count == 0
         assert self.submit_comment.call_count == 0
@@ -315,8 +275,7 @@ class TestProcessIssues:
         self.find_comments.return_value = [122331]
 
         with app.app_context():
-            # The list() call is to forge the generator to run fully
-            list(process_pull_requests('repo', 'installation'))
+            process_pull_requests('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
         expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='3 minutes', futuretime='20 seconds')

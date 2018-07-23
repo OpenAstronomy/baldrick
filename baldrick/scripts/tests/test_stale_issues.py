@@ -1,13 +1,12 @@
-import json
 import time
 from unittest.mock import patch
 
 from baldrick.github.github_api import RepoHandler, IssueHandler
-from baldrick.blueprints.stale_issues import (process_issues,
-                                               ISSUE_CLOSE_EPILOGUE,
-                                               ISSUE_CLOSE_WARNING,
-                                               is_close_warning,
-                                               is_close_epilogue)
+from baldrick.scripts.stale_issues import (process_issues,
+                                           ISSUE_CLOSE_EPILOGUE,
+                                           ISSUE_CLOSE_WARNING,
+                                           is_close_warning,
+                                           is_close_epilogue)
 
 
 def test_is_close_warning():
@@ -20,36 +19,6 @@ def test_is_close_epilogue():
 
 def now():
     return time.time()
-
-
-class TestHook:
-
-    def test_valid(self, app, client):
-        app.cron_token = '12345'
-        data = {'repository': 'test-repo', 'cron_token': '12345', 'installation': '123'}
-        with patch('baldrick.blueprints.stale_issues.process_issues') as p:
-            response = client.post('/close_stale_issues', data=json.dumps(data),
-                                        content_type='application/json')
-            assert response.data == b''
-            assert p.call_count == 1
-
-    def test_invalid_cron(self, app, client):
-        app.cron_token = '12345'
-        data = {'repository': 'test-repo', 'cron_token': '12344', 'installation': '123'}
-        with patch('baldrick.blueprints.stale_issues.process_issues') as p:
-            response = client.post('/close_stale_issues', data=json.dumps(data),
-                                        content_type='application/json')
-            assert response.data == b'Incorrect cron_token'
-            assert p.call_count == 0
-
-    def test_missing_keyword(self, app, client):
-        app.cron_token = '12345'
-        data = {'cron_token': '12344', 'installation': '123'}
-        with patch('baldrick.blueprints.stale_issues.process_issues') as p:
-            response = client.post('/close_stale_issues', data=json.dumps(data),
-                                        content_type='application/json')
-            assert response.data == b'Payload mising repository'
-            assert p.call_count == 0
 
 
 class TestProcessIssues:
@@ -94,8 +63,7 @@ class TestProcessIssues:
         self.find_comments.return_value = ['1']
 
         with app.app_context():
-            # The list() call is to forge the generator to run fully
-            list(process_issues('repo', 'installation'))
+            process_issues('repo', 'installation')
 
         self.get_issues.assert_called_with('open', 'Close?')
         self.get_label_added_date.assert_called_with('Close?')
@@ -118,8 +86,7 @@ class TestProcessIssues:
         self.find_comments.return_value = []
 
         with app.app_context():
-            # The list() call is to forge the generator to run fully
-            list(process_issues('repo', 'installation'))
+            process_issues('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
         expected = ISSUE_CLOSE_EPILOGUE
@@ -143,8 +110,7 @@ class TestProcessIssues:
 
         with app.app_context():
             with patch.object(app, 'stale_issue_close', False):
-                # The list() call is to forge the generator to run fully
-                list(process_issues('repo', 'installation'))
+                process_issues('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
         expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
@@ -166,7 +132,7 @@ class TestProcessIssues:
         self.find_comments.return_value = ['1']
 
         with app.app_context():
-            list(process_issues('repo', 'installation'))
+            process_issues('repo', 'installation')
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
@@ -186,7 +152,7 @@ class TestProcessIssues:
         self.find_comments.return_value = []
 
         with app.app_context():
-            list(process_issues('repo', 'installation'))
+            process_issues('repo', 'installation')
 
         assert self.submit_comment.call_count == 1
         expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
@@ -207,7 +173,7 @@ class TestProcessIssues:
         self.find_comments.return_value = []
 
         with app.app_context():
-            list(process_issues('repo', 'installation'))
+            process_issues('repo', 'installation')
 
         assert self.find_comments.call_count == 0
         assert self.submit_comment.call_count == 0
