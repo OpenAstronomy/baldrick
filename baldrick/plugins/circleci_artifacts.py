@@ -1,5 +1,4 @@
 import requests
-from flask import current_app
 
 from baldrick.blueprints.circleci import circleci_webhook_handler
 from .utils import get_config_with_app_defaults
@@ -20,6 +19,7 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers):
         for name, config in ci_config.items():
 
             url = get_documentation_url_from_artifacts(artifacts, config['url'])
+            print(name, url)
 
             if url:
                 repo_handler.set_status("success",

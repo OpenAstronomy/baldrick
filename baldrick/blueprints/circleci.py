@@ -54,5 +54,4 @@ def circleci_handler():
     for handler in CIRCLECI_WEBHOOK_HANDLERS:
         handler(repo_handler, payload, request.headers)
 
-
     return "CirleCI Webhook Finsihed"
