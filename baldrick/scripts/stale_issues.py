@@ -5,6 +5,7 @@ from flask import current_app
 from humanize import naturaltime, naturaldelta
 
 from baldrick import create_app
+from baldrick.github.github_auth import repo_to_installation_id
 from baldrick.github.github_api import IssueHandler, RepoHandler
 
 ISSUE_CLOSE_WARNING = """
@@ -86,9 +87,6 @@ def main(argv=None):
     parser.add_argument('--repository', dest='repository', required=True,
                         help='The repository in which to check for stale issues')
 
-    parser.add_argument('--installation', dest='installation', required=True,
-                        help='The installation ID for the repository')
-
     parser.add_argument('--warn-seconds', dest='warn_seconds', action='store',
                         type=int, required=True,
                         help='After how many seconds to warn about stale issues')
@@ -114,5 +112,8 @@ def main(argv=None):
         app = current_app
 
     with app.app_context():
-        process_issues(args.repository, args.installation,
+
+        installation = repo_to_installation_id(args.repository)
+
+        process_issues(args.repository, installation,
                        warn_seconds=args.warn_seconds, close_seconds=args.close_seconds)

@@ -112,7 +112,7 @@ def github_request_headers(installation):
     return headers
 
 
-def repo_to_installationid_mapping():
+def repo_to_installation_id_mapping():
     """
     Returns a dictionary mapping full repository name to installation id.
     """
@@ -134,3 +134,14 @@ def repo_to_installationid_mapping():
             repos[repo['full_name']] = iid
 
     return repos
+
+
+def repo_to_installation_id(repository):
+    """
+    Return the installation ID for a repository.
+    """
+    mapping = repo_to_installation_id_mapping()
+    if repository in mapping:
+        return mapping[repository]
+    else:
+        raise ValueError("Repository not recognized - should be one of:\n\n  - " + "\n  - ".join(mapping))

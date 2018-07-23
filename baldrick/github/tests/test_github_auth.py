@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from baldrick.github.github_auth import (get_json_web_token, get_installation_token,
-                                         github_request_headers, repo_to_installationid_mapping)
+                                         github_request_headers, repo_to_installation_id_mapping)
 
 
 def test_get_json_web_token(app):
@@ -78,13 +78,13 @@ def requests_patch(url, headers=None):
     return req
 
 
-def test_repo_to_installationid_mapping(app):
+def test_repo_to_installation_id_mapping(app):
 
     with app.app_context():
         with patch('requests.post') as post:
             post.return_value.ok = True
             post.return_value.json.return_value = TOKEN_RESPONSE_VALID
             with patch('requests.get', requests_patch):
-                mapping = repo_to_installationid_mapping()
+                mapping = repo_to_installation_id_mapping()
 
     assert mapping == {'test1': 3331, 'test2': 3331}

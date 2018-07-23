@@ -32,7 +32,7 @@ class TestHook:
 
         data = {'payload': payload}
 
-        with patch('baldrick.blueprints.circleci.repo_to_installationid_mapping') as mapping:
+        with patch('baldrick.blueprints.circleci.repo_to_installation_id_mapping') as mapping:
             mapping.return_value = {'test/testbot': 15554}
             client.post('/circleci', data=json.dumps(data),
                         content_type='application/json')
@@ -49,7 +49,7 @@ class TestHook:
 
         data = {'payload': payload}
 
-        with patch('baldrick.blueprints.circleci.repo_to_installationid_mapping') as mapping:
+        with patch('baldrick.blueprints.circleci.repo_to_installation_id_mapping') as mapping:
             mapping.return_value = {'test/testbot': 15554}
             result = client.post('/circleci', data=json.dumps(data),
                                  content_type='application/json')
