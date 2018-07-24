@@ -1,6 +1,6 @@
 import json
 
-from baldrick.github.github_auth import repo_to_installationid_mapping
+from baldrick.github.github_auth import repo_to_installation_id_mapping
 from baldrick.github.github_api import RepoHandler
 
 from flask import Blueprint, request
@@ -43,7 +43,7 @@ def circleci_handler():
         return 'Payload missing {}'.format(' '.join(required_keys - payload.keys()))
 
     # Get installation id
-    repos = repo_to_installationid_mapping()
+    repos = repo_to_installation_id_mapping()
     repo = f"{payload['username']}/{payload['reponame']}"
 
     if repo not in repos:

@@ -1,3 +1,4 @@
+import os
 import netrc
 import datetime
 from collections import defaultdict
@@ -5,7 +6,6 @@ from collections import defaultdict
 import dateutil.parser
 
 import jwt
-from flask import current_app
 
 import requests
 
@@ -43,10 +43,10 @@ def get_json_web_token():
         payload['exp'] = int(json_web_token_expiry.timestamp())
 
         # Integration's GitHub identifier
-        payload['iss'] = current_app.integration_id
+        payload['iss'] = int(os.environ['GITHUB_APP_INTEGRATION_ID'])
 
         json_web_token = jwt.encode(payload,
-                                    current_app.private_key.encode('ascii'),
+                                    os.environ['GITHUB_APP_PRIVATE_KEY'].encode('ascii'),
                                     algorithm='RS256').decode('ascii')
 
     return json_web_token
@@ -112,7 +112,7 @@ def github_request_headers(installation):
     return headers
 
 
-def repo_to_installationid_mapping():
+def repo_to_installation_id_mapping():
     """
     Returns a dictionary mapping full repository name to installation id.
     """
@@ -134,3 +134,14 @@ def repo_to_installationid_mapping():
             repos[repo['full_name']] = iid
 
     return repos
+
+
+def repo_to_installation_id(repository):
+    """
+    Return the installation ID for a repository.
+    """
+    mapping = repo_to_installation_id_mapping()
+    if repository in mapping:
+        return mapping[repository]
+    else:
+        raise ValueError("Repository not recognized - should be one of:\n\n  - " + "\n  - ".join(mapping))

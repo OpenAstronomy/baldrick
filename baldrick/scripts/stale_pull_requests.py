@@ -1,27 +1,11 @@
 import re
+import sys
 import time
-import json
+import argparse
 from humanize import naturaldelta
+
+from baldrick.github.github_auth import repo_to_installation_id
 from baldrick.github.github_api import PullRequestHandler, RepoHandler
-from flask import Blueprint, request, current_app, Response, stream_with_context
-
-stale_pull_requests_blueprint = Blueprint('stale_pull_requests', __name__)
-
-
-@stale_pull_requests_blueprint.route('/close_stale_pull_requests', methods=['POST'])
-def close_stale_pull_requests():
-    payload = json.loads(request.data)
-    for keyword in ['repository', 'cron_token', 'installation']:
-        if keyword not in payload:
-            return f'Payload mising {keyword}'
-    if payload['cron_token'] != current_app.cron_token:
-        return "Incorrect cron_token"
-    # process_pull_requests is a generator so that we can continuously return a
-    # response to the requester - this prevents Heroku from thinking the
-    # request has timed out (https://librenepal.com/article/flask-and-heroku-timeout/)
-    return Response(stream_with_context(process_pull_requests(payload['repository'], payload['installation'])),
-                    mimetype='text/plain')
-
 
 PULL_REQUESTS_CLOSE_WARNING = re.sub('(\w+)\n', r'\1', """
 Hi humans :wave: - this pull request hasn't had any new commits for
@@ -64,7 +48,9 @@ def is_close_epilogue(message):
     return "I'm going to close this pull request" in message
 
 
-def process_pull_requests(repository, installation):
+def process_pull_requests(repository, installation,
+                          warn_seconds=None,
+                          close_seconds=None):
 
     now = time.time()
 
@@ -79,12 +65,10 @@ def process_pull_requests(repository, installation):
     for n in pull_requests:
 
         print(f'Checking {n}')
-        yield f'Checking {n}\n'
 
         pr = PullRequestHandler(repository, n, installation)
         if 'keep-open' in pr.labels:
             print('-> PROTECTED by label, skipping')
-            yield '-> PROTECTED by label, skipping\n'
             continue
 
         commit_time = pr.last_commit_date
@@ -103,33 +87,49 @@ def process_pull_requests(repository, installation):
         # the time since the warning exceeds the threshold specified by
         # stale_pull_requests_close_seconds.
 
-        if time_since_last_warning > current_app.stale_pull_requests_close_seconds:
+        if time_since_last_warning > close_seconds:
             comment_ids = pr.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
-            if not current_app.stale_pull_requests_close or not enable_autoclose:
+            if not enable_autoclose:
                 print(f'-> Skipping pull request {n} (auto-close disabled)')
-                yield f'-> Skipping pull request {n} (auto-close disabled)\n'
             elif len(comment_ids) == 0:
                 print(f'-> CLOSING pull request {n}')
-                yield f'-> CLOSING pull request {n}\n'
                 pr.set_labels(['closed-by-bot'])
                 pr.submit_comment(PULL_REQUESTS_CLOSE_EPILOGUE)
                 pr.close()
             else:
                 print(f'-> Skipping pull request {n} (already closed)')
-                yield f'-> Skipping pull request {n} (already closed)\n'
-        elif time_since_last_commit > current_app.stale_pull_requests_warn_seconds:
+        elif time_since_last_commit > warn_seconds:
             # A negative time_since_last_warning means no warning since last commit.
             if time_since_last_warning < 0.:
                 print(f'-> WARNING pull request {n}')
-                yield f'-> WARNING pull request {n}\n'
                 pr.submit_comment(PULL_REQUESTS_CLOSE_WARNING.format(pasttime=naturaldelta(time_since_last_commit),
-                                                                     futuretime=naturaldelta(current_app.stale_pull_requests_close_seconds)))
+                                                                     futuretime=naturaldelta(close_seconds)))
             else:
                 print(f'-> Skipping pull request {n} (already warned)')
-                yield f'-> Skipping pull request {n} (already warned)\n'
         else:
             print(f'-> OK pull request {n}')
-            yield f'-> OK pull request {n}\n'
 
     print('Finished checking for stale pull requests')
-    yield 'Finished checking for stale pull requests\n'
+
+
+def main(argv=None):
+
+    parser = argparse.ArgumentParser(description='Check for stale pull requests and close them if needed.')
+
+    parser.add_argument('--repository', dest='repository', required=True,
+                        help='The repository in which to check for stale pull requests')
+
+    parser.add_argument('--warn-seconds', dest='warn_seconds', action='store',
+                        type=int, required=True,
+                        help='After how many seconds to warn about stale issues')
+
+    parser.add_argument('--close-seconds', dest='close_seconds', action='store',
+                        type=int, required=True,
+                        help='After how many seconds to close stale issues')
+
+    args = parser.parse_args(argv or sys.argv[1:])
+
+    installation = repo_to_installation_id(args.repository)
+
+    process_pull_requests(args.repository, installation,
+                          warn_seconds=args.warn_seconds, close_seconds=args.close_seconds)
