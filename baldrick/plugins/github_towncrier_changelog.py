@@ -123,10 +123,13 @@ def verify_pr_number(pr_number, matching_file):
     return pr_number in matching_file
 
 
+CHANGELOG = "Changelog file was added in the correct directories."
 NO_CHANGELOG = "No changelog file was added in the correct directories."
 
+CORRECT_TYPE = "The changelog file that was added is one of the configured types."
 WRONG_TYPE = "The changelog file that was added is not one of the configured types."
 
+CORRECT_NUMBER = "The number in the changelog file matches this pull request number."
 WRONG_NUMBER = "The number in the changelog file does not match this pull request number."
 
 
@@ -146,31 +149,34 @@ def process_towncrier_changelog(pr_handler, repo_handler, headers):
 
     modified_files = pr_handler.get_modified_filenames()
 
-    messages = []
-    matching_file = check_sections(modified_files, section_dirs)
-    if not matching_file:
-        messages.append(cl_config.get("missing_file_message", NO_CHANGELOG))
+    messages = {}
 
-    else:
-        if not check_changelog_type(types, matching_file):
-            messages.append(cl_config.get("wrong_type_message", WRONG_TYPE))
-        if cl_config.get('verify_pr_number', False) and not verify_pr_number(pr_handler.number, matching_file):
-            messages.append(cl_config.get("wrong_number_message", WRONG_NUMBER))
+    matching_file = check_sections(modified_files, section_dirs)
 
     if skip_label and skip_label in pr_handler.labels:
-        messages = []
 
-    if not repo_handler.get_config_value('post_pr_comment', False):
-        if messages:
-            message = ' '.join(messages)
-            pr_handler.set_status('failure', message, current_app.bot_username + ': changelog',
-                                  target_url=cl_config.get('help_url', None))
-            return [], None
-        else:
-            pr_handler.set_status('success', "The changelog looks good.", current_app.bot_username + ': changelog')
-            return [], None
+        messages['missing_file'] = 'Skipping changelog presence test', True
+        messages['wrong_type'] = 'Skipping changelog type test', True
+        messages['wrong_number'] = 'Skipping changelog number test', True
+
+    elif not matching_file:
+
+        messages['missing_file'] = NO_CHANGELOG, False
+        messages['wrong_type'] = 'Could not check changelog type', False
+        messages['wrong_number'] = 'Could not check changelog number', False
+
     else:
-        if messages:
-            return messages, False
+
+        messages['missing_file'] = CHANGELOG, True
+
+        if check_changelog_type(types, matching_file):
+            messages['wrong_type'] = CORRECT_TYPE, True
         else:
-            return [], True
+            messages['wrong_type'] = WRONG_TYPE, False
+
+        if cl_config.get('verify_pr_number', False) and not verify_pr_number(pr_handler.number, matching_file):
+            messages['wrong_number'] = WRONG_NUMBER, False
+        else:
+            messages['wrong_number'] = CORRECT_NUMBER, True
+
+    return messages

@@ -68,10 +68,7 @@ class TestPullRequestHandler:
             raise ValueError('Unexepected URL: {0}'.format(url))
         return req
 
-    def test_empty_default(self, app, client):
-
-        # Test case where the config doesn't give a default message, and the
-        # registered handlers don't return any checks
+    def send_event(self, client):
 
         data = {'pull_request': {'number': '1234'},
                 'repository': {'full_name': 'test-repo'},
@@ -80,12 +77,19 @@ class TestPullRequestHandler:
 
         headers = {'X-GitHub-Event': 'pull_request'}
 
-        test_hook.return_value = [], True
+        client.post('/github', data=json.dumps(data), headers=headers,
+                    content_type='application/json')
+
+    def test_empty_default(self, app, client):
+
+        # Test case where the config doesn't give a default message, and the
+        # registered handlers don't return any checks
+
+        test_hook.return_value = {}
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
                                                                      all_passed_message="''")
 
-        client.post('/github', data=json.dumps(data), headers=headers,
-                    content_type='application/json')
+        self.send_event(client)
 
         assert self.requests_post.call_count == 1
 
@@ -95,23 +99,15 @@ class TestPullRequestHandler:
                                   'description': 'Passed all checks',
                                   'context': 'testbot'}
 
-    def test_all_passed_message(self, app, client):
+    def test_empty_with_message(self, app, client):
 
         # As above, but a default message is given
 
-        data = {'pull_request': {'number': '1234'},
-                'repository': {'full_name': 'test-repo'},
-                'action': 'synchronize',
-                'installation': {'id': '123'}}
-
-        headers = {'X-GitHub-Event': 'pull_request'}
-
-        test_hook.return_value = [], True
+        test_hook.return_value = {}
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
                                                                      all_passed_message="'All checks passed'")
 
-        client.post('/github', data=json.dumps(data), headers=headers,
-                    content_type='application/json')
+        self.send_event(client)
 
         assert self.requests_post.call_count == 2
 
@@ -124,3 +120,125 @@ class TestPullRequestHandler:
         assert kwargs['json'] == {'state': 'success',
                                   'description': 'Passed all checks',
                                   'context': 'testbot'}
+
+    def test_all_passed(self, app, client):
+
+        # As above, but a default message is given
+
+        test_hook.return_value = {'test1': ('No problem', True), 'test2': ('All good here', True)}
+
+        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='false',
+                                                                     all_passed_message="'All checks passed'")
+
+        self.send_event(client)
+
+        assert self.requests_post.call_count == 2
+
+        args, kwargs = self.requests_post.call_args_list[0]
+        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+        assert kwargs['json'] == {'state': 'success',
+                                  'description': 'No problem',
+                                  'context': 'testbot:test1'}
+
+        args, kwargs = self.requests_post.call_args_list[1]
+        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+        assert kwargs['json'] == {'state': 'success',
+                                  'description': 'All good here',
+                                  'context': 'testbot:test2'}
+
+    def test_all_passed_with_comment(self, app, client):
+
+        # As above, but a default message is given
+
+        test_hook.return_value = {'test1': ('No problem', True), 'test2': ('All good here', True)}
+
+        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
+                                                                     all_passed_message="'All checks passed'")
+
+        self.send_event(client)
+
+        assert self.requests_post.call_count == 2
+
+        args, kwargs = self.requests_post.call_args_list[0]
+        assert args[0] == 'https://api.github.com/repos/test-repo/issues/1234/comments'
+        assert kwargs['json'] == {'body': 'All checks passed'}
+
+        args, kwargs = self.requests_post.call_args_list[1]
+        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+        assert kwargs['json'] == {'state': 'success',
+                                  'description': 'Passed all checks',
+                                  'context': 'testbot'}
+
+    def test_one_failure(self, app, client):
+
+        # As above, but a default message is given
+
+        test_hook.return_value = {'test1': ('Problems here', False), 'test2': ('All good here', True)}
+
+        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='false',
+                                                                     all_passed_message="'All checks passed'")
+
+        self.send_event(client)
+
+        assert self.requests_post.call_count == 2
+
+        args, kwargs = self.requests_post.call_args_list[0]
+        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+        assert kwargs['json'] == {'state': 'failure',
+                                  'description': 'Problems here',
+                                  'context': 'testbot:test1'}
+
+        args, kwargs = self.requests_post.call_args_list[1]
+        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+        assert kwargs['json'] == {'state': 'success',
+                                  'description': 'All good here',
+                                  'context': 'testbot:test2'}
+
+    def test_one_failure_with_comment(self, app, client):
+
+        # As above, but a default message is given
+
+        test_hook.return_value = {'test1': ('Problems here', False), 'test2': ('All good here', True)}
+
+        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
+                                                                     all_passed_message="'All checks passed'")
+
+        self.send_event(client)
+
+        assert self.requests_post.call_count == 2
+
+        args, kwargs = self.requests_post.call_args_list[0]
+        assert args[0] == 'https://api.github.com/repos/test-repo/issues/1234/comments'
+        assert kwargs['json'] == {'body': 'Problems here'}
+
+        args, kwargs = self.requests_post.call_args_list[1]
+        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+        assert kwargs['json']['state'] == 'failure'
+        assert kwargs['json']['description'] == 'Failed some checks'
+        assert kwargs['json']['context'] == 'testbot'
+
+    def test_one_failure_with_comment_prologue_epilogue(self, app, client):
+
+        # As above, but a default message is given
+
+        app.pull_request_prologue_default = 'The prologue - '
+        app.pull_request_epilogue_default = ' - The epilogue'
+
+        test_hook.return_value = {'test1': ('Problems here', False), 'test2': ('All good here', True)}
+
+        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
+                                                                     all_passed_message="'All checks passed'")
+
+        self.send_event(client)
+
+        assert self.requests_post.call_count == 2
+
+        args, kwargs = self.requests_post.call_args_list[0]
+        assert args[0] == 'https://api.github.com/repos/test-repo/issues/1234/comments'
+        assert kwargs['json'] == {'body': 'The prologue - Problems here - The epilogue'}
+
+        args, kwargs = self.requests_post.call_args_list[1]
+        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+        assert kwargs['json']['state'] == 'failure'
+        assert kwargs['json']['description'] == 'Failed some checks'
+        assert kwargs['json']['context'] == 'testbot'
