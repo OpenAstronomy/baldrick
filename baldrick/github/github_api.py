@@ -39,8 +39,6 @@ QUOTES = [
     "I'm the one who knocks!",
     "Who are you who are so wise in the ways of science?"]
 
-cfg_cache = {}
-
 
 def paged_github_json_request(url, headers=None):
 
@@ -142,15 +140,9 @@ class GitHubHandler:
 
     def get_config_value(self, cfg_key, cfg_default, branch=None):
         """
-        Convenience method to extract user config from global cache.
+        Convenience method to extract a part of the repo config
         """
-        global cfg_cache
-
-        cfg_cache_key = (self.repo, branch, self.installation)
-        if cfg_cache_key not in cfg_cache:
-            cfg_cache[cfg_cache_key] = self.get_user_config(branch=branch)
-
-        cfg = cfg_cache.get(cfg_cache_key, {})
+        cfg = self.get_user_config(branch=branch)
         return cfg.get(cfg_key, cfg_default)
 
     def set_status(self, state, description, context, commit_hash, target_url=None):
