@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import toml
 import dateutil.parser
 from flask import current_app
+from ttldict import TTLOrderedDict
 
 from baldrick.github.github_auth import github_request_headers
 
@@ -39,7 +40,8 @@ QUOTES = [
     "I'm the one who knocks!",
     "Who are you who are so wise in the ways of science?"]
 
-cfg_cache = {}
+
+cfg_cache = TTLOrderedDict(default_ttl=60*60)
 
 
 def paged_github_json_request(url, headers=None):
