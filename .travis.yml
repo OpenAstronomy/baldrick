@@ -1,31 +1,19 @@
-language: c
+language: python
 
 sudo: false
 
 os:
     - linux
 
-matrix:
-
-    include:
-        - env: PYTHON_VERSION=3.6
-               MAIN_CMD='pytest -rx --cov baldrick baldrick'
-               CONDA_DEPENDENCIES="pytest pytest-cov coverage requests flask cryptography python-dateutil toml"
-               PIP_DEPENDENCIES="coveralls flask-dance pygithub humanize codecov"
-
-        # Do a PEP8 test with flake8
-        - env: PYTHON_VERSION=3.6
-               MAIN_CMD='pytest --flake8 baldrick'
-               CONDA_DEPENDENCIES="pytest requests flask cryptography python-dateutil toml"
-               PIP_DEPENDENCIES="flask-dance pygithub humanize pytest-flake8 codecov"
+python:
+  - "3.6"
 
 install:
-    - git clone git://github.com/astropy/ci-helpers.git
-    - source ci-helpers/travis/setup_conda.sh
+    - pip install .[test]
 
 script:
-    - $MAIN_CMD
+    - pytest -rx --flake8 --cov baldrick baldrick
 
 after_success:
-    - if [[ $MAIN_CMD == *--cov* ]]; then codecov; fi;
+    - codecov
 
