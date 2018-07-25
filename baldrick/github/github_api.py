@@ -41,7 +41,7 @@ QUOTES = [
     "Who are you who are so wise in the ways of science?"]
 
 
-cfg_cache = TTLOrderedDict(default_ttl=60*60)
+cfg_cache = TTLOrderedDict(default_ttl=60 * 60)
 
 
 def paged_github_json_request(url, headers=None):
