@@ -1,8 +1,0 @@
-flask
-flask-dance
-pyjwt
-requests
-cryptography
-python-dateutil
-humanize
-toml

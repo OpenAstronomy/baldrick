@@ -14,10 +14,10 @@ setup(version='0.0.dev0',
       extras_require={'test': ['pytest>=3.5', 'pytest-flake8', 'pytest-cov', 'codecov']},
       install_requires=[
           "flask",
-          "flask-dance",
           "pyjwt",
           "requests",
-          "cryptography",
           "python-dateutil",
+          "cryptography",
           "humanize",
-          "toml"])
+          "toml",
+          "ttldict"])
