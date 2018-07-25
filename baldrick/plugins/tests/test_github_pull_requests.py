@@ -9,10 +9,12 @@ test_hook = MagicMock()
 
 
 CONFIG_TEMPLATE = """
-[tool.testbot]
-[tool.testbot.pull_requests]
-post_pr_comment = {post_pr_comment}
-all_passed_message = {all_passed_message}
+[ tool.testbot ]
+  [ tool.testbot.pull_requests ]
+    post_pr_comment = {post_pr_comment}
+    all_passed_message = '{all_passed_message}'
+    fail_prologue = '{fail_prologue}'
+    fail_epilogue = '{fail_epilogue}'
 """
 
 
@@ -87,7 +89,8 @@ class TestPullRequestHandler:
 
         test_hook.return_value = {}
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
-                                                                     all_passed_message="''")
+                                                                     all_passed_message="''",
+                                                                     fail_prologue='', fail_epilogue='')
 
         self.send_event(client)
 
@@ -105,7 +108,8 @@ class TestPullRequestHandler:
 
         test_hook.return_value = {}
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
-                                                                     all_passed_message="'All checks passed'")
+                                                                     all_passed_message='All checks passed',
+                                                                     fail_prologue='', fail_epilogue='')
 
         self.send_event(client)
 
@@ -125,10 +129,11 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {'test1': ('No problem', True), 'test2': ('All good here', True)}
+        test_hook.return_value = {'test1': ('No problem', 'success'), 'test2': ('All good here', 'success')}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='false',
-                                                                     all_passed_message="'All checks passed'")
+                                                                     all_passed_message='All checks passed',
+                                                                     fail_prologue='', fail_epilogue='')
 
         self.send_event(client)
 
@@ -150,10 +155,11 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {'test1': ('No problem', True), 'test2': ('All good here', True)}
+        test_hook.return_value = {'test1': ('No problem', 'success'), 'test2': ('All good here', 'success')}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
-                                                                     all_passed_message="'All checks passed'")
+                                                                     all_passed_message='All checks passed',
+                                                                     fail_prologue='', fail_epilogue='')
 
         self.send_event(client)
 
@@ -173,10 +179,11 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {'test1': ('Problems here', False), 'test2': ('All good here', True)}
+        test_hook.return_value = {'test1': ('Problems here', 'failure'), 'test2': ('All good here', 'success')}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='false',
-                                                                     all_passed_message="'All checks passed'")
+                                                                     all_passed_message='All checks passed',
+                                                                     fail_prologue='', fail_epilogue='')
 
         self.send_event(client)
 
@@ -198,10 +205,11 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {'test1': ('Problems here', False), 'test2': ('All good here', True)}
+        test_hook.return_value = {'test1': ('Problems here', 'failure'), 'test2': ('All good here', 'success')}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
-                                                                     all_passed_message="'All checks passed'")
+                                                                     all_passed_message='All checks passed',
+                                                                     fail_prologue='', fail_epilogue='')
 
         self.send_event(client)
 
@@ -221,13 +229,12 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        app.pull_request_prologue_default = 'The prologue - '
-        app.pull_request_epilogue_default = ' - The epilogue'
-
-        test_hook.return_value = {'test1': ('Problems here', False), 'test2': ('All good here', True)}
+        test_hook.return_value = {'test1': ('Problems here', 'failure'), 'test2': ('All good here', 'success')}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
-                                                                     all_passed_message="'All checks passed'")
+                                                                     all_passed_message='All checks passed',
+                                                                     fail_prologue='The prologue - ',
+                                                                     fail_epilogue=' - The epilogue')
 
         self.send_event(client)
 

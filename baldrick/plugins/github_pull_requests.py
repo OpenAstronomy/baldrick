@@ -27,8 +27,9 @@ def pull_request_handler(func):
     return a dictionary where the key is a unique string that refers to the
     specific check that has been made, and the values are a tuple of
     ``(message, status``), where ``message`` is the message to be shown in the
-    status or in the comment and ``status`` is a boolean that indicates whether
-    the build has succeeded (``True``) or failed (``False``).
+    status or in the comment and ``status`` is a string giving the status
+    to be used for the latest commit (one of ``success``, ``failure``,
+    ``error``, or ``pending``).
     """
     PULL_REQUEST_CHECKS.append(func)
     return func
@@ -100,7 +101,7 @@ def process_pull_request(repository, number, installation):
         result = function(pr_handler, repo_handler)
         results.update(result)
 
-    failures = [message for message, status in results.values() if not status]
+    failures = [message for message, status in results.values() if status in ('error', 'failure')]
 
     if post_comment:
 
@@ -108,36 +109,34 @@ def process_pull_request(repository, number, installation):
 
         if failures:
 
-            pull_request_prologue = get_config_with_app_defaults(pr_handler, 'pull_request_prologue', default='')
-            pull_request_epilogue = get_config_with_app_defaults(pr_handler, 'pull_request_epilogue', default='')
+            pull_request_prologue = pr_config.get('fail_prologue', '')
+            pull_request_epilogue = pr_config.get('fail_epilogue', '')
+
+            fail_status = pr_config.get('fail_status', 'Failed some checks')
 
             message = pull_request_prologue.format(pr_handler=pr_handler, repo_handler=repo_handler)
             message += ''.join(failures) + pull_request_epilogue
-            comment_url = pr_handler.submit_comment(message, comment_id=comment_id,
-                                                    return_url=True)
+            comment_url = pr_handler.submit_comment(message, comment_id=comment_id, return_url=True)
 
-            pr_handler.set_status('failure',
-                                  pr_config.get("pr_failed_status", "Failed some checks"),
-                                  current_app.bot_username, target_url=comment_url)
+            pr_handler.set_status('failure', fail_status, current_app.bot_username, target_url=comment_url)
 
         else:
 
-            all_passed_message = pr_config.get("all_passed_message", '')
+            pass_status = pr_config.get('pass_status', 'Passed all checks')
+
+            all_passed_message = pr_config.get('all_passed_message', '')
             all_passed_message = all_passed_message.format(pr_handler=pr_handler, repo_handler=repo_handler)
+
             if all_passed_message:
                 pr_handler.submit_comment(all_passed_message, comment_id=comment_id)
 
-            pr_handler.set_status('success',
-                                  pr_config.get("pr_passed_status", "Passed all checks"),
-                                  current_app.bot_username)
+            pr_handler.set_status('success', pass_status, current_app.bot_username)
 
     else:
 
         # Post each failure as a status
 
         for context, (message, status) in sorted(results.items()):
-
-            pr_handler.set_status('success' if status else 'failure', message,
-                                  current_app.bot_username + ':' + context)
+            pr_handler.set_status(status, message, current_app.bot_username + ':' + context)
 
     return 'Finished pull requests checks'
