@@ -17,6 +17,7 @@ setup(version='0.0.dev0',
           "pyjwt",
           "requests",
           "python-dateutil",
+          "cryptography",
           "humanize",
           "toml",
           "ttldict"])
