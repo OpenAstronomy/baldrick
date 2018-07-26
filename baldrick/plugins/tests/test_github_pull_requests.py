@@ -282,3 +282,38 @@ class TestPullRequestHandler:
         assert kwargs['json'] == {'state': 'success',
                                   'description': 'All good here',
                                   'context': 'testbot:test2'}
+
+    def test_no_skip_existing_different_statuses(self, app, client):
+
+        # If statuses already exist but has some differences, post again
+
+        test_hook.return_value = {'test1': {'description': 'Problems here', 'state': 'failure'},
+                                  'test2': {'description': 'All good here', 'state': 'success'}}
+
+        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='false',
+                                                                     all_passed_message='All checks passed',
+                                                                     fail_prologue='', fail_epilogue='')
+
+        self.existing_statuses = [{'context': 'testbot:test1',
+                                   'description': 'Problems here',
+                                   'state': 'pending'}]
+
+        self.existing_statuses = [{'context': 'testbot:test2',
+                                   'description': 'All good here (extra comment)',
+                                   'state': 'success'}]
+
+        self.send_event(client)
+
+        assert self.requests_post.call_count == 2
+
+        args, kwargs = self.requests_post.call_args_list[0]
+        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+        assert kwargs['json'] == {'state': 'failure',
+                                  'description': 'Problems here',
+                                  'context': 'testbot:test1'}
+
+        args, kwargs = self.requests_post.call_args_list[1]
+        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+        assert kwargs['json'] == {'state': 'success',
+                                  'description': 'All good here',
+                                  'context': 'testbot:test2'}
