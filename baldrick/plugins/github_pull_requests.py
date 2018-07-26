@@ -6,7 +6,21 @@ from baldrick.plugins.utils import get_config_with_app_defaults
 
 __all__ = ['pull_request_handler']
 
+PULL_REQUEST_SKIPS = []
 PULL_REQUEST_CHECKS = []
+
+
+def pull_request_skipper(func):
+    """
+    A decorator to add functions that can determine whether the remaining pull
+    request checks should be skipped.
+
+    They will be passed ``(pr_handler, repo_handler)`` and are expected to
+    return either `None`, to indicate that the checks shouldn't be skipped, or
+    a string giving a comment that should be posted on the pull request.
+    """
+    PULL_REQUEST_SKIPS.append(func)
+    return func
 
 
 def pull_request_handler(func):
@@ -97,6 +111,13 @@ def process_pull_request(repository, number, installation):
         comment_id = None
     else:
         comment_id = comment_ids[-1]
+
+    # First check whether the further detailed checks should be skipped
+    for function in PULL_REQUEST_SKIPS:
+        result = function(pr_handler, repo_handler)
+        if result is not None:
+            pr_handler.submit_comment(result, comment_id=comment_id)
+            return
 
     results = {}
     for function in PULL_REQUEST_CHECKS:

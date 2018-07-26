@@ -3,7 +3,8 @@ from copy import copy
 from unittest.mock import MagicMock, patch
 
 from baldrick.github.github_api import cfg_cache
-from baldrick.plugins.github_pull_requests import pull_request_handler, PULL_REQUEST_CHECKS
+from baldrick.plugins.github_pull_requests import (pull_request_handler, PULL_REQUEST_CHECKS,
+                                                   pull_request_skipper)
 
 test_hook = MagicMock()
 
@@ -317,3 +318,25 @@ class TestPullRequestHandler:
         assert kwargs['json'] == {'state': 'success',
                                   'description': 'All good here',
                                   'context': 'testbot:test2'}
+
+    def test_skipper(self, app, client):
+
+        # Test case where the config doesn't give a default message, and the
+        # registered handlers don't return any checks
+
+        test_hook.return_value = {}
+        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
+                                                                     all_passed_message="''",
+                                                                     fail_prologue='', fail_epilogue='')
+
+        test_skipper = MagicMock()
+        test_skipper.return_value = 'All checks have been skipped'
+        pull_request_skipper(test_skipper)
+
+        self.send_event(client)
+
+        assert self.requests_post.call_count == 1
+
+        args, kwargs = self.requests_post.call_args_list[0]
+        assert args[0] == 'https://api.github.com/repos/test-repo/issues/1234/comments'
+        assert kwargs['json'] == {'body': 'All checks have been skipped'}
