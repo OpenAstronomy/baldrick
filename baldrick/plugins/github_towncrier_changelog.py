@@ -123,14 +123,14 @@ def verify_pr_number(pr_number, matching_file):
     return pr_number in matching_file
 
 
-CHANGELOG = "Changelog file was added in the correct directories."
-NO_CHANGELOG = "No changelog file was added in the correct directories."
+CHANGELOG_EXISTS = "Changelog file was added in the correct directories."
+CHANGELOG_MISSING = "No changelog file was added in the correct directories."
 
-CORRECT_TYPE = "The changelog file that was added is one of the configured types."
-WRONG_TYPE = "The changelog file that was added is not one of the configured types."
+TYPE_CORRECT = "The changelog file that was added is one of the configured types."
+TYPE_INCORRECT = "The changelog file that was added is not one of the configured types."
 
-CORRECT_NUMBER = "The number in the changelog file matches this pull request number."
-WRONG_NUMBER = "The number in the changelog file does not match this pull request number."
+NUMBER_CORRECT = "The number in the changelog file matches this pull request number."
+NUMBER_INCORRECT = "The number in the changelog file does not match this pull request number."
 
 
 @pull_request_handler
@@ -159,23 +159,28 @@ def process_towncrier_changelog(pr_handler, repo_handler, headers):
 
     elif not matching_file:
 
-        messages['missing_file'] = {'message': NO_CHANGELOG, 'status': 'failure'}
+        messages['missing_file'] = {'message': cl_config.get('changelog_missing', CHANGELOG_MISSING), 'status': 'failure'}
         messages['wrong_type'] = {'message': 'Could not check changelog type', 'status': 'failure'}
         messages['wrong_number'] = {'message': 'Could not check changelog number', 'status': 'failure'}
 
     else:
 
-        messages['missing_file'] = {'message': CHANGELOG, 'status': 'success'}
+        messages['missing_file'] = {'message': cl_config.get('changelog_exists', CHANGELOG_EXISTS),
+                                    'status': 'success'}
 
         if check_changelog_type(types, matching_file):
-            messages['wrong_type'] = {'message': CORRECT_TYPE, 'status': 'success'}
+            messages['wrong_type'] = {'message': cl_config.get('type_correct', TYPE_CORRECT),
+                                      'status': 'success'}
         else:
-            messages['wrong_type'] = {'message': WRONG_TYPE, 'status': 'failure'}
+            messages['wrong_type'] = {'message': cl_config.get('type_incorrect', TYPE_INCORRECT),
+                                      'status': 'failure'}
 
         if cl_config.get('verify_pr_number', False) and not verify_pr_number(pr_handler.number, matching_file):
-            messages['wrong_number'] = {'message': WRONG_NUMBER, 'status': 'failure'}
+            messages['wrong_number'] = {'message': cl_config.get('number_incorrect', NUMBER_INCORRECT),
+                                        'status': 'failure'}
         else:
-            messages['wrong_number'] = {'message': CORRECT_NUMBER, 'status': 'success'}
+            messages['wrong_number'] = {'message': cl_config.get('number_correc', NUMBER_CORRECT),
+                                        'status': 'success'}
 
     # Add help URL
     for message in messages:
