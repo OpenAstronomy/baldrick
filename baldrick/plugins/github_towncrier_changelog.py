@@ -155,28 +155,30 @@ def process_towncrier_changelog(pr_handler, repo_handler, headers):
 
     if skip_label and skip_label in pr_handler.labels:
 
-        messages['missing_file'] = 'Skipping changelog presence test', True
-        messages['wrong_type'] = 'Skipping changelog type test', True
-        messages['wrong_number'] = 'Skipping changelog number test', True
+        pass
 
     elif not matching_file:
 
-        messages['missing_file'] = NO_CHANGELOG, False
-        messages['wrong_type'] = 'Could not check changelog type', False
-        messages['wrong_number'] = 'Could not check changelog number', False
+        messages['missing_file'] = {'message': NO_CHANGELOG, 'status': 'failure'}
+        messages['wrong_type'] = {'message': 'Could not check changelog type', 'status': 'failure'}
+        messages['wrong_number'] = {'message': 'Could not check changelog number', 'status': 'failure'}
 
     else:
 
-        messages['missing_file'] = CHANGELOG, True
+        messages['missing_file'] = {'message': CHANGELOG, 'status': 'success'}
 
         if check_changelog_type(types, matching_file):
-            messages['wrong_type'] = CORRECT_TYPE, True
+            messages['wrong_type'] = {'message': CORRECT_TYPE, 'status': 'success'}
         else:
-            messages['wrong_type'] = WRONG_TYPE, False
+            messages['wrong_type'] = {'message': WRONG_TYPE, 'status': 'failure'}
 
         if cl_config.get('verify_pr_number', False) and not verify_pr_number(pr_handler.number, matching_file):
-            messages['wrong_number'] = WRONG_NUMBER, False
+            messages['wrong_number'] = {'message': WRONG_NUMBER, 'status': 'failure'}
         else:
-            messages['wrong_number'] = CORRECT_NUMBER, True
+            messages['wrong_number'] = {'message': CORRECT_NUMBER, 'status': 'success'}
+
+    # Add help URL
+    for message in messages:
+        message['target_url'] = cl_config.get('help_url', None)
 
     return messages

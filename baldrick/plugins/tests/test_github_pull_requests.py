@@ -66,6 +66,8 @@ class TestPullRequestHandler:
             return req
         elif url == 'https://api.github.com/repos/test-repo/issues/1234/comments':
             req.json.return_value = self.pr_comments
+        elif url == 'https://api.github.com/repos/test-repo/commits/abc464aa/statuses':
+            req.json.return_value = {}
         else:
             raise ValueError('Unexepected URL: {0}'.format(url))
         return req
@@ -129,7 +131,8 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {'test1': ('No problem', 'success'), 'test2': ('All good here', 'success')}
+        test_hook.return_value = {'test1': {'message': 'No problem', 'status': 'success'},
+                                  'test2': {'message': 'All good here', 'status': 'success'}}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='false',
                                                                      all_passed_message='All checks passed',
@@ -155,7 +158,8 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {'test1': ('No problem', 'success'), 'test2': ('All good here', 'success')}
+        test_hook.return_value = {'test1': {'message': 'No problem', 'status': 'success'},
+                                  'test2': {'message': 'All good here', 'status': 'success'}}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
                                                                      all_passed_message='All checks passed',
@@ -179,7 +183,8 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {'test1': ('Problems here', 'failure'), 'test2': ('All good here', 'success')}
+        test_hook.return_value = {'test1': {'message': 'Problems here', 'status': 'failure'},
+                                  'test2': {'message': 'All good here', 'status': 'success'}}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='false',
                                                                      all_passed_message='All checks passed',
@@ -205,7 +210,8 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {'test1': ('Problems here', 'failure'), 'test2': ('All good here', 'success')}
+        test_hook.return_value = {'test1': {'message': 'Problems here', 'status': 'failure'},
+                                  'test2': {'message': 'All good here', 'status': 'success'}}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
                                                                      all_passed_message='All checks passed',
@@ -229,7 +235,8 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {'test1': ('Problems here', 'failure'), 'test2': ('All good here', 'success')}
+        test_hook.return_value = {'test1': {'message': 'Problems here', 'status': 'failure'},
+                                  'test2': {'message': 'All good here', 'status': 'success'}}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
                                                                      all_passed_message='All checks passed',

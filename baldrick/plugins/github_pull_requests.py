@@ -25,11 +25,13 @@ def pull_request_handler(func):
 
     They will be passed ``(pr_handler, repo_handler)`` and are expected to
     return a dictionary where the key is a unique string that refers to the
-    specific check that has been made, and the values are a tuple of
-    ``(message, status``), where ``message`` is the message to be shown in the
-    status or in the comment and ``status`` is a string giving the status
-    to be used for the latest commit (one of ``success``, ``failure``,
-    ``error``, or ``pending``).
+    specific check that has been made, and the values are dictionaries with
+    the following keys:
+
+    * ``status`` is a string giving the status for the latest commit (one of
+      ``success``, ``failure``, ``error``, or ``pending``).
+    * ``message``: the message to be shown in the status
+    * ``target_url`` (optional): a URL to link to in the status
     """
     PULL_REQUEST_CHECKS.append(func)
     return func
@@ -101,7 +103,7 @@ def process_pull_request(repository, number, installation):
         result = function(pr_handler, repo_handler)
         results.update(result)
 
-    failures = [message for message, status in results.values() if status in ('error', 'failure')]
+    failures = [details['message'] for details in results.values() if details['status'] in ('error', 'failure')]
 
     if post_comment:
 
@@ -136,7 +138,30 @@ def process_pull_request(repository, number, installation):
 
         # Post each failure as a status
 
-        for context, (message, status) in sorted(results.items()):
-            pr_handler.set_status(status, message, current_app.bot_username + ':' + context)
+        existing_statuses = pr_handler.list_statuses()
+
+        for context, details in sorted(results.items()):
+
+            full_context = current_app.bot_username + ':' + context
+
+            # Don't post again if status hasn't changed
+            if full_context in existing_statuses:
+                existing_details = existing_statuses[full_context]
+                if (details['status'] == existing_details['status'] and
+                    details['message'] == existing_details['message'] and
+                        details['target_url'] == existing_details['target_url']):
+                    return
+
+            pr_handler.set_status(details['status'], details['message'],
+                                  current_app.bot_username + ':' + context,
+                                  target_url=details.get('target_url'))
+
+        # For statuses that have been skipped this time but existed before, set
+        # status to pass and set message to say skipped
+
+        for context in existing_statuses:
+            if context not in results:
+                pr_handler.set_status('success', 'This check has been skipped',
+                                      current_app.bot_username + ':' + context)
 
     return 'Finished pull requests checks'

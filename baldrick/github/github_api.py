@@ -173,7 +173,6 @@ class GitHubHandler:
 
         target_url : str or `None`
             Link to bot comment that is relevant to this status, if given.
-
         """
 
         data = {}
@@ -188,6 +187,28 @@ class GitHubHandler:
         response = requests.post(url, json=data,
                                  headers=self._headers)
         assert response.ok, response.content
+
+    def list_statuses(self, commit_hash):
+        """
+        List status messages on a commit on GitHub.
+
+        Parameters
+        ----------
+        commit_hash : str
+            The commit has to get the statuses for
+        """
+
+        url = f'{HOST}/repos/{self.repo}/commits/{commit_hash}/statuses'
+        results = paged_github_json_request(url, headers=self._headers)
+
+        statuses = {}
+        for result in results:
+            context = result['context']
+            statuses[context] = {'state': result['state'],
+                                 'description': result['description'],
+                                 'target_url': result.get('target_url')}
+
+        return statuses
 
 
 class RepoHandler(GitHubHandler):
@@ -460,8 +481,22 @@ class PullRequestHandler(IssueHandler):
             commit_hash = self.head_sha
         elif commit_hash == "base":
             commit_hash = self.base_sha
-
         super().set_status(state, description, context, commit_hash, target_url)
+
+    def list_statuses(self, commit_hash="head"):
+        """
+        List status messages on a commit on GitHub.
+
+        Parameters
+        ----------
+        commit_hash : str, optional
+            The commit hash to set the status on. Defaults to "head" can also be "base".
+        """
+        if commit_hash == "head":
+            commit_hash = self.head_sha
+        elif commit_hash == "base":
+            commit_hash = self.base_sha
+        return super().list_statuses(commit_hash)
 
     @property
     def _url_pull_request(self):
