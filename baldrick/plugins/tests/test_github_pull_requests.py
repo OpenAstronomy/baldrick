@@ -1,21 +1,20 @@
 import json
 from copy import copy
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 from baldrick.github.github_api import cfg_cache
-from baldrick.plugins.github_pull_requests import (pull_request_handler, PULL_REQUEST_CHECKS,
-                                                   pull_request_skipper)
+from baldrick.plugins.github_pull_requests import pull_request_handler, PULL_REQUEST_CHECKS
 
 test_hook = MagicMock()
 
 
 CONFIG_TEMPLATE = """
 [ tool.testbot ]
-  [ tool.testbot.pull_requests ]
-    post_pr_comment = {post_pr_comment}
-    all_passed_message = '{all_passed_message}'
-    fail_prologue = '{fail_prologue}'
-    fail_epilogue = '{fail_epilogue}'
+[ tool.testbot.pull_requests ]
+post_pr_comment = {post_pr_comment}
+all_passed_message = '{all_passed_message}'
+fail_prologue = '{fail_prologue}'
+fail_epilogue = '{fail_epilogue}'
 """
 
 
@@ -42,12 +41,17 @@ class TestPullRequestHandler:
         self.requests_post_mock = patch('requests.post')
         self.get_file_contents_mock = patch('baldrick.github.github_api.GitHubHandler.get_file_contents')
         self.get_installation_token_mock = patch('baldrick.github.github_auth.get_installation_token')
+        self.labels_mock = patch('baldrick.github.github_api.PullRequestHandler.labels',
+                                 new_callable=PropertyMock)
 
         self.requests_get = self.requests_get_mock.start()
         self.requests_post = self.requests_post_mock.start()
         self.get_file_contents = self.get_file_contents_mock.start()
         self.get_installation_token = self.get_installation_token_mock.start()
+        self.labels = self.labels_mock.start()
+
         self.get_installation_token.return_value = 'abcdefg'
+        self.labels.return_value = []
 
         cfg_cache.clear()
 
@@ -56,6 +60,7 @@ class TestPullRequestHandler:
         self.requests_post_mock.stop()
         self.get_file_contents_mock.stop()
         self.get_installation_token_mock.stop()
+        self.labels = self.labels_mock.stop()
 
     def _requests_get(self, url, headers=None):
         req = MagicMock()
@@ -319,19 +324,20 @@ class TestPullRequestHandler:
                                   'description': 'All good here',
                                   'context': 'testbot:test2'}
 
-    def test_skipper(self, app, client):
+    def test_skip_on_labels(self, app, client):
 
         # Test case where the config doesn't give a default message, and the
         # registered handlers don't return any checks
 
         test_hook.return_value = {}
-        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='true',
-                                                                     all_passed_message="''",
-                                                                     fail_prologue='', fail_epilogue='')
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE.format(post_pr_comment='true',
+                                                                      all_passed_message='',
+                                                                      fail_prologue='',
+                                                                      fail_epilogue='') +
+                                                                      'skip_labels = [ "Experimental" ]\n' +
+                                                                      "skip_message = 'All checks have been skipped'\n")
 
-        test_skipper = MagicMock()
-        test_skipper.return_value = 'All checks have been skipped'
-        pull_request_skipper(test_skipper)
+        self.labels.return_value = ['Experimental']
 
         self.send_event(client)
 
