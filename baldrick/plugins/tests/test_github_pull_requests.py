@@ -334,8 +334,8 @@ class TestPullRequestHandler:
                                                                       all_passed_message='',
                                                                       fail_prologue='',
                                                                       fail_epilogue='') +
-                                                                      'skip_labels = [ "Experimental" ]\n' +
-                                                                      "skip_message = 'All checks have been skipped'\n")
+                                               'skip_labels = [ "Experimental" ]\n' +
+                                               "skip_message = 'All checks have been skipped'\n")
 
         self.labels.return_value = ['Experimental']
 
