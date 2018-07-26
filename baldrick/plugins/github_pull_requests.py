@@ -2,6 +2,7 @@ from flask import current_app
 
 from baldrick.github.github_api import RepoHandler, PullRequestHandler
 from baldrick.blueprints.github import github_webhook_handler
+from baldrick.plugins.utils import get_config_with_app_defaults
 
 __all__ = ['pull_request_handler']
 
@@ -23,11 +24,14 @@ def pull_request_handler(func):
     * demilestoned
 
     They will be passed ``(pr_handler, repo_handler)`` and are expected to
-    return ``messages, status` where messages is a list of strings to be
-    concatenated together with the prolog and epilogue to form a comment message
-    (if this is an empty list, no comment will be posted) and status is either a
-    boolean (`True` for PR passes, `False` for fail) or `None` for no status
-    check.
+    return a dictionary where the key is a unique string that refers to the
+    specific check that has been made, and the values are dictionaries with
+    the following keys:
+
+    * ``status`` is a string giving the state for the latest commit (one of
+      ``success``, ``failure``, ``error``, or ``pending``).
+    * ``message``: the message to be shown in the status
+    * ``target_url`` (optional): a URL to link to in the status
     """
     PULL_REQUEST_CHECKS.append(func)
     return func
@@ -63,11 +67,13 @@ def handle_pull_requests(repo_handler, payload, headers):
 
 
 def process_pull_request(repository, number, installation):
+
     # TODO: cache handlers and invalidate the internal cache of the handlers on
     # certain events.
     pr_handler = PullRequestHandler(repository, number, installation)
 
-    pr_config = pr_handler.get_config_value("pull_requests", None)
+    pr_config = get_config_with_app_defaults(pr_handler, "pull_requests", {})
+    post_comment = pr_config.get("post_pr_comment", False)
 
     # Disable if the config is not present
     if pr_config is None:
@@ -92,38 +98,71 @@ def process_pull_request(repository, number, installation):
     else:
         comment_id = comment_ids[-1]
 
-    comments = []
-    set_status = False  # Do not send a status unless we need to.
-    status = True  # True is passing
+    results = {}
     for function in PULL_REQUEST_CHECKS:
-        f_comments, f_status = function(pr_handler, repo_handler)
-        if f_status is not None:
-            set_status = True
-            status = status and f_status
-        comments += f_comments
+        result = function(pr_handler, repo_handler)
+        results.update(result)
 
-    if comments:
-        message = current_app.pull_request_prolog.format(pr_handler=pr_handler, repo_handler=repo_handler)
-        message += ''.join(comments) + current_app.pull_request_epilog
-        comment_url = pr_handler.submit_comment(message, comment_id=comment_id,
-                                                return_url=True)
-    else:
-        all_passed_message = pr_config.get("all_passed_message", '')
-        all_passed_message = all_passed_message.format(pr_handler=pr_handler, repo_handler=repo_handler)
-        if all_passed_message:
-            pr_handler.submit_comment(all_passed_message, comment_id=comment_id)
+    failures = [details['description'] for details in results.values() if details['state'] in ('error', 'failure')]
 
-        comment_url = None
-        message = ''
+    if post_comment:
 
-    if set_status:
-        if status:
-            pr_handler.set_status('success',
-                                  pr_config.get("pr_passed_status", "Passed all checks"),
-                                  current_app.bot_username, target_url=comment_url)
+        # Post all failures in a comment, and have a single status check
+
+        if failures:
+
+            pull_request_prologue = pr_config.get('fail_prologue', '')
+            pull_request_epilogue = pr_config.get('fail_epilogue', '')
+
+            fail_status = pr_config.get('fail_status', 'Failed some checks')
+
+            message = pull_request_prologue.format(pr_handler=pr_handler, repo_handler=repo_handler)
+            message += ''.join(failures) + pull_request_epilogue
+            comment_url = pr_handler.submit_comment(message, comment_id=comment_id, return_url=True)
+
+            pr_handler.set_status('failure', fail_status, current_app.bot_username, target_url=comment_url)
+
         else:
-            pr_handler.set_status('failure',
-                                  pr_config.get("pr_failed_status", "Failed some checks"),
-                                  current_app.bot_username, target_url=comment_url)
 
-    return message
+            pass_status = pr_config.get('pass_status', 'Passed all checks')
+
+            all_passed_message = pr_config.get('all_passed_message', '')
+            all_passed_message = all_passed_message.format(pr_handler=pr_handler, repo_handler=repo_handler)
+
+            if all_passed_message:
+                pr_handler.submit_comment(all_passed_message, comment_id=comment_id)
+
+            pr_handler.set_status('success', pass_status, current_app.bot_username)
+
+    else:
+
+        # Post each failure as a status
+
+        existing_statuses = pr_handler.list_statuses()
+
+        for context, details in sorted(results.items()):
+
+            full_context = current_app.bot_username + ':' + context
+
+            # Don't post again if status hasn't changed
+            if full_context in existing_statuses:
+                existing_details = existing_statuses[full_context]
+                if (details['state'] == existing_details['state'] and
+                    details['description'] == existing_details['description'] and
+                        details.get('target_url') == existing_details.get('target_url')):
+                    continue
+
+            pr_handler.set_status(details['state'], details['description'],
+                                  full_context,
+                                  target_url=details.get('target_url'))
+
+        # For statuses that have been skipped this time but existed before, set
+        # status to pass and set message to say skipped
+
+        for full_context in existing_statuses:
+            context = full_context[len(current_app.bot_username) + 1:]
+            if context not in results:
+                pr_handler.set_status('success', 'This check has been skipped',
+                                      current_app.bot_username + ':' + context)
+
+    return 'Finished pull requests checks'

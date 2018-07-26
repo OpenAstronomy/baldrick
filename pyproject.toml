@@ -5,6 +5,10 @@
   [ tool.baldrick.pull_requests ]
     post_pr_comment = true
     all_passed_message = ''
+    fail_prologue = ''
+    fail_epilogue = ''
+    fail_status = ''
+    pass_status = ''
    
   [ tool.baldrick.milestones ]
     missing_message = 'This pull request has no milestone set.'
