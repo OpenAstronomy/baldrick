@@ -102,6 +102,7 @@ def process_pull_request(repository, number, installation):
     # skipped
 
     skip_labels = pr_config.get("skip_labels", [])
+    skip_fails = pr_config.get("skip_fails", True)
 
     for label in pr_handler.labels:
         if label in skip_labels:
@@ -109,6 +110,8 @@ def process_pull_request(repository, number, installation):
                                          "been skipped as this pull request has been "
                                          f"labelled as **{label}**")
             pr_handler.submit_comment(skip_message, comment_id=comment_id)
+            if skip_fails:
+                pr_handler.set_status('failure', "Skipping checks due to {0} label".format(label), current_app.bot_username)
             return
 
     results = {}

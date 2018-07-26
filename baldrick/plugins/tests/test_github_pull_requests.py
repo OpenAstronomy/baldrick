@@ -341,8 +341,14 @@ class TestPullRequestHandler:
 
         self.send_event(client)
 
-        assert self.requests_post.call_count == 1
+        assert self.requests_post.call_count == 2
 
         args, kwargs = self.requests_post.call_args_list[0]
         assert args[0] == 'https://api.github.com/repos/test-repo/issues/1234/comments'
         assert kwargs['json'] == {'body': 'All checks have been skipped'}
+
+        args, kwargs = self.requests_post.call_args_list[1]
+        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+        assert kwargs['json'] == {'state': 'failure',
+                                  'description': 'Skipping checks due to Experimental label',
+                                  'context': 'testbot'}
