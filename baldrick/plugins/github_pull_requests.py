@@ -70,7 +70,7 @@ def process_pull_request(repository, number, installation):
     # certain events.
     pr_handler = PullRequestHandler(repository, number, installation)
 
-    pr_config = pr_handler.get_config_value("pull_requests", None)
+    pr_config = get_config_with_app_defaults(pr_handler, "pull_requests", {})
     post_comment = pr_config.get("post_pr_comment", False)
 
     # Disable if the config is not present
