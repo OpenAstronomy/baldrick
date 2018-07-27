@@ -138,7 +138,9 @@ def process_pull_request(repository, number, installation):
             fail_status = pr_config.get('fail_status', 'Failed some checks')
 
             message = pull_request_prologue.format(pr_handler=pr_handler, repo_handler=repo_handler)
-            message += ''.join(failures) + pull_request_epilogue
+            for failure in failures:
+                message += f'* {failure}\n'
+            message += pull_request_epilogue.format(pr_handler=pr_handler, repo_handler=repo_handler)
             comment_url = pr_handler.submit_comment(message, comment_id=comment_id, return_url=True)
 
             pr_handler.set_status('failure', fail_status, current_app.bot_username, target_url=comment_url)

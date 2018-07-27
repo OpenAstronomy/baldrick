@@ -230,7 +230,7 @@ class TestPullRequestHandler:
 
         args, kwargs = self.requests_post.call_args_list[0]
         assert args[0] == 'https://api.github.com/repos/test-repo/issues/1234/comments'
-        assert kwargs['json'] == {'body': 'Problems here'}
+        assert kwargs['json'] == {'body': '* Problems here\n'}
 
         args, kwargs = self.requests_post.call_args_list[1]
         assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
@@ -256,7 +256,7 @@ class TestPullRequestHandler:
 
         args, kwargs = self.requests_post.call_args_list[0]
         assert args[0] == 'https://api.github.com/repos/test-repo/issues/1234/comments'
-        assert kwargs['json'] == {'body': 'The prologue - Problems here - The epilogue'}
+        assert kwargs['json'] == {'body': 'The prologue - * Problems here\n - The epilogue'}
 
         args, kwargs = self.requests_post.call_args_list[1]
         assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
