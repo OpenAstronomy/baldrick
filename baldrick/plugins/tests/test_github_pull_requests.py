@@ -302,11 +302,13 @@ class TestPullRequestHandler:
 
         self.existing_statuses = [{'context': 'testbot:test1',
                                    'description': 'Problems here',
-                                   'state': 'pending'}]
-
-        self.existing_statuses = [{'context': 'testbot:test2',
+                                   'state': 'pending'},
+                                  {'context': 'testbot:test2',
                                    'description': 'All good here (extra comment)',
-                                   'state': 'success'}]
+                                   'state': 'success'},
+                                  {'context': 'travis',
+                                   'description': 'An unrelated status',
+                                   'state': 'failure'}]
 
         self.send_event(client)
 
