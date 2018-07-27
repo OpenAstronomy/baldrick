@@ -14,7 +14,7 @@ def process_milestone(pr_handler, repo_handler):
     mc_config = repo_handler.get_config_value("milestones", None)
 
     if mc_config is None:
-        return [], None
+        return {}
 
     fail_message = mc_config.get("missing_message", MISSING_MESSAGE)
     pass_message = mc_config.get("present_message", PRESENT_MESSAGE)
