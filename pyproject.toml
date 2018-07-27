@@ -9,7 +9,8 @@
     fail_epilogue = ''
     fail_status = ''
     pass_status = ''
-   
+    pull_request_substring = ''
+
   [ tool.baldrick.milestones ]
     missing_message = 'This pull request has no milestone set.'
     present_message = 'This pull request has a milestone set.'

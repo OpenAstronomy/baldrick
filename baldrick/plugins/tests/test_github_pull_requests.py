@@ -352,3 +352,30 @@ class TestPullRequestHandler:
         assert kwargs['json'] == {'state': 'failure',
                                   'description': 'Skipping checks due to Experimental label',
                                   'context': 'testbot'}
+
+    def test_update_existing_comment(self, app, client):
+
+        # There is already a comment that should be updated
+
+        self.pr_comments = [{'id': 14431, 'body': 'I like apples', 'user': {'login': 'testbot[bot]'}}]
+
+        test_hook.return_value = {}
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE.format(post_pr_comment='true',
+                                                                      all_passed_message='All checks passed',
+                                                                      fail_prologue='',
+                                                                      fail_epilogue='') +
+                                               'pull_request_substring = "apples"\n')
+
+        self.send_event(client)
+
+        assert self.requests_post.call_count == 2
+
+        args, kwargs = self.requests_post.call_args_list[0]
+        assert args[0] == 'https://api.github.com/repos/test-repo/issues/comments/14431'
+        assert kwargs['json'] == {'body': 'All checks passed'}
+
+        args, kwargs = self.requests_post.call_args_list[1]
+        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+        assert kwargs['json'] == {'state': 'success',
+                                  'description': 'Passed all checks',
+                                  'context': 'testbot'}
