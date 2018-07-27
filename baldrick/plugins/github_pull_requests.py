@@ -74,6 +74,7 @@ def process_pull_request(repository, number, installation):
 
     pr_config = get_config_with_app_defaults(pr_handler, "pull_requests", {})
     post_comment = pr_config.get("post_pr_comment", False)
+    pull_request_substring = pr_config.get('pull_request_substring', '')
 
     # Disable if the config is not present
     if pr_config is None:
@@ -87,11 +88,14 @@ def process_pull_request(repository, number, installation):
                                pr_handler.head_branch, installation)
 
     def is_previous_comment(message):
-        return current_app.pull_request_substring in message
+        if len(pull_request_substring) > 0:
+            return pull_request_substring in message
+        else:
+            return True
 
     # Find previous comments by this app
-    comment_ids = pr_handler.find_comments(
-        f'{current_app.bot_username}[bot]', filter_keep=is_previous_comment)
+    comment_ids = pr_handler.find_comments(f'{current_app.bot_username}[bot]',
+                                           filter_keep=is_previous_comment)
 
     if len(comment_ids) == 0:
         comment_id = None
