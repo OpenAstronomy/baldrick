@@ -6,4 +6,4 @@ Welcome to baldrick's documentation!
 
    github.rst
    heroku.rst   
-
+   plugins.rst

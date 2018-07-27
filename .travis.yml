@@ -3,16 +3,22 @@ language: python
 sudo: false
 
 os:
-    - linux
+  - linux
 
 python:
   - "3.6"
 
 install:
-    - pip install .[test]
+  - pip install .[test]
 
 script:
-    - pytest -rx --flake8 --cov baldrick baldrick
+
+  - pytest -rx --flake8 --cov baldrick baldrick
+
+  # Install sphinx now - this is to make sure that the tests for baldrick don't
+  # need sphinx or its dependencies to be installed
+  - pip install sphinx
+  - cd doc ; make html ; cd ..
 
 after_success:
     - codecov
