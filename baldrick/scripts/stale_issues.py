@@ -54,7 +54,7 @@ def process_issues(repository, installation,
         dt = now - labeled_time
 
         if dt > close_seconds:
-            comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
+            comment_ids = issue.find_comments(f'{current_app.bot_username}[bot]', filter_keep=is_close_epilogue)
             if len(comment_ids) == 0:
                 print(f'-> CLOSING issue {n}')
                 issue.set_labels(['closed-by-bot'])
@@ -63,7 +63,7 @@ def process_issues(repository, installation,
             else:
                 print(f'-> Skipping issue {n} (already closed)')
         elif dt > warn_seconds:
-            comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_warning)
+            comment_ids = issue.find_comments(f'{current_app.bot_username}[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
                 print(f'-> WARNING issue {n}')
                 issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(dt),
