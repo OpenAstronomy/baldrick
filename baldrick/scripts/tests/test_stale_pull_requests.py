@@ -34,6 +34,7 @@ class TestProcessPullRequests:
 
     def setup_method(self, method):
 
+        self.patch_get_app_name = patch('baldrick.scripts.stale_pull_requests.get_app_name')
         self.patch_repo_config = patch.object(RepoHandler, 'get_config_value')
         self.patch_open_pull_requests = patch.object(RepoHandler, 'open_pull_requests')
         self.patch_labels = patch.object(PullRequestHandler, 'labels', new_callable=PropertyMock)
@@ -44,6 +45,7 @@ class TestProcessPullRequests:
         self.patch_close = patch.object(PullRequestHandler, 'close')
         self.patch_set_labels = patch.object(PullRequestHandler, 'set_labels')
 
+        self.get_app_name = self.patch_get_app_name.start()
         self.autoclose_stale = self.patch_repo_config.start()
         self.open_pull_requests = self.patch_open_pull_requests.start()
         self.labels = self.patch_labels.start()
@@ -54,8 +56,11 @@ class TestProcessPullRequests:
         self.close = self.patch_close.start()
         self.set_labels = self.patch_set_labels.start()
 
+        self.get_app_name.return_value = 'testbot'
+
     def teardown_method(self, method):
 
+        self.patch_get_app_name.stop()
         self.patch_repo_config.stop()
         self.patch_open_pull_requests.stop()
         self.patch_labels.stop()

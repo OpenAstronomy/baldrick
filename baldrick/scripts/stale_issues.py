@@ -3,7 +3,7 @@ import time
 import argparse
 from humanize import naturaltime, naturaldelta
 
-from baldrick.github.github_auth import repo_to_installation_id
+from baldrick.github.github_auth import repo_to_installation_id, get_app_name
 from baldrick.github.github_api import IssueHandler, RepoHandler
 
 ISSUE_CLOSE_WARNING = """
@@ -38,6 +38,9 @@ def process_issues(repository, installation,
 
     now = time.time()
 
+    # Find app name
+    bot_name = get_app_name()
+
     # Get issues labeled as 'Close?'
     repo = RepoHandler(repository, 'master', installation)
     issuelist = repo.get_issues('open', 'Close?')
@@ -54,7 +57,7 @@ def process_issues(repository, installation,
         dt = now - labeled_time
 
         if dt > close_seconds:
-            comment_ids = issue.find_comments(f'{current_app.bot_username}[bot]', filter_keep=is_close_epilogue)
+            comment_ids = issue.find_comments(f'{bot_name}[bot]', filter_keep=is_close_epilogue)
             if len(comment_ids) == 0:
                 print(f'-> CLOSING issue {n}')
                 issue.set_labels(['closed-by-bot'])
@@ -63,7 +66,7 @@ def process_issues(repository, installation,
             else:
                 print(f'-> Skipping issue {n} (already closed)')
         elif dt > warn_seconds:
-            comment_ids = issue.find_comments(f'{current_app.bot_username}[bot]', filter_keep=is_close_warning)
+            comment_ids = issue.find_comments(f'{bot_name}[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
                 print(f'-> WARNING issue {n}')
                 issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(dt),

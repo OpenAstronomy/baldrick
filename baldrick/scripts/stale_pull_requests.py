@@ -4,7 +4,7 @@ import time
 import argparse
 from humanize import naturaldelta
 
-from baldrick.github.github_auth import repo_to_installation_id
+from baldrick.github.github_auth import repo_to_installation_id, get_app_name
 from baldrick.github.github_api import PullRequestHandler, RepoHandler
 
 PULL_REQUESTS_CLOSE_WARNING = re.sub('(\w+)\n', r'\1', """
@@ -54,13 +54,15 @@ def process_pull_requests(repository, installation,
 
     now = time.time()
 
+    # Find app name
+    bot_name = get_app_name()
+
     # Get issues labeled as 'Close?'
     repo = RepoHandler(repository, 'master', installation)
     pull_requests = repo.open_pull_requests()
 
     # User config
-    enable_autoclose = repo.get_config_value(
-        'autoclose_stale_pull_request', True)
+    enable_autoclose = repo.get_config_value('autoclose_stale_pull_request', True)
 
     for n in pull_requests:
 
@@ -76,7 +78,7 @@ def process_pull_requests(repository, installation,
 
         # Note: if warning time is before commit time, it's as if the warning
         # didn't exist since it's no longer relevant.
-        warning_time = pr.last_comment_date(f'{current_app.bot_username}[bot]', filter_keep=is_close_warning)
+        warning_time = pr.last_comment_date(f'{bot_name}[bot]', filter_keep=is_close_warning)
         if warning_time is None or warning_time < commit_time:
             time_since_last_warning = -1.
         else:
@@ -88,7 +90,7 @@ def process_pull_requests(repository, installation,
         # stale_pull_requests_close_seconds.
 
         if time_since_last_warning > close_seconds:
-            comment_ids = pr.find_comments(f'{current_app.bot_username}[bot]', filter_keep=is_close_epilogue)
+            comment_ids = pr.find_comments(f'{bot_name}[bot]', filter_keep=is_close_epilogue)
             if not enable_autoclose:
                 print(f'-> Skipping pull request {n} (auto-close disabled)')
             elif len(comment_ids) == 0:

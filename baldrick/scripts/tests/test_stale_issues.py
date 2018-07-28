@@ -34,6 +34,7 @@ class TestProcessIssues:
 
     def setup_method(self, method):
 
+        self.patch_get_app_name = patch('baldrick.scripts.stale_issues.get_app_name')
         self.patch_get_issues = patch.object(RepoHandler, 'get_issues')
         self.patch_submit_comment = patch.object(IssueHandler, 'submit_comment')
         self.patch_close = patch.object(IssueHandler, 'close')
@@ -41,6 +42,7 @@ class TestProcessIssues:
         self.patch_find_comments = patch.object(IssueHandler, 'find_comments')
         self.patch_set_labels = patch.object(IssueHandler, 'set_labels')
 
+        self.get_app_name = self.patch_get_app_name.start()
         self.get_issues = self.patch_get_issues.start()
         self.submit_comment = self.patch_submit_comment.start()
         self.close = self.patch_close.start()
@@ -48,8 +50,11 @@ class TestProcessIssues:
         self.find_comments = self.patch_find_comments.start()
         self.set_labels = self.patch_set_labels.start()
 
+        self.get_app_name.return_value = 'testbot'
+
     def teardown_method(self, method):
 
+        self.patch_get_app_name.stop()
         self.patch_get_issues.stop()
         self.patch_submit_comment.stop()
         self.patch_close.stop()
