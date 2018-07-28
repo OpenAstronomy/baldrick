@@ -9,14 +9,12 @@ from baldrick.github.github_api import IssueHandler, RepoHandler
 
 ISSUE_CLOSE_WARNING = unwrap("""
 Hi humans :wave: - this issue was labeled as **Close?** approximately
-{pasttime}. So..... any news? :newspaper_roll:
-
-If you think this issue should not be closed, a maintainer should remove the
-**Close?** label - otherwise, I'm just gonna have to close this issue in
-{futuretime}. Your time starts now! Tick tock :clock10:
+{pasttime}. If you think this issue should not be closed, a maintainer should
+remove the **Close?** label - otherwise, I will close this issue in
+{futuretime}.
 
 *If you believe I commented on this issue incorrectly, please report this
-*[here](https://github.com/astrofrog/baldrick/issues)*
+[here](https://github.com/astrofrog/baldrick/issues)*
 """)
 
 
@@ -25,20 +23,18 @@ def is_close_warning(message):
 
 
 ISSUE_CLOSE_EPILOGUE = unwrap("""
-:alarm_clock: Time's up! :alarm_clock:
-
-I'm going to close this issue as per my previous message. But if you feel that
-we should really really keep this open, then feel free to re-open and remove the
-**Close?** label. But no one has done anything for 6 months, so... Just sayin'!
+I'm going to close this issue as per my previous message, but if you feel that
+this issue should stay open, then feel free to re-open and remove the **Close?**
+label.
 
 *If this is the first time I am commenting on this issue, or if you believe I
-*closed this issue incorrectly, please report this
-*[here](https://github.com/astrofrog/baldrick/issues)*
+closed this issue incorrectly, please report this
+[here](https://github.com/astrofrog/baldrick/issues)*
 """)
 
 
 def is_close_epilogue(message):
-    return ":alarm_clock: Time's up! :alarm_clock:" in message
+    return "I'm going to close this issue as per my previous message" in message
 
 
 def process_issues(repository, installation,
