@@ -1,13 +1,13 @@
-import re
 import sys
 import time
 import argparse
 from humanize import naturaldelta
 
+from baldrick.utils import unwrap
 from baldrick.github.github_auth import repo_to_installation_id, get_app_name
 from baldrick.github.github_api import PullRequestHandler, RepoHandler
 
-PULL_REQUESTS_CLOSE_WARNING = re.sub('(\w+)\n', r'\1', """
+PULL_REQUESTS_CLOSE_WARNING = unwrap("""
 Hi humans :wave: - this pull request hasn't had any new commits for
  approximately {pasttime}. **I plan to close this in {futuretime} if the pull
  request doesn't have any new commits by then.**
@@ -23,7 +23,7 @@ If this PR still needs to be reviewed, as an author, you can rebase it
 
 *If you believe I commented on this pull request incorrectly, please report
  this [here](https://github.com/astropy/astropy-bot/issues).*
-""").strip()
+""")
 
 
 # NOTE: This must be in-sync with PULL_REQUESTS_CLOSE_WARNING
@@ -31,7 +31,7 @@ def is_close_warning(message):
     return 'Hi humans :wave: - this pull request hasn\'t had any new commits' in message
 
 
-PULL_REQUESTS_CLOSE_EPILOGUE = re.sub('(\w+)\n', r'\1', """
+PULL_REQUESTS_CLOSE_EPILOGUE = unwrap("""
 :alarm_clock: Time's up! :alarm_clock:
 
 I'm going to close this pull request as per my previous message. If you
@@ -41,7 +41,7 @@ I'm going to close this pull request as per my previous message. If you
 *If this is the first time I am commenting on this issue, or if you believe
  I closed this issue incorrectly, please report this
  [here](https://github.com/astropy/astropy-bot/issues).*
-""").strip()
+""")
 
 
 def is_close_epilogue(message):
