@@ -3,33 +3,38 @@ import time
 import argparse
 from humanize import naturaltime, naturaldelta
 
-from baldrick.github.github_auth import repo_to_installation_id
+from baldrick.utils import unwrap
+from baldrick.github.github_auth import repo_to_installation_id, get_app_name
 from baldrick.github.github_api import IssueHandler, RepoHandler
 
-ISSUE_CLOSE_WARNING = """
-Hi humans :wave: - this issue was labeled as **Close?** approximately {pasttime}. So..... any news? :newspaper_roll:
+ISSUE_CLOSE_WARNING = unwrap("""
+Hi humans :wave: - this issue was labeled as **Close?** approximately
+{pasttime}. If you think this issue should not be closed, a maintainer should
+remove the **Close?** label - otherwise, I will close this issue in
+{futuretime}.
 
-If you think this issue should not be closed, a maintainer should remove the **Close?** label - otherwise, I'm just gonna have to close this issue in {futuretime}. Your time starts now! Tick tock :clock10:
-
-*If you believe I commented on this issue incorrectly, please report this [here](https://github.com/astropy/astropy-bot/issues)*
-"""
+*If you believe I commented on this issue incorrectly, please report this
+[here](https://github.com/astrofrog/baldrick/issues)*
+""")
 
 
 def is_close_warning(message):
     return 'Hi humans :wave: - this issue was labeled as **Close?**' in message
 
 
-ISSUE_CLOSE_EPILOGUE = """
-:alarm_clock: Time's up! :alarm_clock:
+ISSUE_CLOSE_EPILOGUE = unwrap("""
+I'm going to close this issue as per my previous message, but if you feel that
+this issue should stay open, then feel free to re-open and remove the **Close?**
+label.
 
-I'm going to close this issue as per my previous message. But if you feel that we should really really keep this open, then feel free to re-open and remove the **Close?** label. But no one has done anything for 6 months, so... Just sayin'!
-
-*If this is the first time I am commenting on this issue, or if you believe I closed this issue incorrectly, please report this [here](https://github.com/astropy/astropy-bot/issues)*
-"""
+*If this is the first time I am commenting on this issue, or if you believe I
+closed this issue incorrectly, please report this
+[here](https://github.com/astrofrog/baldrick/issues)*
+""")
 
 
 def is_close_epilogue(message):
-    return ":alarm_clock: Time's up! :alarm_clock:" in message
+    return "I'm going to close this issue as per my previous message" in message
 
 
 def process_issues(repository, installation,
@@ -37,6 +42,9 @@ def process_issues(repository, installation,
                    close_seconds=None):
 
     now = time.time()
+
+    # Find app name
+    bot_name = get_app_name()
 
     # Get issues labeled as 'Close?'
     repo = RepoHandler(repository, 'master', installation)
@@ -54,7 +62,7 @@ def process_issues(repository, installation,
         dt = now - labeled_time
 
         if dt > close_seconds:
-            comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
+            comment_ids = issue.find_comments(f'{bot_name}[bot]', filter_keep=is_close_epilogue)
             if len(comment_ids) == 0:
                 print(f'-> CLOSING issue {n}')
                 issue.set_labels(['closed-by-bot'])
@@ -63,7 +71,7 @@ def process_issues(repository, installation,
             else:
                 print(f'-> Skipping issue {n} (already closed)')
         elif dt > warn_seconds:
-            comment_ids = issue.find_comments('astropy-bot[bot]', filter_keep=is_close_warning)
+            comment_ids = issue.find_comments(f'{bot_name}[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
                 print(f'-> WARNING issue {n}')
                 issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(dt),

@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 
 from baldrick.github.github_auth import (get_json_web_token, get_installation_token,
                                          github_request_headers, repo_to_installation_id_mapping,
-                                         repo_to_installation_id)
+                                         repo_to_installation_id, get_app_name)
 
 
 def test_get_json_web_token(app):
@@ -104,3 +104,14 @@ def test_repo_to_installation_id(app):
                 with pytest.raises(ValueError) as exc:
                     repo_to_installation_id('test3')
                 assert exc.value.args[0] == 'Repository not recognized - should be one of:\n\n  - test1\n  - test2'
+
+
+def test_get_app_name(app):
+
+    with app.app_context():
+        with patch('requests.get') as post:
+            post.return_value.ok = True
+            post.return_value.json.return_value = {'name': 'testbot'}
+            name = get_app_name()
+
+    assert name == 'testbot'

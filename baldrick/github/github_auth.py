@@ -145,3 +145,14 @@ def repo_to_installation_id(repository):
         return mapping[repository]
     else:
         raise ValueError("Repository not recognized - should be one of:\n\n  - " + "\n  - ".join(mapping))
+
+
+def get_app_name():
+    """
+    Return the login name of the authenticated app.
+    """
+    headers = {}
+    headers['Authorization'] = 'Bearer {0}'.format(get_json_web_token())
+    headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
+    response = requests.get('https://api.github.com/app', headers=headers).json()
+    return response['name']

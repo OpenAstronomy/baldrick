@@ -1,29 +1,28 @@
-import re
 import sys
 import time
 import argparse
 from humanize import naturaldelta
 
-from baldrick.github.github_auth import repo_to_installation_id
+from baldrick.utils import unwrap
+from baldrick.github.github_auth import repo_to_installation_id, get_app_name
 from baldrick.github.github_api import PullRequestHandler, RepoHandler
 
-PULL_REQUESTS_CLOSE_WARNING = re.sub('(\w+)\n', r'\1', """
+PULL_REQUESTS_CLOSE_WARNING = unwrap("""
 Hi humans :wave: - this pull request hasn't had any new commits for
- approximately {pasttime}. **I plan to close this in {futuretime} if the pull
- request doesn't have any new commits by then.**
+approximately {pasttime}. **I plan to close this in {futuretime} if the pull
+request doesn't have any new commits by then.**
 
 In lieu of a stalled pull request, please consider closing this and open an
- issue instead if a reminder is needed to revisit in the future. Maintainers
- may also choose to add `keep-open` label to keep this PR open but it is
- discouraged unless absolutely necessary.
+issue instead if a reminder is needed to revisit in the future. Maintainers
+may also choose to add `keep-open` label to keep this PR open but it is
+discouraged unless absolutely necessary.
 
 If this PR still needs to be reviewed, as an author, you can rebase it
- to reset the clock. You may also consider sending a reminder e-mail about it
- to the [astropy-dev mailing list](http://groups.google.com/group/astropy-dev).
+to reset the clock.
 
 *If you believe I commented on this pull request incorrectly, please report
- this [here](https://github.com/astropy/astropy-bot/issues).*
-""").strip()
+this [here](https://github.com/astrofrog/baldrick/issues).*
+""")
 
 
 # NOTE: This must be in-sync with PULL_REQUESTS_CLOSE_WARNING
@@ -31,17 +30,15 @@ def is_close_warning(message):
     return 'Hi humans :wave: - this pull request hasn\'t had any new commits' in message
 
 
-PULL_REQUESTS_CLOSE_EPILOGUE = re.sub('(\w+)\n', r'\1', """
-:alarm_clock: Time's up! :alarm_clock:
-
-I'm going to close this pull request as per my previous message. If you
- think what is being added/fixed here is still important, please remember to
- open an issue to keep track of it. Thanks!
+PULL_REQUESTS_CLOSE_EPILOGUE = unwrap("""
+I'm going to close this pull request as per my previous message. If you think
+what is being added/fixed here is still important, please remember to open an
+issue to keep track of it. Thanks!
 
 *If this is the first time I am commenting on this issue, or if you believe
- I closed this issue incorrectly, please report this
- [here](https://github.com/astropy/astropy-bot/issues).*
-""").strip()
+I closed this issue incorrectly, please report this
+[here](https://github.com/astrofrog/baldrick/issues).*
+""")
 
 
 def is_close_epilogue(message):
@@ -54,13 +51,15 @@ def process_pull_requests(repository, installation,
 
     now = time.time()
 
+    # Find app name
+    bot_name = get_app_name()
+
     # Get issues labeled as 'Close?'
     repo = RepoHandler(repository, 'master', installation)
     pull_requests = repo.open_pull_requests()
 
     # User config
-    enable_autoclose = repo.get_config_value(
-        'autoclose_stale_pull_request', True)
+    enable_autoclose = repo.get_config_value('autoclose_stale_pull_request', True)
 
     for n in pull_requests:
 
@@ -76,7 +75,7 @@ def process_pull_requests(repository, installation,
 
         # Note: if warning time is before commit time, it's as if the warning
         # didn't exist since it's no longer relevant.
-        warning_time = pr.last_comment_date('astropy-bot[bot]', filter_keep=is_close_warning)
+        warning_time = pr.last_comment_date(f'{bot_name}[bot]', filter_keep=is_close_warning)
         if warning_time is None or warning_time < commit_time:
             time_since_last_warning = -1.
         else:
@@ -88,7 +87,7 @@ def process_pull_requests(repository, installation,
         # stale_pull_requests_close_seconds.
 
         if time_since_last_warning > close_seconds:
-            comment_ids = pr.find_comments('astropy-bot[bot]', filter_keep=is_close_epilogue)
+            comment_ids = pr.find_comments(f'{bot_name}[bot]', filter_keep=is_close_epilogue)
             if not enable_autoclose:
                 print(f'-> Skipping pull request {n} (auto-close disabled)')
             elif len(comment_ids) == 0:
