@@ -5,11 +5,11 @@ import requests
 import warnings
 from datetime import datetime, timedelta
 
-import toml
 import dateutil.parser
 from flask import current_app
 from ttldict import TTLOrderedDict
 
+from baldrick.config import loads
 from baldrick.github.github_auth import github_request_headers
 
 __all__ = ['GitHubHandler', 'RepoHandler', 'PullRequestHandler']
@@ -132,15 +132,15 @@ class GitHubHandler:
         # Allow non-existent file but raise error when cannot parse
         try:
             file_content = self.get_file_contents(path_to_file, branch=branch)
-            cfg = toml.loads(file_content)
-            cfg = cfg['tool'][current_app.bot_username]
+            repo_config = current_app.conf.copy()
+            repo_config.update(loads(file_content, tool=current_app.bot_username))
         except Exception as e:
             if warn_on_failure:
                 warnings.warn(str(e))
             # Empty dict means calling code set the default
-            cfg = {}
+            repo_config = current_app.conf.copy()
 
-        return cfg
+        return repo_config.sections
 
     def get_config_value(self, cfg_key, cfg_default, branch=None):
         """

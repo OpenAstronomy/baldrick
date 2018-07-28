@@ -50,6 +50,7 @@ class TestRepoHandler:
 
 TEST_CONFIG = """
 [tool.testbot]
+[tool.testbot.pr]
 changelog_check = false
 autoclose_stale_pull_request = false
 """
@@ -71,8 +72,8 @@ class TestRealRepoHandler:
                 # These are set to False in YAML; defaults must not be used.
                 with warnings.catch_warnings(record=True) as w:
                     warnings.simplefilter('always')
-                    do_changelog_check = self.repo.get_config_value('changelog_check', True)
-                    do_autoclose_pr = self.repo.get_config_value('autoclose_stale_pull_request', True)
+                    do_changelog_check = self.repo.get_config_value('pr', {}).get('changelog_check', True)
+                    do_autoclose_pr = self.repo.get_config_value('pr', {}).get('autoclose_stale_pull_request', True)
 
         if len(w) > 0:
             raise AssertionError(os.linesep.join(w))
