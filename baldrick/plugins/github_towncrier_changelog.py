@@ -138,7 +138,7 @@ def process_towncrier_changelog(pr_handler, repo_handler, headers):
 
     cl_config = repo_handler.get_config_value('towncrier_changelog', {})
 
-    if not cl_config:
+    if not cl_config.get('enabled', False):
         return [], None
 
     skip_label = cl_config.get('changelog_skip_label', None)

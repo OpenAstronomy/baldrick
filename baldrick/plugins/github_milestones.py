@@ -11,8 +11,8 @@ def process_milestone(pr_handler, repo_handler):
     A very simple set a failing status if the milestone is not set.
     """
 
-    mc_config = pr_handler.get_config_value("milestones", None)
-    if mc_config is None:
+    mc_config = pr_handler.get_config_value("milestones", {})
+    if not mc_config.get('enabled', False)
         return
 
     fail_message = mc_config.get("missing_message", MISSING_MESSAGE)

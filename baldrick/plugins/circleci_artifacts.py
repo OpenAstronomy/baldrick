@@ -1,6 +1,7 @@
 import requests
 
 from baldrick.blueprints.circleci import circleci_webhook_handler
+from .utils import get_config_with_app_defaults
 
 
 HOST = "https://api.github.com"
@@ -8,11 +9,9 @@ HOST = "https://api.github.com"
 
 @circleci_webhook_handler
 def set_commit_status_for_artifacts(repo_handler, payload, headers):
-
-    ci_config = repo_handler.get_config_value("circleci_artifacts", None)
-
-    if ci_config is None:
-        return "Skipping artifact check, no config"
+    ci_config = repo_handler.get_config_value("circleci_artifacts", {})
+    if ci_config.get("enabled", False):
+        return "Skipping artifact check, disabled in config."
 
     if payload['status'] == 'success':
         artifacts = get_artifacts_from_build(payload)
