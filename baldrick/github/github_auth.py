@@ -130,6 +130,9 @@ class InstallationCache(UserDict):
     When a key is requested from the cache, before refreshing the whole cache,
     a check is made for new installations as this is a cheaper operation than
     checking for new repositories in existing installations.
+
+    Then we can use the username of the repository in the key to determine if
+    we already have an installation for that user, and just refresh that user.
     """
     def __init__(self, ttl=48*60*60):
         self.ttl = ttl
