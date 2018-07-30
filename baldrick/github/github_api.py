@@ -106,10 +106,11 @@ class GitHubHandler:
         contents_base64 = response.json()['content']
         return base64.b64decode(contents_base64).decode()
 
-    def get_user_config(self, branch=None, path_to_file='pyproject.toml',
+    def get_repo_config(self, branch=None, path_to_file='pyproject.toml',
                         warn_on_failure=True):
         """
-        Load user configuration for bot.
+        Load configuration from the repository.
+
 
         Parameters
         ----------
@@ -125,15 +126,14 @@ class GitHubHandler:
 
         Returns
         -------
-        cfg : dict
+        cfg : `baldrick.config.Config`
             Configuration parameters.
 
         """
         # Allow non-existent file but raise error when cannot parse
         try:
             file_content = self.get_file_contents(path_to_file, branch=branch)
-            repo_config = current_app.conf.copy()
-            repo_config.update(loads(file_content, tool=current_app.bot_username))
+            return loads(file_content, tool=current_app.bot_username)
         except Exception as e:
             if warn_on_failure:
                 warnings.warn(str(e))
@@ -142,18 +142,30 @@ class GitHubHandler:
 
         return repo_config.sections
 
-    def get_config_value(self, cfg_key, cfg_default, branch=None):
+    def get_config_value(self, cfg_key, cfg_default=None, branch=None):
         """
-        Convenience method to extract user config from global cache.
+        Convenience method to extract user configuration values.
+
+        Values are extracted from the repository configuration, and if not
+        defined, they are extracted from the global app configuration. If this
+        does not exist either, the value is set to the ``cfg_default`` argument.
         """
+
         global cfg_cache
 
         cfg_cache_key = (self.repo, branch, self.installation)
         if cfg_cache_key not in cfg_cache:
-            cfg_cache[cfg_cache_key] = self.get_user_config(branch=branch)
+            cfg_cache[cfg_cache_key] = self.get_repo_config(branch=branch)
 
         cfg = cfg_cache.get(cfg_cache_key, {})
-        return cfg.get(cfg_key, cfg_default)
+
+        config = current_app.conf.get(cfg_key, {}).copy()
+        config.update(cfg.get(cfg_key, {}))
+
+        if len(config) > 0:
+            return config
+        else:
+            return cfg_default
 
     def set_status(self, state, description, context, commit_hash, target_url=None):
         """
@@ -570,7 +582,7 @@ class PullRequestHandler(IssueHandler):
             branch = self.head_branch
         return super().get_file_contents(path_to_file, branch=branch)
 
-    def get_user_config(self, branch=None, path_to_file='pyproject.toml',
+    def get_repo_config(self, branch=None, path_to_file='pyproject.toml',
                         warn_on_failure=True):
         """
         Load user configuration for bot.
@@ -596,7 +608,7 @@ class PullRequestHandler(IssueHandler):
         """
         if not branch:
             branch = self.base_branch
-        return super().get_user_config(branch=branch, path_to_file=path_to_file,
+        return super().get_repo_config(branch=branch, path_to_file=path_to_file,
                                        warn_on_failure=warn_on_failure)
 
     def has_modified(self, filelist):

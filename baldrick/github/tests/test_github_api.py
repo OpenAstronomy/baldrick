@@ -1,11 +1,10 @@
 import base64
-import os
-import warnings
 
 from unittest.mock import patch, Mock, PropertyMock, MagicMock
 
 import pytest
 
+from baldrick.config import loads
 from baldrick.github import github_api
 from baldrick.github.github_api import (RepoHandler, IssueHandler,
                                         PullRequestHandler)
@@ -51,8 +50,19 @@ class TestRepoHandler:
 TEST_CONFIG = """
 [tool.testbot]
 [tool.testbot.pr]
-changelog_check = false
-autoclose_stale_pull_request = false
+setting1 = 2
+setting2 = 3
+"""
+
+
+TEST_GLOBAL_CONFIG = """
+[tool.testbot]
+[tool.testbot.pr]
+setting1 = 1
+setting2 = 5
+setting3 = 6
+[tool.testbot.other]
+setting4 = 5
 """
 
 
@@ -70,15 +80,25 @@ class TestRealRepoHandler:
                 mock_get.return_value = TEST_CONFIG
 
                 # These are set to False in YAML; defaults must not be used.
-                with warnings.catch_warnings(record=True) as w:
-                    warnings.simplefilter('always')
-                    do_changelog_check = self.repo.get_config_value('pr', {}).get('changelog_check', True)
-                    do_autoclose_pr = self.repo.get_config_value('pr', {}).get('autoclose_stale_pull_request', True)
+                assert self.repo.get_config_value('pr')['setting1'] == 2
+                assert self.repo.get_config_value('pr')['setting2'] == 3
 
-        if len(w) > 0:
-            raise AssertionError(os.linesep.join(w))
-        else:
-            assert not (do_changelog_check or do_autoclose_pr)
+    def test_get_config_with_app_defaults(self, app):
+
+        with app.app_context():
+
+            with patch.object(self.repo, 'get_file_contents') as mock_get:  # noqa
+
+                mock_get.return_value = TEST_CONFIG
+
+                # These are set to False in YAML; defaults must not be used.
+                assert self.repo.get_config_value('pr') == {'setting1': 2, 'setting2': 3}
+                assert self.repo.get_config_value('other') is None
+
+                app.conf = loads(TEST_GLOBAL_CONFIG, tool='testbot')
+
+                assert self.repo.get_config_value('pr') == {'setting1': 2, 'setting2': 3, 'setting3': 6}
+                assert self.repo.get_config_value('other') == {'setting4': 5}
 
     @patch('requests.get')
     def test_get_file_contents(self, mock_get):

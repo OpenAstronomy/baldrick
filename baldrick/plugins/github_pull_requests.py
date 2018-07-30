@@ -2,7 +2,6 @@ from flask import current_app
 
 from baldrick.github.github_api import RepoHandler, PullRequestHandler
 from baldrick.blueprints.github import github_webhook_handler
-from baldrick.plugins.utils import get_config_with_app_defaults
 
 __all__ = ['pull_request_handler']
 
@@ -72,7 +71,7 @@ def process_pull_request(repository, number, installation):
     # certain events.
     pr_handler = PullRequestHandler(repository, number, installation)
 
-    pr_config = get_config_with_app_defaults(pr_handler, "pull_requests", {})
+    pr_config = pr_handler.get_config_value("pull_requests", {})
     post_comment = pr_config.get("post_pr_comment", False)
     pull_request_substring = pr_config.get('pull_request_substring', '')
 

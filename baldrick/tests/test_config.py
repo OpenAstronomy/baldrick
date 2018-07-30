@@ -1,5 +1,5 @@
 import pytest
-from baldrick.config import load, loads
+from baldrick.config import Config, load, loads
 
 GLOBAL_TOML = """
 [tool.baldrick]
@@ -29,8 +29,8 @@ setting5 = 't'
 
 def test_loads():
     config = loads(GLOBAL_TOML)
-    assert config.sections == {'plugin1': {'setting1': 'a', 'setting2': 'b'},
-                               'plugin2': {'setting3': 1}}
+    assert config == {'plugin1': {'setting1': 'a', 'setting2': 'b'},
+                      'plugin2': {'setting3': 1}}
 
 
 def test_load(tmpdir):
@@ -48,7 +48,14 @@ def test_loads_invalid_tool():
 def test_update_override():
     config_global = loads(GLOBAL_TOML)
     config_repo = loads(REPO_TOML, tool='testbot')
-    config_global.update(config_repo)
-    assert config_global.sections == {'plugin1': {'setting1': 'a', 'setting2': 'c'},
-                                      'plugin2': {'setting3': 4, 'setting4': 1.5},
-                                      'plugin3': {'setting5': 't'}}
+    config_global.update_from_config(config_repo)
+    assert config_global == {'plugin1': {'setting1': 'a', 'setting2': 'c'},
+                             'plugin2': {'setting3': 4, 'setting4': 1.5},
+                             'plugin3': {'setting5': 't'}}
+
+
+def test_copy():
+    conf = Config({'a': 1})
+    conf_copy = conf.copy()
+    assert isinstance(conf_copy, Config)
+    assert conf_copy == {'a': 1}

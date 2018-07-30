@@ -9,20 +9,14 @@ def loads(text, tool='baldrick'):
     return Config(toml.loads(text)['tool'][tool])
 
 
-class Config:
+class Config(dict):
 
-    def __init__(self, sections=None):
-        self.sections = sections or {}
-
-    def update(self, other_config):
-        for section_name, section in other_config.sections.items():
-            if section_name not in self.sections:
-                self.sections[section_name] = {}
+    def update_from_config(self, other_config):
+        for section_name, section in other_config.items():
+            if section_name not in self:
+                self[section_name] = {}
             for setting, value in section.items():
-                self.sections[section_name][setting] = value
-
-    def __eq__(self, other):
-        return self.sections == other.sections
+                self[section_name][setting] = value
 
     def copy(self):
-        return Config(self.sections.copy())
+        return Config(super().copy())
