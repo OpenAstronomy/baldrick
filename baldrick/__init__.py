@@ -33,7 +33,7 @@ def create_app(name, register_blueprints=True):
     app.wsgi_app = ProxyFix(app.wsgi_app)
 
     # Check if there is a global configuration
-    global_toml = os.path.join(os.path.expanduser('~'), 'pyproject.toml')
+    global_toml = 'pyproject.toml'
     if os.path.exists(global_toml):
         app.conf = load(global_toml)
     else:
