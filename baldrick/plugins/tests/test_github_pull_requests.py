@@ -381,3 +381,12 @@ class TestPullRequestHandler:
         assert kwargs['json'] == {'state': 'success',
                                   'description': 'Passed all checks',
                                   'context': 'testbot'}
+
+    def test_check_returns_none(self, app, client):
+        """
+        Test that a check can return None to skip itself.
+        """
+
+        test_hook.return_value = None
+        self.send_event(client)
+        assert self.requests_post.call_count == 0

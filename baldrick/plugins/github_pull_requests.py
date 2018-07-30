@@ -121,7 +121,9 @@ def process_pull_request(repository, number, installation):
     results = {}
     for function in PULL_REQUEST_CHECKS:
         result = function(pr_handler, repo_handler)
-        results.update(result)
+        # Ignore skipped checks
+        if result is not None:
+            results.update(result)
 
     failures = [details['description'] for details in results.values() if details['state'] in ('error', 'failure')]
 
