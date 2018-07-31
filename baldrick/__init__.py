@@ -35,7 +35,7 @@ def create_app(name, register_blueprints=True):
     # Check if there is a global configuration
     global_toml = 'pyproject.toml'
     if os.path.exists(global_toml):
-        app.conf = load(global_toml)
+        app.conf = load(global_toml, tool=name)
     else:
         app.conf = Config()
 
