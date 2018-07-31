@@ -140,7 +140,7 @@ class GitHubHandler:
             # Empty dict means calling code set the default
             repo_config = current_app.conf.copy()
 
-        return repo_config.sections
+        return repo_config
 
     def get_config_value(self, cfg_key, cfg_default=None, branch=None):
         """
