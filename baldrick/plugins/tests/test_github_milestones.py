@@ -8,6 +8,7 @@ from baldrick.plugins.github_milestones import process_milestone, MISSING_MESSAG
 CONFIG_TEMPLATE = """
 [ tool.testbot ]
 [ tool.testbot.milestones ]
+enabled=true
 missing_message="{missing}"
 present_message="{present}"
 """
@@ -15,6 +16,7 @@ present_message="{present}"
 CONFIG_TEMPLATE_DEFAULT = """
 [ tool.testbot ]
 [ tool.testbot.milestones ]
+enabled=true
 """
 
 CONFIG_TEMPLATE_MISSING = """
