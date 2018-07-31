@@ -3,6 +3,7 @@ import os
 from flask import Flask
 from werkzeug.contrib.fixers import ProxyFix
 
+from baldrick.config import load, Config
 from baldrick.blueprints import github_blueprint, circleci_blueprint
 
 __all__ = ['create_app']
@@ -30,6 +31,13 @@ def create_app(name, register_blueprints=True):
     app = Flask(name)
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
+
+    # Check if there is a global configuration
+    global_toml = 'pyproject.toml'
+    if os.path.exists(global_toml):
+        app.conf = load(global_toml)
+    else:
+        app.conf = Config()
 
     app.integration_id = int(os.environ['GITHUB_APP_INTEGRATION_ID'])
     app.private_key = os.environ['GITHUB_APP_PRIVATE_KEY']
