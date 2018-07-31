@@ -11,10 +11,10 @@ from .github_pull_requests import pull_request_handler
 
 try:
     from towncrier._settings import parse_toml
-except ImportError:
+except ImportError:  # pragma: nocover
     from towncrier._settings import _template_fname, _start_string, _title_format, _underlines, _default_types
 
-    def parse_toml(config):
+    def parse_toml(config):  # pragma: nocover
         if 'tool' not in config:
             raise ValueError("No [tool.towncrier] section.")
 
@@ -139,7 +139,7 @@ def process_towncrier_changelog(pr_handler, repo_handler, headers):
     cl_config = repo_handler.get_config_value('towncrier_changelog', {})
 
     if not cl_config.get('enabled', False):
-        return [], None
+        return None
 
     skip_label = cl_config.get('changelog_skip_label', None)
 
@@ -159,9 +159,12 @@ def process_towncrier_changelog(pr_handler, repo_handler, headers):
 
     elif not matching_file:
 
-        messages['missing_file'] = {'description': cl_config.get('changelog_missing', CHANGELOG_MISSING), 'state': 'failure'}
-        messages['wrong_type'] = {'description': 'Could not check changelog type', 'state': 'failure'}
-        messages['wrong_number'] = {'description': 'Could not check changelog number', 'state': 'failure'}
+        messages['missing_file'] = {'description': cl_config.get('changelog_missing', CHANGELOG_MISSING),
+                                    'state': 'failure'}
+        messages['wrong_type'] = {'description': 'Could not check changelog type',
+                                  'state': 'failure'}
+        messages['wrong_number'] = {'description': 'Could not check changelog number',
+                                    'state': 'failure'}
 
     else:
 
