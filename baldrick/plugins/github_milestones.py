@@ -1,5 +1,4 @@
 from baldrick.plugins.github_pull_requests import pull_request_handler
-from baldrick.plugins.utils import get_config_with_app_defaults
 
 MISSING_MESSAGE = 'This pull request has no milestone set.'
 PRESENT_MESSAGE = 'This pull request has a milestone set.'
@@ -12,7 +11,7 @@ def process_milestone(pr_handler, repo_handler):
     """
 
     mc_config = pr_handler.get_config_value("milestones", {})
-    if not mc_config.get('enabled', False)
+    if not mc_config.get('enabled', False):
         return
 
     fail_message = mc_config.get("missing_message", MISSING_MESSAGE)

@@ -1,7 +1,6 @@
 import requests
 
 from baldrick.blueprints.circleci import circleci_webhook_handler
-from .utils import get_config_with_app_defaults
 
 
 HOST = "https://api.github.com"
