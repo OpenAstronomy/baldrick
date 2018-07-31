@@ -11,7 +11,7 @@ setup(version='0.0.dev0',
       packages=find_packages(),
       author='Stuart Mumford and Thomas Robitaille',
       entry_points=entry_points,
-      extras_require={'test': ['pytest>=3.5,<3.7', 'pytest-flake8', 'pytest-cov', 'codecov']},
+      extras_require={'test': ['pytest>=3.5,<3.7', 'pytest-flake8', 'pytest-cov', 'codecov', 'towncrier']},
       install_requires=[
           "flask",
           "pyjwt",
