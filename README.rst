@@ -1,3 +1,10 @@
+.. image:: https://travis-ci.org/OpenAstronomy/baldrick.svg
+    :target: https://travis-ci.org/OpenAstronomy/baldrick
+
+.. image:: https://codecov.io/gh/OpenAstronomy/baldrick/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/OpenAstronomy/baldrick
+
+
 Baldrick: The Bot with a Cunning Plan
 -------------------------------------
 
