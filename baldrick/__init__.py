@@ -8,6 +8,8 @@ from baldrick.blueprints import github_blueprint, circleci_blueprint
 
 __all__ = ['create_app']
 
+GLOBAL_TOML = os.path.join('.', 'pyproject.toml')
+
 
 def create_app(name, register_blueprints=True):
     """
@@ -33,9 +35,8 @@ def create_app(name, register_blueprints=True):
     app.wsgi_app = ProxyFix(app.wsgi_app)
 
     # Check if there is a global configuration
-    global_toml = 'pyproject.toml'
-    if os.path.exists(global_toml):
-        app.conf = load(global_toml, tool=name)
+    if os.path.exists(GLOBAL_TOML):
+        app.conf = load(GLOBAL_TOML, tool=name)
     else:
         app.conf = Config()
 
