@@ -17,8 +17,10 @@ script:
 
   # Install sphinx now - this is to make sure that the tests for baldrick don't
   # need sphinx or its dependencies to be installed
-  - pip install sphinx
-  - cd doc ; make html ; cd ..
+  - pip install sphinx sphinx-automodapi
+  - cd doc
+  - make html
+  - cd ..
 
 after_success:
     - codecov
