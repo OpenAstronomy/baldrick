@@ -7,3 +7,5 @@ Welcome to baldrick's documentation!
    github.rst
    heroku.rst   
    plugins.rst
+   local.rst
+   api.rst
