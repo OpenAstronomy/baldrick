@@ -24,7 +24,7 @@ class TestTowncrierPlugin:
         self.get_base_branch_mock = patch('baldrick.github.github_api.PullRequestHandler.base_branch')
         a = self.get_base_branch_mock.start()
         a.return_value = "master"
-        self.modified_files_mock = patch('baldrick.github.github_api.PullRequestHandler.get_modified_filenames')
+        self.modified_files_mock = patch('baldrick.github.github_api.PullRequestHandler.get_modified_files')
 
         self.repo_handler = RepoHandler("nota/repo", "1234")
         self.pr_handler = PullRequestHandler("nota/repo", "1234")
@@ -45,7 +45,7 @@ class TestTowncrierPlugin:
         self.modified_files.return_value = (['./testbot/newsfragments/1234.bugfix'])
 
         with app.app_context():
-            messages = process_towncrier_changelog(self.pr_handler, self.repo_handler, {})
+            messages = process_towncrier_changelog(self.pr_handler, self.repo_handler)
 
         for message in messages.values():
             assert message['state'] == 'success'

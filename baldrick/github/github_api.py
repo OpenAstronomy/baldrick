@@ -572,8 +572,8 @@ class PullRequestHandler(IssueHandler):
         else:
             return milestone['title']
 
-    def get_modified_filenames(self):
-        """Get all the filenames modified by this PR."""
+    def get_modified_files(self):
+        """Get all the filenames of the files modified by this PR."""
         files = paged_github_json_request(self._url_files,
                                           headers=self._headers)
         return [f['filename'] for f in files]

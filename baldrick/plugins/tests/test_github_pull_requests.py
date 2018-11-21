@@ -11,6 +11,7 @@ test_hook = MagicMock()
 CONFIG_TEMPLATE = """
 [ tool.testbot ]
 [ tool.testbot.pull_requests ]
+enabled = true
 post_pr_comment = {post_pr_comment}
 all_passed_message = '{all_passed_message}'
 fail_prologue = '{fail_prologue}'

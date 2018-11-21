@@ -8,8 +8,9 @@ HOST = "https://api.github.com"
 
 @circleci_webhook_handler
 def set_commit_status_for_artifacts(repo_handler, payload, headers):
+
     ci_config = repo_handler.get_config_value("circleci_artifacts", {})
-    if ci_config.get("enabled", False):
+    if not ci_config.get("enabled", False):
         return "Skipping artifact check, disabled in config."
 
     if payload['status'] == 'success':
