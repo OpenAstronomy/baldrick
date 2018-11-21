@@ -72,6 +72,9 @@ def process_pull_request(repository, number, installation):
     pr_handler = PullRequestHandler(repository, number, installation)
 
     pr_config = pr_handler.get_config_value("pull_requests", {})
+    if not pr_config.get("enabled", False):
+        return "Skipping PR checks, disabled in config."
+
     post_comment = pr_config.get("post_pr_comment", False)
     pull_request_substring = pr_config.get('pull_request_substring', '')
 
@@ -121,7 +124,9 @@ def process_pull_request(repository, number, installation):
     results = {}
     for function in PULL_REQUEST_CHECKS:
         result = function(pr_handler, repo_handler)
-        results.update(result)
+        # Ignore skipped checks
+        if result is not None:
+            results.update(result)
 
     failures = [details['description'] for details in results.values() if details['state'] in ('error', 'failure')]
 

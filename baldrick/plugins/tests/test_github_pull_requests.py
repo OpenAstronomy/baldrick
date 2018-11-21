@@ -11,6 +11,7 @@ test_hook = MagicMock()
 CONFIG_TEMPLATE = """
 [ tool.testbot ]
 [ tool.testbot.pull_requests ]
+enabled = true
 post_pr_comment = {post_pr_comment}
 all_passed_message = '{all_passed_message}'
 fail_prologue = '{fail_prologue}'
@@ -381,3 +382,12 @@ class TestPullRequestHandler:
         assert kwargs['json'] == {'state': 'success',
                                   'description': 'Passed all checks',
                                   'context': 'testbot'}
+
+    def test_check_returns_none(self, app, client):
+        """
+        Test that a check can return None to skip itself.
+        """
+
+        test_hook.return_value = None
+        self.send_event(client)
+        assert self.requests_post.call_count == 0

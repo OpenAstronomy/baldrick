@@ -2,19 +2,16 @@ import os
 import re
 from collections import OrderedDict
 
-import toml
-
-from flask import current_app
+from toml import loads
 
 from .github_pull_requests import pull_request_handler
 
-
 try:
     from towncrier._settings import parse_toml
-except ImportError:
+except ImportError:  # pragma: nocover
     from towncrier._settings import _template_fname, _start_string, _title_format, _underlines, _default_types
 
-    def parse_toml(config):
+    def parse_toml(config):  # pragma: nocover
         if 'tool' not in config:
             raise ValueError("No [tool.towncrier] section.")
 
@@ -51,21 +48,6 @@ except ImportError:
         }
 
 
-def load_towncrier_config(repo_handler):
-    """
-    Load the pyproject.yaml file from the repo.
-
-    This adds a default `tool.towncrier` section.
-    """
-    try:
-        pyproject = repo_handler.get_file_contents("pyproject.toml")
-        pyproject = toml.loads(pyproject)
-    except FileNotFoundError:
-        pyproject = {'tool': {'towncrier': {}}}
-
-    return parse_toml(pyproject)
-
-
 def calculate_fragment_paths(config):
 
     if config.get("directory"):
@@ -91,6 +73,9 @@ def check_sections(filenames, sections):
     dir matches when it shouldn't.
     """
     for section in sections:
+        # Make sure the path ends with a /
+        if not section.endswith("/"):
+            section += "/"
         pattern = section.replace("/", r"\/") + r"\d+.*"
         for fname in filenames:
             match = re.match(pattern, fname)
@@ -106,21 +91,16 @@ def check_changelog_type(types, matching_file):
     return False
 
 
-def get_docs_url(pyproject):
-    if 'tool' in pyproject:
-        if current_app.bot_username in pyproject['tool']:
-            return pyproject['tool'][current_app.bot_username]['towncrier_status_url']
-
-
-def get_skill_config(pyproject):
-    if 'tool' in pyproject:
-        if current_app.bot_username in pyproject['tool']:
-            return pyproject['tool'][current_app.bot_username]
-
-
 def verify_pr_number(pr_number, matching_file):
     # TODO: Make this a regex to check that the number is in the right place etc.
     return pr_number in matching_file
+
+
+def load_towncrier_config(pr_handler):
+    file_content = pr_handler.get_file_contents("pyproject.toml", branch=pr_handler.base_branch)
+    config = loads(file_content)
+    if "towncrier" in config.get("tool", {}):
+        return parse_toml(config)
 
 
 CHANGELOG_EXISTS = "Changelog file was added in the correct directories."
@@ -134,34 +114,35 @@ NUMBER_INCORRECT = "The number in the changelog file does not match this pull re
 
 
 @pull_request_handler
-def process_towncrier_changelog(pr_handler, repo_handler, headers):
+def process_towncrier_changelog(pr_handler, repo_handler):
 
-    cl_config = repo_handler.get_config_value('towncrier_changelog', {})
+    cl_config = pr_handler.get_config_value('towncrier_changelog', {})
 
-    if not cl_config:
-        return [], None
+    if not cl_config.get('enabled', False):
+        return None
 
     skip_label = cl_config.get('changelog_skip_label', None)
 
-    config = load_towncrier_config(repo_handler)
+    config = load_towncrier_config(pr_handler)
+    if not config:
+        return
+
     section_dirs = calculate_fragment_paths(config)
     types = config['types'].keys()
 
-    modified_files = pr_handler.get_modified_filenames()
-
-    messages = {}
+    modified_files = pr_handler.get_modified_files()
 
     matching_file = check_sections(modified_files, section_dirs)
 
-    if skip_label and skip_label in pr_handler.labels:
+    messages = {}
 
-        pass
+    if skip_label and skip_label in pr_handler.labels:
+        return
 
     elif not matching_file:
 
-        messages['missing_file'] = {'description': cl_config.get('changelog_missing', CHANGELOG_MISSING), 'state': 'failure'}
-        messages['wrong_type'] = {'description': 'Could not check changelog type', 'state': 'failure'}
-        messages['wrong_number'] = {'description': 'Could not check changelog number', 'state': 'failure'}
+        messages['missing_file'] = {'description': cl_config.get('changelog_missing', CHANGELOG_MISSING),
+                                    'state': 'failure'}
 
     else:
 
@@ -183,7 +164,7 @@ def process_towncrier_changelog(pr_handler, repo_handler, headers):
                                         'state': 'success'}
 
     # Add help URL
-    for message in messages:
+    for message in messages.values():
         message['target_url'] = cl_config.get('help_url', None)
 
     return messages
