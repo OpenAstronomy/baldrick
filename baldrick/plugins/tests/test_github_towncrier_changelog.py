@@ -1,4 +1,4 @@
-from unittest.mock import patch, PropertyMock
+from unittest.mock import patch
 
 from baldrick.github.github_api import cfg_cache
 from baldrick.github.github_api import RepoHandler, PullRequestHandler
