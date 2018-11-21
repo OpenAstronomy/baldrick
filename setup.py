@@ -19,5 +19,6 @@ setup(version='0.0.dev0',
           "python-dateutil",
           "cryptography",
           "humanize",
+          "towncrier",
           "toml",
           "ttldict"])
