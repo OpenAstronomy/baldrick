@@ -239,6 +239,11 @@ class RepoHandler(GitHubHandler):
         pull_requests = paged_github_json_request(self._url_pull_requests, headers=self._headers)
         return [pr['number'] for pr in pull_requests]
 
+    def get_file_contents(self, path_to_file, branch=None):
+        if branch is None:
+            branch = self.branch
+        return super().get_file_contents(path_to_file, branch=branch)
+
     def get_issues(self, state, labels, exclude_pr=True):
         """
         Get a list of issues.

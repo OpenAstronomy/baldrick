@@ -172,13 +172,10 @@ def process_pull_request(repository, number, installation):
 
             full_context = current_app.bot_username + ':' + context
 
-            # Don't post again if status hasn't changed
-            if full_context in existing_statuses:
-                existing_details = existing_statuses[full_context]
-                if (details['state'] == existing_details['state'] and
-                    details['description'] == existing_details['description'] and
-                        details.get('target_url') == existing_details.get('target_url')):
-                    continue
+            # NOTE: we could in principle check if the status has been posted
+            # before, and if so not post it again, but we had this in the past
+            # and there were some strange caching issues where GitHub would
+            # return old status messages, so we avoid doing that.
 
             pr_handler.set_status(details['state'], details['description'],
                                   full_context,
@@ -188,10 +185,25 @@ def process_pull_request(repository, number, installation):
         # status to pass and set message to say skipped
 
         for full_context in existing_statuses:
+
             if full_context.startswith(current_app.bot_username + ':'):
                 context = full_context[len(current_app.bot_username) + 1:]
                 if context not in results:
                     pr_handler.set_status('success', 'This check has been skipped',
                                           current_app.bot_username + ':' + context)
+
+            # Also set the general 'single' status check as a skipped check if it
+            # is present
+            if full_context == current_app.bot_username:
+                pr_handler.set_status('success', 'This check has been skipped',
+                                      current_app.bot_username)
+
+        # If a comment has been posted before, and to be careful only if it is
+        # a comment that matches the specified substring, we edit the comment.
+        if len(pull_request_substring) > 0 and len(comment_ids) > 0:
+            for comment_id in comment_ids:
+                pr_handler.submit_comment(f'Check results are now reported in the '
+                                          'status checks at the bottom of this page.',
+                                          comment_id=comment_id)
 
     return 'Finished pull requests checks'
