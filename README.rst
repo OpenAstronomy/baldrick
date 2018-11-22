@@ -21,7 +21,7 @@ Usage
 Baldrick is designed to be imported and used to construct a Flask app. An
 example repository which could be deployed on
 `Dokku <http://dokku.viewdocs.io/>`__ or `Heroku <https://www.heroku.com/>`__
-can be found in the `example/` directory.
+can be found in the ``template`` directory.
 
 
 Licence
