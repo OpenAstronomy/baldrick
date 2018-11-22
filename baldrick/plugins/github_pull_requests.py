@@ -201,4 +201,12 @@ def process_pull_request(repository, number, installation):
                 pr_handler.set_status('success', 'This check has been skipped',
                                       current_app.bot_username)
 
+        # If a comment has been posted before, and to be careful only if it is
+        # a comment that matches the specified substring, we edit the comment.
+        if len(pull_request_substring) > 0 and len(comment_ids) > 0:
+            for comment_id in comment_ids:
+                pr_handler.submit_comment(f'Check results are now reported in the '
+                                          'status checks at the bottom of this page. '
+                                          'You can ignore this comment.', comment_id=comment_id)
+
     return 'Finished pull requests checks'
