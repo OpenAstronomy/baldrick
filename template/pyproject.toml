@@ -1,0 +1,42 @@
+# Available settings to override the default behavior for each plugin are
+# commented out. The only required setting if you want to use a plugin is
+# enabled = true
+
+[ tool.<your-bot-name>]
+
+  [ tool.<your-bot-name>.circleci_artifacts ]
+
+    # enabled = true
+
+  [ tool.<your-bot-name>.milestones ]
+
+    # enabled = true
+    # missing_message = ""
+    # present_message = ""
+
+  [ tool.<your-bot-name>.pull_requests ]
+
+    # enabled = true
+    # post_pr_comment = true
+    # pull_request_substring = ""
+    # skip_labels = []
+    # skip_fails = true
+    # skip_message = ""
+    # fail_prologue = ""
+    # fail_epilogue = ""
+    # fail_status = ""
+    # pass_status = ""
+    # all_passed_message = ""
+
+  [ tool.<your-bot-name>.towncrier_changelog ]
+
+    # enabled = true
+    # verify_pr_number = True
+    # changelog_skip_label = ""
+    # changelog_exists = ""
+    # changelog_missing = ""
+    # number_correct = ""
+    # number_incorrect = ""
+    # type_correct = ""
+    # type_incorrect = ""
+    # help_url = ""

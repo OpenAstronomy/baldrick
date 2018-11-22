@@ -1,5 +1,5 @@
-API
-===
+API documentation
+=================
 
 .. automodapi:: baldrick.github.github_api
    :no-inheritance-diagram:
