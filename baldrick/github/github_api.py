@@ -242,7 +242,7 @@ class RepoHandler(GitHubHandler):
     def get_file_contents(self, path_to_file, branch=None):
         if branch is None:
             branch = self.branch
-        super().get_file_contents(path_to_file, branch=branch)
+        return super().get_file_contents(path_to_file, branch=branch)
 
     def get_issues(self, state, labels, exclude_pr=True):
         """
