@@ -18,6 +18,9 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers):
 
         for name, config in ci_config.items():
 
+            if name == 'enabled':
+                continue
+
             url = get_documentation_url_from_artifacts(artifacts, config['url'])
             print(name, url)
 

@@ -18,7 +18,15 @@ artifacts. To enable this plugin, include the following in your
     [ tool.<your-bot-name>.circleci_artifacts ]
     enabled = true
 
-There are no further configuration options for this plugin.
+You can then include additional sub-sections in the configuration for each
+set of artifacts, for example::
+
+    [ tool.<your-bot-name>.circleci_artifacts.sphinx ]
+    url = "html/index.html"
+    message = "This is the documentation"
+
+The ``url`` item should be set to the file path of the artifacts, and the
+message is what will be shown in the status check.
 
 Pull request handlers
 ---------------------
@@ -73,7 +81,7 @@ the following parameters - note that all these only apply when
 GitHub milestone checker
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-One of the pull request handler plugins checks whether the milestone has been
+This pull request handler plugin checks whether the milestone has been
 set. To enable this plugin, include the following in your ``pyproject.toml``
 file::
 
@@ -87,10 +95,11 @@ items.
 Towncrier changelog checker
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Another built-in pull request handler plugin can be used to check that towncrier
-changelog changes in a pull request are consistent with other details about the
-pull request (e.g. the pull request number). To enable this plugin, include the
-following in your ``pyproject.toml`` file::
+Another built-in pull request handler plugin can be used to check that
+`towncrier <https://github.com/hawkowl/towncrier>`_ changelog changes in a pull
+request are consistent with other details about the pull request (e.g. the pull
+request number). To enable this plugin, include the following in your
+``pyproject.toml`` file::
 
     [ tool.<your-bot-name>.towncrier_changelog ]
     enabled = true

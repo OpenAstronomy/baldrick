@@ -1,5 +1,5 @@
-Welcome to baldrick's documentation!
-====================================
+baldrick: a cunning plan for GitHub bots
+========================================
 
 Baldrick is a Python package that provides a framework to set up a GitHub bot
 with minimal code and effort. If you run into any issues, have requests for
