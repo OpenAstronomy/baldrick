@@ -265,30 +265,34 @@ class TestPullRequestHandler:
         assert kwargs['json']['description'] == 'Failed some checks'
         assert kwargs['json']['context'] == 'testbot'
 
-    def test_skip_existing_statuses(self, app, client):
-
-        # If statuses already exist, don't post them again
-
-        test_hook.return_value = {'test1': {'description': 'Problems here', 'state': 'failure'},
-                                  'test2': {'description': 'All good here', 'state': 'success'}}
-
-        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='false',
-                                                                     all_passed_message='All checks passed',
-                                                                     fail_prologue='', fail_epilogue='')
-
-        self.existing_statuses = [{'context': 'testbot:test1',
-                                   'description': 'Problems here',
-                                   'state': 'failure'}]
-
-        self.send_event(client)
-
-        assert self.requests_post.call_count == 1
-
-        args, kwargs = self.requests_post.call_args_list[0]
-        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
-        assert kwargs['json'] == {'state': 'success',
-                                  'description': 'All good here',
-                                  'context': 'testbot:test2'}
+    # The following test is not relevant currently since we don't skip posting
+    # statuses, due to strange caching issues with GitHub. But if we ever add
+    # back this functionality, the test below could come in handy.
+    #
+    # def test_skip_existing_statuses(self, app, client):
+    #
+    #     # If statuses already exist, don't post them again
+    #
+    #     test_hook.return_value = {'test1': {'description': 'Problems here', 'state': 'failure'},
+    #                               'test2': {'description': 'All good here', 'state': 'success'}}
+    #
+    #     self.get_file_contents.return_value = CONFIG_TEMPLATE.format(post_pr_comment='false',
+    #                                                                  all_passed_message='All checks passed',
+    #                                                                  fail_prologue='', fail_epilogue='')
+    #
+    #     self.existing_statuses = [{'context': 'testbot:test1',
+    #                                'description': 'Problems here',
+    #                                'state': 'failure'}]
+    #
+    #     self.send_event(client)
+    #
+    #     assert self.requests_post.call_count == 1
+    #
+    #     args, kwargs = self.requests_post.call_args_list[0]
+    #     assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
+    #     assert kwargs['json'] == {'state': 'success',
+    #                               'description': 'All good here',
+    #                               'context': 'testbot:test2'}
 
     def test_no_skip_existing_different_statuses(self, app, client):
 

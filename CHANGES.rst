@@ -1,4 +1,4 @@
-0.2 (unreleased)
+0.2 (2018-11-22)
 ----------------
 
 * Make sure that when switching from single- to multi-status, we set any
