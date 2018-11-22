@@ -6,7 +6,9 @@ from werkzeug.contrib.fixers import ProxyFix
 from baldrick.config import load, Config
 from baldrick.blueprints import github_blueprint, circleci_blueprint
 
-__all__ = ['create_app']
+__all__ = ['create_app', '__version__']
+
+__version__ = '0.1'
 
 GLOBAL_TOML = os.path.join('.', 'pyproject.toml')
 

@@ -13,6 +13,8 @@ install:
 
 script:
 
+  - python setup.py check --restructuredtext
+
   - pytest -rx --flake8 --cov baldrick baldrick
 
   # Install sphinx now - this is to make sure that the tests for baldrick don't
@@ -24,4 +26,3 @@ script:
 
 after_success:
     - codecov
-

@@ -5,8 +5,8 @@
     :target: https://codecov.io/gh/OpenAstronomy/baldrick
 
 
-Baldrick: The Bot with a Cunning Plan
--------------------------------------
+Baldrick: A cunning plan for GitHub bots
+----------------------------------------
 
 This is a (GitHub) bot framework which is designed to have a pluggable and
 configurable setup for responding to webhooks.
