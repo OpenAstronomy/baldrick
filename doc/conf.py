@@ -24,9 +24,9 @@ author = 'Stuart Mumford, Thomas Robitaille, Pey-Lian Lim, and Brigitta Sipocz'
 copyright = '2018, ' + author
 
 # The short X.Y version
-version = '0.1'
+version = '0.2.dev0'
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = '0.2.dev0'
 
 
 # -- General configuration ---------------------------------------------------

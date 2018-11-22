@@ -8,7 +8,7 @@ from baldrick.blueprints import github_blueprint, circleci_blueprint
 
 __all__ = ['create_app', '__version__']
 
-__version__ = '0.1'
+__version__ = '0.2.dev0'
 
 GLOBAL_TOML = os.path.join('.', 'pyproject.toml')
 

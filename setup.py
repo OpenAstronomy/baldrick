@@ -7,7 +7,7 @@ entry_points['console_scripts'] = ['check-stale-issues = baldrick.scripts.stale_
 with open('README.rst') as f:
     long_description = f.read()
 
-setup(version='0.1',
+setup(version='0.2.dev0',
       name="baldrick",
       description="baldrick: a cunning plan for GitHub bots",
       long_description=long_description,
