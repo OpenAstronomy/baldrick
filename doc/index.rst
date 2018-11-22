@@ -4,8 +4,9 @@ Welcome to baldrick's documentation!
 .. toctree::
    :maxdepth: 1
 
-   github.rst
-   heroku.rst   
+   app.rst
    plugins.rst
+   heroku.rst
+   github.rst
    local.rst
    api.rst
