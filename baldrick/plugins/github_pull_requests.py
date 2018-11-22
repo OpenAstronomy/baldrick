@@ -188,10 +188,17 @@ def process_pull_request(repository, number, installation):
         # status to pass and set message to say skipped
 
         for full_context in existing_statuses:
+
             if full_context.startswith(current_app.bot_username + ':'):
                 context = full_context[len(current_app.bot_username) + 1:]
                 if context not in results:
                     pr_handler.set_status('success', 'This check has been skipped',
                                           current_app.bot_username + ':' + context)
+
+            # Also set the general 'single' status check as a skipped check if it
+            # is present
+            if full_context == current_app.bot_username:
+                pr_handler.set_status('success', 'This check has been skipped',
+                                      current_app.bot_username)
 
     return 'Finished pull requests checks'
