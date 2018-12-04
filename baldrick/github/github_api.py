@@ -182,7 +182,7 @@ class GitHubHandler:
         context : str
             A string used to identify the status line.
 
-        commit_hash: `str`
+        commit_hash: str
             The commit hash to set the status on.
 
         target_url : str or `None`
@@ -489,8 +489,9 @@ class PullRequestHandler(IssueHandler):
         context : str
             A string used to identify the status line.
 
-        commit_hash: `str`
-            The commit hash to set the status on. Defaults to "head" can also be "base".
+        commit_hash: { 'head' | 'base'}
+            The commit hash to set the status on.
+            Defaults to "head" can also be "base".
 
         target_url : str or `None`
             Link to bot comment that is relevant to this status, if given.
