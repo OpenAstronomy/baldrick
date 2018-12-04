@@ -489,7 +489,7 @@ class PullRequestHandler(IssueHandler):
         context : str
             A string used to identify the status line.
 
-        commit_hash: { 'head' | 'base'}
+        commit_hash: { 'head' | 'base' }
             The commit hash to set the status on.
             Defaults to "head" can also be "base".
 
