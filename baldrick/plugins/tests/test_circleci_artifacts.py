@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import patch, call
 
 from baldrick.github.github_api import cfg_cache
@@ -76,7 +77,7 @@ class TestArtifactPlugin:
         assert self.set_status.call_count == 0
         assert self.get_artifacts.call_count == 1
 
-    def test_artifacts(self, app):
+    def test_artifacts(self, app, caplog):
         self.get_file_contents.return_value = CONFIG_TEMPLATE_ARTIFACT_2
         self.get_artifacts.return_value = [
             {
@@ -95,7 +96,13 @@ class TestArtifactPlugin:
         ]
 
         with app.app_context():
-            set_commit_status_for_artifacts(self.repo_handler, self.basic_payload(), {})
+            with caplog.at_level(logging.DEBUG):
+                set_commit_status_for_artifacts(self.repo_handler, self.basic_payload(), {})
+
+        assert len(caplog.records) == 3
+        assert "test/testbot" in caplog.text
+        assert "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test-report.xml" in caplog.text
+        assert "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out" in caplog.text
 
         args = [call('success', 'Click details to preview the HTML documentation.',
                      'docs', '2.0',
