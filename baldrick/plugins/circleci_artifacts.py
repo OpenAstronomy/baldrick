@@ -3,9 +3,6 @@ import requests
 from baldrick.blueprints.circleci import circleci_webhook_handler
 
 
-HOST = "https://api.github.com"
-
-
 @circleci_webhook_handler
 def set_commit_status_for_artifacts(repo_handler, payload, headers):
 
@@ -34,7 +31,7 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers):
     return "All good"
 
 
-def get_artifacts_from_build(p):
+def get_artifacts_from_build(p):  # pragma: no cover
     base_url = "https://circleci.com/api/v1.1"
     query_url = f"{base_url}/project/github/{p['username']}/{p['reponame']}/{p['build_num']}/artifacts"
     response = requests.get(query_url)
