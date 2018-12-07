@@ -474,6 +474,64 @@ class IssueHandler(GitHubHandler):
 
 class PullRequestHandler(IssueHandler):
 
+    # https://developer.github.com/v3/checks/runs/#create-a-check-run
+    def set_check(self, name, summary, commit_hash='head', details_url=None,
+                  status='queued', conclusion='neutral'):
+        """
+        Set check status.
+
+        .. note:: This method does not provide API access to full
+                  check run capability (e.g., Markdown text, annotation,
+                  image). Add them as needed.
+
+        Parameters
+        ----------
+        name : str
+            Name of the check.
+
+        summary : str
+            Summary of the check run.
+
+        commit_hash: { 'head' | 'base' }, optional
+            The SHA of the commit.
+
+        details_url : str or `None`, optional
+            The URL of the integrator's site that has the full details
+            of the check.
+
+        status : { 'queued' | 'in_progress' | 'completed' }
+            The current status.
+
+        conclusion : { 'success' | 'failure' | 'neutral' | 'cancelled' | 'timed_out' | 'action_required' }
+            The final conclusion of the check.
+            Required if you provide a status of ``'completed'``.
+            When the conclusion is ``'action_required'``, additional details
+            should be provided on the site specified by ``'details_url'``.
+            Note: Providing conclusion will automatically set the status
+            parameter to ``'completed'``.
+
+        """
+        url = f'{HOST}/repos/{self.repo}/check-runs'
+        headers = self._headers
+        headers['Accept'] = 'application/vnd.github.antiope-preview+json'
+
+        if commit_hash == "head":
+            commit_hash = self.head_sha
+        elif commit_hash == "base":
+            commit_hash = self.base_sha
+
+        completed_at = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+
+        output = {'title': name, 'summary': summary}
+        parameters = {'name': name, 'head_sha': commit_hash, 'status': status,
+                      'conclusion': conclusion, 'completed_at': completed_at,
+                      'output': output}
+        if details_url is not None:
+            parameters['details_url'] = details_url
+
+        response = requests.post(url, headers=headers, json=parameters)
+        assert response.ok, response.content
+
     def set_status(self, state, description, context, commit_hash="head", target_url=None):
         """
         Set status message on a commit on GitHub.

@@ -1,7 +1,7 @@
 0.3 (unreleased)
 ----------------
 
-* No changes yet.
+* New API to post checks on GitHub. [#45]
 
 0.2 (2018-11-22)
 ----------------
