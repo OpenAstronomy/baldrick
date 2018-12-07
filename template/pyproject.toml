@@ -17,16 +17,8 @@
   [ tool.<your-bot-name>.pull_requests ]
 
     # enabled = true
-    # post_pr_comment = true
-    # pull_request_substring = ""
     # skip_labels = []
     # skip_fails = true
-    # skip_message = ""
-    # fail_prologue = ""
-    # fail_epilogue = ""
-    # fail_status = ""
-    # pass_status = ""
-    # all_passed_message = ""
 
   [ tool.<your-bot-name>.towncrier_changelog ]
 

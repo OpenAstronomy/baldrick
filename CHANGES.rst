@@ -3,6 +3,9 @@
 
 * New API to post checks on GitHub. [#45]
 
+* Remove support for ``post_pr_comment`` - instead we now support exclusively
+  status checks. [#49]
+
 0.2 (2018-11-22)
 ----------------
 
