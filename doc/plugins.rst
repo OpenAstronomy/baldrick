@@ -32,9 +32,8 @@ Pull request handlers
 ---------------------
 
 We provide a plugin that will perform checks on a pull request and report the
-results back to the pull request, either as a comment and a single status check,
-or individual status checks. Which checks are done are themselves plugins and
-will be described in subsequent sections.
+results back to the pull request using status checks. Which checks are done are
+themselves plugins and will be described in subsequent sections.
 
 To enable pull request handlers, include the following in your
 ``pyproject.toml`` file::
@@ -45,11 +44,6 @@ To enable pull request handlers, include the following in your
 In addition, you can use the following configuration items if you wish to change
 the default behavior:
 
-* ``post_pr_comment = false/true``: if ``true``, the results of the checks will
-  be summarized in a comment, and a single overall status check will be
-  reported. If ``false``, each check will be reported as a separate status
-  check. The default is ``false``.
-
 * ``skip_labels = []``: this can be set to a list of GitHub labels which, if
   present, will cause the checks to be skipped. Note that labels are
   case-sensitive. The default is an empty list.
@@ -57,26 +51,6 @@ the default behavior:
 * ``skip_fails = false/true``: if ``true``, if the checks are skipped due to
   ``skip_labels``, then a failed status check will be posted to the pull request.
   If ``false``, the checks will be silently skipped. The default is ``true``.
-
-By default, the comment/statuses posted by the bot should be informative, but
-if you wish to change the wording of these messages, you can override them with
-the following parameters - note that all these only apply when
-``post_pr_comment`` is ``true``:
-
-* ``skip_message = "..."``: the message to display in a comment if the checks are
-  skipped due to ``skip_labels``
-
-* ``fail_prologue = "..."`` and ``fail_epilogue = "..."``: the text to include
-  before and after the results of the checks in the comment.
-
-* ``fail_status = "..."`` and ``pass_status = "..."``: the message to show in
-  the overall status check.
-
-* ``all_passed_message = "..."``: the message to show in a comment if all checks passed.
-
-* ``pull_request_substring``: a string that can be used to identify previous
-  comments posted by the bot. This should be a string common to
-  ``all_passed_message``, and ``fail_prologue`` or ``fail_epilogue``.
 
 GitHub milestone checker
 ^^^^^^^^^^^^^^^^^^^^^^^^
