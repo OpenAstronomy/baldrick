@@ -475,7 +475,7 @@ class IssueHandler(GitHubHandler):
 class PullRequestHandler(IssueHandler):
 
     # https://developer.github.com/v3/checks/runs/#create-a-check-run
-    def set_check(self, name, commit_hash, summary, details_url=None,
+    def set_check(self, name, summary, commit_hash='head', details_url=None,
                   status='queued', conclusion='neutral'):
         """
         Set check status.
@@ -489,13 +489,13 @@ class PullRequestHandler(IssueHandler):
         name : str
             Name of the check.
 
-        commit_hash: str
-            The SHA of the commit.
-
         summary : str
             Summary of the check run.
 
-        details_url : str
+        commit_hash: { 'head' | 'base' }
+            The SHA of the commit.
+
+        details_url : str or `None`
             The URL of the integrator's site that has the full details
             of the check.
 
@@ -512,7 +512,8 @@ class PullRequestHandler(IssueHandler):
 
         """
         url = f'{HOST}/repos/{self.repo}/check-runs'
-        headers = {'Accept': 'application/vnd.github.antiope-preview+json'}
+        headers = self._headers
+        headers['Accept'] = 'application/vnd.github.antiope-preview+json'
 
         if commit_hash == "head":
             commit_hash = self.head_sha
