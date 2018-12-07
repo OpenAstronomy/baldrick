@@ -492,10 +492,10 @@ class PullRequestHandler(IssueHandler):
         summary : str
             Summary of the check run.
 
-        commit_hash: { 'head' | 'base' }
+        commit_hash: { 'head' | 'base' }, optional
             The SHA of the commit.
 
-        details_url : str or `None`
+        details_url : str or `None`, optional
             The URL of the integrator's site that has the full details
             of the check.
 
