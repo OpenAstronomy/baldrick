@@ -24,7 +24,7 @@ def update_team_on_push(repo_handler, git_ref):
 
     # Find out teams to add contributors to
     teams = config.get('teams', None)
-    if teams is None:
+    if teams is None or teams.strip() == '':
         LOGGER.info('Skipping updating team since no teams were specified')
         return
     else:
