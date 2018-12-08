@@ -9,6 +9,7 @@ app = create_app('<your-bot-name>')
 import baldrick.plugins.circleci_artifacts
 import baldrick.plugins.github_milestones
 import baldrick.plugins.github_pull_requests
+import baldrick.plugins.github_pushes
 import baldrick.plugins.github_towncrier_changelog
 
 # Bind to PORT if defined, otherwise default to 5000.

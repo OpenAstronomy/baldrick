@@ -28,6 +28,36 @@ set of artifacts, for example::
 The ``url`` item should be set to the file path of the artifacts, and the
 message is what will be shown in the status check.
 
+Push handlers
+-------------
+
+We provide a plugin that will perform custom actions whenever a push is made to
+a repository.
+
+To enable pull request handlers, include the following in your
+``pyproject.toml`` file::
+
+    [ tool.<your-bot-name>.pushes ]
+    enabled = true
+
+If you want to write your own custom handler, import
+``push_handler`` from baldrick as follows::
+
+    from baldrick.plugins.github_pushes import push_handler
+
+then use it to decorate a function of the form::
+
+    @push_handler
+    def do_something_on_push(repo_handler, git_ref):
+        ...
+
+This function will be called with ``repo_handler``, an instance of
+:class:`~baldrick.github.github_api.RepoHandler` (click on
+the class names to find out the available properties/methods), and ``git_ref``
+which will be a string containing the ref for the push (e.g.
+``refs/heads/master``). If the ``git_ref`` is a branch, ``repo_handler.branch``
+will be correctly set, but note that the ``git_ref`` could also point to a tag.
+
 Pull request handlers
 ---------------------
 

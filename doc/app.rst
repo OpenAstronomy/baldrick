@@ -20,6 +20,7 @@ plugins if you have developed any additional ones. The available plugins are::
     import baldrick.plugins.circleci_artifacts
     import baldrick.plugins.github_milestones
     import baldrick.plugins.github_pull_requests
+    import baldrick.plugins.github_pushes
     import baldrick.plugins.github_towncrier_changelog
 
 And finally use the following to start up the bot::
