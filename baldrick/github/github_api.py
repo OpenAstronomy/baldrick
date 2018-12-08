@@ -107,6 +107,7 @@ class OrganizationHandler(BaseHandler):
         for team in teams:
             if team.name == name:
                 return team
+        raise ValueError(f'Team not found: {name}')
 
 
 class TeamHandler(BaseHandler):
