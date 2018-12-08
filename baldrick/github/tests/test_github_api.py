@@ -5,9 +5,7 @@ from unittest.mock import patch, Mock, PropertyMock, MagicMock
 import pytest
 
 from baldrick.config import loads
-from baldrick.github import github_api
-from baldrick.github.github_api import cfg_cache
-from baldrick.github.github_api import (RepoHandler, IssueHandler,
+from baldrick.github.github_api import (cfg_cache, RepoHandler, IssueHandler,
                                         PullRequestHandler)
 
 
@@ -219,26 +217,3 @@ class TestPullRequestHandler:
             assert self.pr.has_modified(['file1.txt'])
             assert self.pr.has_modified(['file1.txt', 'notthis.txt'])
             assert not self.pr.has_modified(['notthis.txt'])
-
-
-@patch('baldrick.github.github_api.datetime')
-def test_special_msg(mock_time):
-    import datetime
-    import random
-
-    random.seed(1234)
-    body = 'Hello World\n'
-
-    # Not special
-    mock_time.utcnow.return_value = datetime.datetime(2018, 4, 3)
-    assert github_api._insert_special_message(body) == body
-
-    # Special day on UTC
-    mock_time.utcnow.return_value = datetime.datetime(2018, 4, 1)
-    body2 = github_api._insert_special_message(body)
-    assert '\n*Greetings from Skynet!*\n' in body2
-
-    # Special day somewhere else
-    mock_time.utcnow.return_value = datetime.datetime(2018, 3, 31, hour=22)
-    body2 = github_api._insert_special_message(body)
-    assert '\n*All will be assimilated.*\n' in body2
