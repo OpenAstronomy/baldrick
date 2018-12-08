@@ -8,17 +8,18 @@
 
     # enabled = true
 
+  [ tool.<your-bot-name>.pull_requests ]
+
+    # enabled = true
+    # skip_labels = []
+    # skip_fails = true
+
   [ tool.<your-bot-name>.milestones ]
 
     # enabled = true
     # missing_message = ""
     # present_message = ""
 
-  [ tool.<your-bot-name>.pull_requests ]
-
-    # enabled = true
-    # skip_labels = []
-    # skip_fails = true
 
   [ tool.<your-bot-name>.towncrier_changelog ]
 
@@ -32,3 +33,12 @@
     # type_correct = ""
     # type_incorrect = ""
     # help_url = ""
+
+  [ tool.<your-bot-name>.pushes ]
+
+    # enabled = true
+
+  [ tool.<your-bot-name>.team_updater ]
+
+    # enabled = true
+    # teams = ""
