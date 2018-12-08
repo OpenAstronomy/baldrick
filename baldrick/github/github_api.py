@@ -70,6 +70,7 @@ def paged_github_json_request(url, headers=None):
 
     return results
 
+
 class BaseHandler:
 
     def __init__(self, installation=None):
@@ -92,7 +93,8 @@ class OrganizationHandler(BaseHandler):
     def get_teams(self):
         url = f'{HOST}/orgs/{self.name}/teams'
         headers = self._headers
-        headers['Accept'] = 'application/vnd.github.hellcat-preview+json'
+        if headers is not None:
+            headers['Accept'] = 'application/vnd.github.hellcat-preview+json'
         results = paged_github_json_request(url, headers=self._headers)
         teams = []
         for team in results:
@@ -140,7 +142,7 @@ class TeamHandler(BaseHandler):
 
 class GitHubHandler(BaseHandler):
     """
-    A base class for things that represent things the github app can operate on.
+    A base class for repo and pull request handlers.
     """
     def __init__(self, repo, installation=None):
         super().__init__(installation=installation)

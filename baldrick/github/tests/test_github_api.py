@@ -6,11 +6,13 @@ import pytest
 
 from baldrick.config import loads
 from baldrick.github import github_api
-from baldrick.github.github_api import (RepoHandler, IssueHandler,
-                                        PullRequestHandler)
+from baldrick.github.github_api import (RepoHandler, IssueHandler, TeamHandler,
+                                        PullRequestHandler, OrganizationHandler)
 
 
 # TODO: Add more tests to increase coverage.
+
+
 
 class TestRepoHandler:
 
@@ -121,6 +123,78 @@ class TestRealRepoHandler:
 
         with pytest.raises(FileNotFoundError):
             self.repo.get_file_contents('some/file/here.txt')
+
+    def test_get_contributors(self):
+        with patch('baldrick.github.github_api.paged_github_json_request') as mock_get:
+            mock_get.return_value = [{'login': 'brian'}]
+            contributors = self.repo.get_contributors()
+        assert contributors == ['brian']
+
+    def test_get_organization(self):
+        org = self.repo.get_organization()
+        assert isinstance(org, OrganizationHandler)
+        assert org.name == 'astropy'
+
+
+class TestOrganizationHandler:
+
+    def setup_method(self):
+        self.org = OrganizationHandler('astropy')
+
+    def test_get_teams(self):
+
+        with patch('baldrick.github.github_api.paged_github_json_request') as mock_get:
+            mock_get.return_value = [{'id': 12, 'name': 'aliens'}, {'id': 22, 'name': 'frogs'}]
+            teams = self.org.get_teams()
+
+        assert isinstance(teams[0], TeamHandler)
+        assert teams[0].team_id == 12
+        assert teams[0].name == 'aliens'
+
+        assert isinstance(teams[1], TeamHandler)
+        assert teams[1].team_id == 22
+        assert teams[1].name == 'frogs'
+
+    def test_get_team_by_name(self):
+
+        with patch('baldrick.github.github_api.paged_github_json_request') as mock_get:
+            mock_get.return_value = [{'id': 12, 'name': 'aliens'}, {'id': 22, 'name': 'frogs'}]
+            team = self.org.get_team_by_name('frogs')
+
+        assert isinstance(team, TeamHandler)
+        assert team.team_id == 22
+        assert team.name == 'frogs'
+
+
+class TestTeamHandler:
+
+    def setup_method(self):
+        self.team = TeamHandler(12, name='aliens')
+
+    def _paged_requests(self, url, *args, **kwargs):
+        if url == 'https://api.github.com/teams/12/members':
+            return [{'login': 'alice'}, {'login': 'bob'}]
+        elif url == 'https://api.github.com/teams/12/invitations':
+            return [{'login': 'eve'}]
+        else:
+            raise ValueError(url)
+
+    def test_get_members(self):
+
+        with patch('baldrick.github.github_api.paged_github_json_request') as mock_get:
+
+            mock_get.side_effect = self._paged_requests
+
+            members = self.team.get_members()
+            assert members == ['alice', 'bob', 'eve']
+
+            members = self.team.get_members(include_pending=False)
+            assert members == ['alice', 'bob']
+
+    @patch('requests.put')
+    def test_add_member(self, mock_put):
+        self.team.add_member('brian')
+        assert mock_put.call_args[0][0] == 'https://api.github.com/teams/12/memberships/brian'
 
 
 class TestIssueHandler:
