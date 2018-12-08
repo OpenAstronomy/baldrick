@@ -70,18 +70,10 @@ def paged_github_json_request(url, headers=None):
 
     return results
 
+class BaseHandler:
 
-class GitHubHandler:
-    """
-    A base class for things that represent things the github app can operate on.
-    """
-    def __init__(self, repo, installation=None):
-        self.repo = repo
+    def __init__(self, installation=None):
         self.installation = installation
-        self._cache = {}
-
-    def invalidate_cache(self):
-        self._cache.clear()
 
     @property
     def _headers(self):
@@ -90,9 +82,86 @@ class GitHubHandler:
         else:
             return github_request_headers(self.installation)
 
+
+class OrganizationHandler(BaseHandler):
+
+    def __init__(self, name, installation=None):
+        super().__init__(installation=installation)
+        self.name = name
+
+    def get_teams(self):
+        url = f'{HOST}/orgs/{self.name}/teams'
+        headers = self._headers
+        headers['Accept'] = 'application/vnd.github.hellcat-preview+json'
+        results = paged_github_json_request(url, headers=self._headers)
+        teams = []
+        for team in results:
+            teams.append(TeamHandler(team['id'], name=team['name'],
+                                     installation=self.installation))
+        return teams
+
+    def get_team_by_name(self, name):
+        teams = self.get_teams()
+        for team in teams:
+            if team.name == name:
+                return team
+
+
+class TeamHandler(BaseHandler):
+
+    def __init__(self, team_id, name=None, installation=None):
+        super().__init__(installation=installation)
+        self.team_id = team_id
+        self.name = name
+
+    def get_members(self, include_pending=True):
+
+        # Get current members
+        url = f'{HOST}/teams/{self.team_id}/members'
+        results = paged_github_json_request(url, headers=self._headers)
+        members = [member['login'] for member in results]
+
+        # Get pending invitations
+        if include_pending:
+            url = f'{HOST}/teams/{self.team_id}/invitations'
+            results = paged_github_json_request(url, headers=self._headers)
+            for member in results:
+                members.append(member['login'])
+
+        return members
+
+    def add_member(self, username):
+        # Need to set content length to zero?
+        url = f'{HOST}/teams/{self.team_id}/memberships/{username}'
+        parameters = {}
+        response = requests.put(url, headers=self._headers, json=parameters)
+        assert response.ok, response.content
+
+
+class GitHubHandler(BaseHandler):
+    """
+    A base class for things that represent things the github app can operate on.
+    """
+    def __init__(self, repo, installation=None):
+        super().__init__(installation=installation)
+        self.repo = repo
+        self._cache = {}
+
+    def invalidate_cache(self):
+        self._cache.clear()
+
     @property
     def _url_contents(self):
         return f'{HOST}/repos/{self.repo}/contents/'
+
+    def get_organization(self):
+        return OrganizationHandler(self.repo.split('/')[0], installation=self.installation)
+
+    def get_contributors(self):
+        # FIXME: the API below will only return the top 500 contributors
+        url = f'{HOST}/repos/{self.repo}/contributors'
+        contributors = paged_github_json_request(url, headers=self._headers)
+        return [contributor['login'] for contributor in contributors]
 
     def get_file_contents(self, path_to_file, branch=None):
         if not branch:

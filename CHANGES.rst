@@ -3,6 +3,8 @@
 
 * New API to post checks on GitHub. [#45]
 
+* Added support for basic team management in GitHub API. [#54]
+
 * Remove support for ``post_pr_comment`` - instead we now support exclusively
   status checks. [#49]
 
