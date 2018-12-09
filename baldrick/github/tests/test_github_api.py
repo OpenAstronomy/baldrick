@@ -6,6 +6,7 @@ import pytest
 
 from baldrick.config import loads
 from baldrick.github import github_api
+from baldrick.github.github_api import cfg_cache
 from baldrick.github.github_api import (RepoHandler, IssueHandler,
                                         PullRequestHandler)
 
@@ -66,7 +67,19 @@ setting4 = 5
 """
 
 
+TEST_FALLBACK_CONFIG = """
+[tool.nottestbot]
+[tool.nottestbot.pr]
+setting1 = 2
+setting2 = 3
+setting3 = 4
+"""
+
+
 class TestRealRepoHandler:
+
+    def setup_method(self, method):
+        cfg_cache.clear()
 
     def setup_class(self):
         self.repo = RepoHandler('astropy/astropy-bot')
@@ -82,6 +95,19 @@ class TestRealRepoHandler:
                 # These are set to False in YAML; defaults must not be used.
                 assert self.repo.get_config_value('pr')['setting1'] == 2
                 assert self.repo.get_config_value('pr')['setting2'] == 3
+
+    def test_get_fallback_config(self, app):
+
+        with app.app_context():
+            app.fall_back_config = "nottestbot"
+            with patch.object(self.repo, 'get_file_contents') as mock_get:  # noqa
+
+                mock_get.return_value = TEST_FALLBACK_CONFIG
+
+                # These are set to False in YAML; defaults must not be used.
+                assert self.repo.get_config_value('pr')['setting1'] == 2
+                assert self.repo.get_config_value('pr')['setting2'] == 3
+                assert self.repo.get_config_value('pr')['setting3'] == 4
 
     def test_get_config_with_app_defaults(self, app):
 

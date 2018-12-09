@@ -135,8 +135,16 @@ class GitHubHandler:
             file_content = self.get_file_contents(path_to_file, branch=branch)
             return loads(file_content, tool=current_app.bot_username)
         except Exception as e:
+            # Attempt to load the fallback config just in case
+            if getattr(current_app, "fall_back_config", None):
+                try:
+                    return loads(file_content, tool=current_app.fall_back_config)
+                except Exception:  # pragma: no cover
+                    pass
+
             if warn_on_failure:
                 warnings.warn(str(e))
+
             # Empty dict means calling code set the default
             repo_config = current_app.conf.copy()
 
