@@ -100,6 +100,7 @@ def test_repo_to_installation_id(app):
             with patch('requests.get', requests_patch):
 
                 assert repo_to_installation_id('test1') == 3331
+                assert repo_to_installation_id('test3', raise_error=False) is None
 
                 with pytest.raises(ValueError) as exc:
                     repo_to_installation_id('test3')

@@ -10,7 +10,8 @@ from flask import current_app
 from ttldict import TTLOrderedDict
 
 from baldrick.config import loads
-from baldrick.github.github_auth import github_request_headers
+from baldrick.github.github_auth import (
+    github_request_headers, repo_to_installation_id)
 
 __all__ = ['GitHubHandler', 'RepoHandler', 'PullRequestHandler']
 
@@ -76,6 +77,9 @@ class GitHubHandler:
     A base class for things that represent things the github app can operate on.
     """
     def __init__(self, repo, installation=None):
+        if installation is None:  # pragma: no cover
+            installation = repo_to_installation_id(repo, raise_error=False)
+
         self.repo = repo
         self.installation = installation
         self._cache = {}
