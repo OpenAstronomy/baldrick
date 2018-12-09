@@ -9,9 +9,7 @@ from baldrick.github import github_api
 from baldrick.github.github_api import (RepoHandler, IssueHandler, TeamHandler,
                                         PullRequestHandler, OrganizationHandler)
 
-
 # TODO: Add more tests to increase coverage.
-
 
 
 class TestRepoHandler:
