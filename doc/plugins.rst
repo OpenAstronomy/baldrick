@@ -32,7 +32,7 @@ Push handlers
 -------------
 
 We provide a plugin that will perform custom actions whenever a push is made to
-a repository.
+a repository, whether to a branch or a tag.
 
 To enable pull request handlers, include the following in your
 ``pyproject.toml`` file::
