@@ -7,3 +7,5 @@ htmlcov/
 *egg-info*
 build/
 dist/
+doc/api/
+doc/_build/

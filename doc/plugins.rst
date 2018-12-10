@@ -118,8 +118,8 @@ then use it to decorate a function of the form::
         ...
 
 This function will be called with ``pr_handler``, an instance of
-:class:`~baldrick.github.github_api.PullRequestHandler`, and ``repo_handler``,
-an instance of :class:`~baldrick.github.github_api.RepoHandler` (click on
+:class:`~baldrick.github.PullRequestHandler`, and ``repo_handler``,
+an instance of :class:`~baldrick.github.RepoHandler` (click on
 the class names to find out the available properties/methods).
 
 Your function should then return either `None` (no check results), or

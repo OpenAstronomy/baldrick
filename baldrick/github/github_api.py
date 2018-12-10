@@ -12,7 +12,7 @@ from ttldict import TTLOrderedDict
 from baldrick.config import loads
 from baldrick.github.github_auth import github_request_headers
 
-__all__ = ['GitHubHandler', 'RepoHandler', 'PullRequestHandler']
+__all__ = ['GitHubHandler', 'IssueHandler', 'RepoHandler', 'PullRequestHandler']
 
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"

@@ -6,13 +6,13 @@ GitHub API
 
 The different components of the bot interact with GitHub via a set of helper
 classes that live in ``baldrick.github``. These classes are
-:class:`~baldrick.github.github_api.RepoHandler`,
-:class:`~baldrick.github.github_api.IssueHandler`, and
-:class:`~baldrick.github.github_api.PullRequestHandler`. It is possible to try
+:class:`~baldrick.github.RepoHandler`,
+:class:`~baldrick.github.IssueHandler`, and
+:class:`~baldrick.github.PullRequestHandler`. It is possible to try
 these out locally, at least for the parts of the GitHub API that do not require
 authentication. For example, the following should work::
 
-    >>> from baldrick.github.github_api import RepoHandler, IssueHandler, PullRequestHandler
+    >>> from baldrick.github import RepoHandler, IssueHandler, PullRequestHandler
     >>> repo = RepoHandler('astropy/astropy')
     >>> repo.get_issues('open', 'Close?')
     [6025, 5193, 4842, 4549, 4058, 3951, 3845, 2603, 2232, 1920, 1024, 435, 383, 282]
@@ -54,7 +54,7 @@ the Installation ID and look like:
 In this case, 36238 is the installation ID. Provided you set the environment
 variables correctly, you should then be able to do e.g.::
 
-    >>> from baldrick.github.github_api import IssueHandler
+    >>> from baldrick.github import IssueHandler
     >>> issue = IssueHandler('astrofrog/test-bot', 5, installation=36238)
     >>> issue.submit_comment('I am alive!')
 
