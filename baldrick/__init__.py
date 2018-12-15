@@ -1,16 +1,17 @@
-import os
-
-from flask import Flask
-from werkzeug.contrib.fixers import ProxyFix
-
-from baldrick.config import load, Config
-from baldrick.blueprints import github_blueprint, circleci_blueprint
+from baldrick import github  # noqa
 
 __all__ = ['create_app', '__version__']
 
 __version__ = '0.3.dev0'
 
-GLOBAL_TOML = os.path.join('.', 'pyproject.toml')
+GLOBAL_TOML = ''
+
+
+def _init_global_toml():
+    import os
+    global GLOBAL_TOML
+
+    GLOBAL_TOML = os.path.join('.', 'pyproject.toml')
 
 
 def create_app(name, register_blueprints=True):
@@ -31,6 +32,13 @@ def create_app(name, register_blueprints=True):
     app
 
     """
+    import os
+
+    from flask import Flask
+    from werkzeug.contrib.fixers import ProxyFix
+
+    from baldrick.config import load, Config
+    from baldrick.blueprints import github_blueprint, circleci_blueprint
 
     app = Flask(name)
 
@@ -60,3 +68,6 @@ def create_app(name, register_blueprints=True):
         return "Installation authorized"
 
     return app
+
+
+_init_global_toml()

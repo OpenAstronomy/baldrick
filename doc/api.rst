@@ -1,7 +1,7 @@
 API documentation
 =================
 
-.. automodapi:: baldrick.github.github_api
+.. automodapi:: baldrick.github
    :no-inheritance-diagram:
 
 .. automodapi:: baldrick.github.github_auth
