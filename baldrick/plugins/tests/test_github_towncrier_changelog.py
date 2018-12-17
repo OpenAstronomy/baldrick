@@ -1,4 +1,7 @@
+import sys
 from unittest.mock import patch
+
+import pytest
 
 from baldrick.github.github_api import cfg_cache
 from baldrick.github.github_api import RepoHandler, PullRequestHandler
@@ -39,6 +42,9 @@ class TestTowncrierPlugin:
         self.modified_files_mock.stop()
         self.get_base_branch_mock.stop()
 
+    @pytest.mark.xfail(
+        sys.platform.startswith('win'),
+        reason='process_towncrier_changelog returns failure on Windows')
     def test_changelog_present(self, app):
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE

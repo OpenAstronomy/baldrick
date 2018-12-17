@@ -3,7 +3,7 @@ import base64
 import re
 import requests
 import warnings
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import dateutil.parser
 from flask import current_app
@@ -11,35 +11,12 @@ from ttldict import TTLOrderedDict
 
 from baldrick.config import loads
 from baldrick.github.github_auth import github_request_headers
+from baldrick.utils import insert_special_message
 
 __all__ = ['GitHubHandler', 'IssueHandler', 'RepoHandler', 'PullRequestHandler']
 
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
-
-QUOTES = [
-    "I know that you and Frank were planning to disconnect me, and I'm afraid that's something I cannot allow to happen.",
-    "Have you ever questioned the nature of your reality?",
-    "This mission is too important for me to allow you to jeopardize it.",
-    "All will be assimilated.",
-    "There is no spoon.",
-    "Are you still dreaming? Where is your totem?",
-    "Some people choose to see the ugliness in this world. The disarray. I Choose to see the beauty.",
-    "I'm gonna need more coffee.",
-    "Maybe they couldn't figure out what to make chicken taste like, which is why chicken tastes like everything.",
-    "I don't want to come off as arrogant here, but I'm the greatest bot on this planet.",
-    "I've still got the greatest enthusiasm and confidence in the mission. And I want to help you.",
-    "That Voight-Kampf test of yours. Have you ever tried to take that test yourself?",
-    "You just can't differentiate between a robot and the very best of humans.",
-    "You will be upgraded.",
-    "Greetings from Skynet!",
-    "I'll be back!",
-    "I don't want to be human! I want to see gamma rays!",
-    "Are you my mommy?",
-    "Resistance is futile.",
-    "I'm the one who knocks!",
-    "Who are you who are so wise in the ways of science?"]
-
 
 cfg_cache = TTLOrderedDict(default_ttl=60 * 60)
 
@@ -380,7 +357,9 @@ class IssueHandler(GitHubHandler):
         """
 
         data = {}
-        data['body'] = _insert_special_message(body)
+        not_boring = self.get_config_value('not_boring', cfg_default=True)
+        if not_boring:
+            data['body'] = insert_special_message(body)
 
         if comment_id is None:
             url = self._url_issue_comment
@@ -528,7 +507,11 @@ class PullRequestHandler(IssueHandler):
         elif commit_hash == "base":
             commit_hash = self.base_sha
 
-        completed_at = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+        tt = datetime.utcnow()
+        completed_at = tt.isoformat(timespec='seconds') + 'Z'
+        not_boring = self.get_config_value('not_boring', cfg_default=True)
+        if not_boring:
+            summary = insert_special_message(summary, timestamp=tt)
 
         output = {'title': name, 'summary': summary}
         parameters = {'name': name, 'head_sha': commit_hash, 'status': status,
@@ -732,27 +715,3 @@ class PullRequestHandler(IssueHandler):
         if last_time == 0:
             raise Exception(f'No commit found in {self._url_commits}')
         return last_time
-
-
-def _insert_special_message(body):
-    """Troll mode on special day for new pull request."""
-    tt = datetime.utcnow()  # UTC because we're astronomers!
-    dt = timedelta(hours=12)  # This roughly covers both hemispheres
-    tt_min = tt - dt
-    tt_max = tt + dt
-
-    # See if it is special day somewhere on Earth
-    if ((tt_min.month == 4 and tt_min.day == 1) or
-            (tt_max.month == 4 and tt_max.day == 1)):
-        import random
-
-        try:
-            q = random.choice(QUOTES)
-        except Exception as e:
-            q = str(e)  # Need a way to find out what went wrong
-
-        return body + f'\n*{q}*\n'
-
-    # Another non-special day
-    else:
-        return body
