@@ -507,7 +507,9 @@ class PullRequestHandler(IssueHandler):
 
         tt = datetime.utcnow()
         completed_at = tt.isoformat(timespec='seconds') + 'Z'
-        summary = insert_special_message(summary, timestamp=tt)
+        not_boring = self.get_config_value('not_boring', cfg_default=True)
+        if not_boring:
+            summary = insert_special_message(summary, timestamp=tt)
 
         output = {'title': name, 'summary': summary}
         parameters = {'name': name, 'head_sha': commit_hash, 'status': status,
