@@ -357,7 +357,9 @@ class IssueHandler(GitHubHandler):
         """
 
         data = {}
-        data['body'] = insert_special_message(body)
+        not_boring = self.get_config_value('not_boring', cfg_default=True)
+        if not_boring:
+            data['body'] = insert_special_message(body)
 
         if comment_id is None:
             url = self._url_issue_comment
