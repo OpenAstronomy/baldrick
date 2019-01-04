@@ -43,10 +43,6 @@ def handle_pushes(repo_handler, payload, headers):
     if not push_config.get("enabled", False):
         return "Skipping commit handlers, disabled in configuration file"
 
-    # Disable if the config is not present
-    if push_config is None:
-        return
-
     for function in PUSH_HANDLERS:
         function(repo_handler, git_ref)
 
