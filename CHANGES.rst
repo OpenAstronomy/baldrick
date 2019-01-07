@@ -6,6 +6,8 @@
 * Remove support for ``post_pr_comment`` - instead we now support exclusively
   status checks. [#49]
 
+* Added support for custom actions on push. [#53]
+
 0.2 (2018-11-22)
 ----------------
 
