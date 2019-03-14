@@ -120,7 +120,10 @@ def insert_special_message(body, **kwargs):
         except Exception as e:  # pragma: no cover
             q = str(e)  # Need a way to find out what went wrong
 
-        return f'{body}\n*{q}*\n'
+        if len(body) > 0:
+            return f'{body}\n*{q}*\n'
+        else:
+            return f'*{q}*'
 
     # Another non-special day; Boring!
     else:
