@@ -8,7 +8,7 @@
 
 * Added support for custom actions on push. [#53]
 
-* Improve logic for closing stale issues.
+* Improve logic for closing stale issues. [#69]
 
 0.2 (2018-11-22)
 ----------------
