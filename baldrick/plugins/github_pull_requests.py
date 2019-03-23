@@ -108,7 +108,7 @@ def process_pull_request(repository, number, installation):
 
     # Special message for a special day
     not_boring = pr_handler.get_config_value('not_boring', cfg_default=True)
-    if not_boring:
+    if not_boring:  # pragma: no cover
         special_msg = insert_special_message('')
         if special_msg:
             pr_handler.submit_comment(special_msg)
