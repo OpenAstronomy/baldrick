@@ -59,9 +59,22 @@ def process_issues(repository, installation,
         if labeled_time is None:
             continue
 
-        dt = now - labeled_time
+        time_since_close_label = now - labeled_time
 
-        if dt > close_seconds:
+        # Note: if warning time is before label time, it's as if the warning
+        # didn't exist since it's no longer relevant.
+        warning_time = issue.last_comment_date(f'{bot_name}[bot]', filter_keep=is_close_warning)
+        if warning_time is None or warning_time < labeled_time:
+            time_since_last_warning = -1.
+        else:
+            # We use max() here to make sure that the value is positive
+            time_since_last_warning = max(0, now - warning_time)
+
+        # We only close issues if there has been a warning before, and
+        # the time since the warning exceeds the threshold specified by
+        # close_seconds.
+
+        if time_since_last_warning > close_seconds:
             comment_ids = issue.find_comments(f'{bot_name}[bot]', filter_keep=is_close_epilogue)
             if len(comment_ids) == 0:
                 print(f'-> CLOSING issue {n}')
@@ -70,12 +83,12 @@ def process_issues(repository, installation,
                 issue.close()
             else:
                 print(f'-> Skipping issue {n} (already closed)')
-        elif dt > warn_seconds:
+        elif time_since_close_label > warn_seconds:
             comment_ids = issue.find_comments(f'{bot_name}[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
                 print(f'-> WARNING issue {n}')
-                issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(dt),
-                                                                futuretime=naturaldelta(close_seconds - warn_seconds)))
+                issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(time_since_close_label),
+                                                                futuretime=naturaldelta(close_seconds)))
             else:
                 print(f'-> Skipping issue {n} (already warned)')
         else:

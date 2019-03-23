@@ -35,7 +35,11 @@ def create_app(name, register_blueprints=True):
     import os
 
     from flask import Flask
-    from werkzeug.contrib.fixers import ProxyFix
+
+    try:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+    except ImportError:
+        from werkzeug.contrib.fixers import ProxyFix
 
     from baldrick.config import load, Config
     from baldrick.blueprints import github_blueprint, circleci_blueprint

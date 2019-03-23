@@ -84,7 +84,7 @@ def process_pull_requests(repository, installation,
 
         # We only close pull requests if there has been a warning before, and
         # the time since the warning exceeds the threshold specified by
-        # stale_pull_requests_close_seconds.
+        # close_seconds.
 
         if time_since_last_warning > close_seconds:
             comment_ids = pr.find_comments(f'{bot_name}[bot]', filter_keep=is_close_epilogue)

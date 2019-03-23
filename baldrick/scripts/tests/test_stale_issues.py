@@ -41,6 +41,7 @@ class TestProcessIssues:
         self.patch_get_label_added_date = patch.object(IssueHandler, 'get_label_added_date')
         self.patch_find_comments = patch.object(IssueHandler, 'find_comments')
         self.patch_set_labels = patch.object(IssueHandler, 'set_labels')
+        self.patch_last_comment_date = patch.object(IssueHandler, 'last_comment_date')
 
         self.get_app_name = self.patch_get_app_name.start()
         self.get_issues = self.patch_get_issues.start()
@@ -49,6 +50,7 @@ class TestProcessIssues:
         self.get_label_added_date = self.patch_get_label_added_date.start()
         self.find_comments = self.patch_find_comments.start()
         self.set_labels = self.patch_set_labels.start()
+        self.last_comment_date = self.patch_last_comment_date.start()
 
         self.get_app_name.return_value = 'testbot'
 
@@ -61,6 +63,7 @@ class TestProcessIssues:
         self.patch_get_label_added_date.stop()
         self.patch_find_comments.stop()
         self.patch_set_labels.stop()
+        self.patch_last_comment_date.stop()
 
     def test_close_comment_exists(self):
 
@@ -70,9 +73,10 @@ class TestProcessIssues:
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34443
+        self.last_comment_date.return_value = now() - 20000
         self.find_comments.return_value = ['1']
 
-        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=34442)
+        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=14442)
 
         self.get_issues.assert_called_with('open', 'Close?')
         self.get_label_added_date.assert_called_with('Close?')
@@ -88,9 +92,10 @@ class TestProcessIssues:
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34443
+        self.last_comment_date.return_value = now() - 20000
         self.find_comments.return_value = []
 
-        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=34442)
+        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=14442)
 
         assert self.submit_comment.call_count == 1
         expected = ISSUE_CLOSE_EPILOGUE
@@ -105,9 +110,10 @@ class TestProcessIssues:
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34400
+        self.last_comment_date.return_value = now() - 20000
         self.find_comments.return_value = ['1']
 
-        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=34442)
+        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=14442)
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
@@ -120,9 +126,10 @@ class TestProcessIssues:
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 34400
+        self.last_comment_date.return_value = None
         self.find_comments.return_value = []
 
-        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=34442)
+        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=18000)
 
         assert self.submit_comment.call_count == 1
         expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
@@ -136,6 +143,7 @@ class TestProcessIssues:
 
         self.get_issues.return_value = ['123']
         self.get_label_added_date.return_value = now() - 14000
+        self.last_comment_date.return_value = None
         self.find_comments.return_value = []
 
         process_issues('repo', 'installation', warn_seconds=14122, close_seconds=34442)
