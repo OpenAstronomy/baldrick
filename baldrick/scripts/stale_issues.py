@@ -70,9 +70,9 @@ def process_issues(repository, installation,
             # We use max() here to make sure that the value is positive
             time_since_last_warning = max(0, now - warning_time)
 
-        # We only close pull requests if there has been a warning before, and
+        # We only close issues if there has been a warning before, and
         # the time since the warning exceeds the threshold specified by
-        # stale_pull_requests_close_seconds.
+        # close_seconds.
 
         if time_since_last_warning > close_seconds:
             comment_ids = issue.find_comments(f'{bot_name}[bot]', filter_keep=is_close_epilogue)
