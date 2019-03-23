@@ -2,7 +2,7 @@ from flask import current_app
 
 from baldrick.github.github_api import RepoHandler, PullRequestHandler
 from baldrick.blueprints.github import github_webhook_handler
-from baldrick.utils import is_special_day_now
+from baldrick.utils import insert_special_message
 
 __all__ = ['pull_request_handler']
 
@@ -106,10 +106,12 @@ def process_pull_request(repository, number, installation):
         if result is not None:
             results.update(result)
 
-    # Special message for a special day (hacky hack hack)
+    # Special message for a special day
     not_boring = pr_handler.get_config_value('not_boring', cfg_default=True)
-    if not_boring and is_special_day_now():
-        pr_handler.submit_comment('')
+    if not_boring:
+        special_msg = insert_special_message('')
+        if special_msg:
+            pr_handler.submit_comment(special_msg)
 
     # Post each failure as a status
 
