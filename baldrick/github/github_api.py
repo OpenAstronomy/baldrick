@@ -11,7 +11,6 @@ from ttldict import TTLOrderedDict
 
 from baldrick.config import loads
 from baldrick.github.github_auth import github_request_headers
-from baldrick.utils import insert_special_message
 
 __all__ = ['GitHubHandler', 'IssueHandler', 'RepoHandler', 'PullRequestHandler']
 
@@ -357,13 +356,7 @@ class IssueHandler(GitHubHandler):
         """
 
         data = {}
-
-        try:
-            not_boring = self.get_config_value('not_boring', cfg_default=True)
-            if not_boring:
-                data['body'] = insert_special_message(body)
-        except Exception:
-            data['body'] = body
+        data['body'] = body
 
         if comment_id is None:
             url = self._url_issue_comment
@@ -513,9 +506,6 @@ class PullRequestHandler(IssueHandler):
 
         tt = datetime.utcnow()
         completed_at = tt.isoformat(timespec='seconds') + 'Z'
-        not_boring = self.get_config_value('not_boring', cfg_default=True)
-        if not_boring:
-            summary = insert_special_message(summary, timestamp=tt)
 
         output = {'title': name, 'summary': summary}
         parameters = {'name': name, 'head_sha': commit_hash, 'status': status,
