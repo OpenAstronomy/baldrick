@@ -65,3 +65,9 @@ def test_is_special_day_3():
         body, timestamp=t_special, special_days=special_days)
     assert '\n*All will be assimilated.*\n' in insert_special_message(
         body, timestamp=t_special, special_days=special_days)
+
+    # Test behaviors for when input text is empty.
+    assert (len(insert_special_message(
+        '', timestamp=t_boring, special_days=special_days)) == 0)
+    assert (len(insert_special_message(
+        '', timestamp=t_special, special_days=special_days)) > 0)
