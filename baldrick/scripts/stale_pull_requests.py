@@ -21,7 +21,7 @@ If this PR still needs to be reviewed, as an author, you can rebase it
 to reset the clock.
 
 *If you believe I commented on this pull request incorrectly, please report
-this [here](https://github.com/astrofrog/baldrick/issues).*
+this [here](https://github.com/OpenAstronomy/baldrick/issues).*
 """)
 
 
@@ -37,7 +37,7 @@ issue to keep track of it. Thanks!
 
 *If this is the first time I am commenting on this issue, or if you believe
 I closed this issue incorrectly, please report this
-[here](https://github.com/astrofrog/baldrick/issues).*
+[here](https://github.com/OpenAstronomy/baldrick/issues).*
 """)
 
 

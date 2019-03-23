@@ -14,7 +14,7 @@ remove the **Close?** label - otherwise, I will close this issue in
 {futuretime}.
 
 *If you believe I commented on this issue incorrectly, please report this
-[here](https://github.com/astrofrog/baldrick/issues)*
+[here](https://github.com/OpenAstronomy/baldrick/issues)*
 """)
 
 
@@ -29,7 +29,7 @@ label.
 
 *If this is the first time I am commenting on this issue, or if you believe I
 closed this issue incorrectly, please report this
-[here](https://github.com/astrofrog/baldrick/issues)*
+[here](https://github.com/OpenAstronomy/baldrick/issues)*
 """)
 
 

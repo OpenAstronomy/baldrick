@@ -1,7 +1,7 @@
 # Your Bot
 
 This repository contains the configuration for the <...> GitHub bot. It is based
-on [baldrick](https://github.com/astrofrog/baldrick).
+on [baldrick](https://github.com/OpenAstronomy/baldrick).
 
 ### Requirements
 
