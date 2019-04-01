@@ -109,8 +109,8 @@ def process_pull_request(repository, number, installation):
     # Special message for a special day
     not_boring = pr_handler.get_config_value('not_boring', cfg_default=True)
     if not_boring:  # pragma: no cover
-        import numpy as np
-        tensided_dice_roll = np.random.choice(np.arange(10))
+        import random
+        tensided_dice_roll = random.randrange(10)
         if tensided_dice_roll == 9:  # 1 out of 10
             special_msg = insert_special_message('')
             if special_msg:
