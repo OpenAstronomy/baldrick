@@ -27,4 +27,5 @@ setup(version='0.3.dev0',
           "humanize",
           "towncrier",
           "toml",
-          "ttldict"])
+          "ttldict",
+          "numpy"])
