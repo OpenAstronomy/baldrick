@@ -63,10 +63,13 @@ def handle_pull_requests(repo_handler, payload, headers):
     else:
         return "Not an issue or pull request"
 
-    return process_pull_request(repo_handler.repo, number, repo_handler.installation)
+    is_new = (event == 'pull_request') & (payload['action'] == 'opened')
+
+    return process_pull_request(
+        repo_handler.repo, number, repo_handler.installation, is_new=is_new)
 
 
-def process_pull_request(repository, number, installation):
+def process_pull_request(repository, number, installation, is_new=False):
 
     # TODO: cache handlers and invalidate the internal cache of the handlers on
     # certain events.
@@ -109,12 +112,16 @@ def process_pull_request(repository, number, installation):
     # Special message for a special day
     not_boring = pr_handler.get_config_value('not_boring', cfg_default=True)
     if not_boring:  # pragma: no cover
-        import random
-        tensided_dice_roll = random.randrange(10)
-        if tensided_dice_roll == 9:  # 1 out of 10
+        special_msg = ''
+        if is_new:  # Always be snarky for new PR
             special_msg = insert_special_message('')
-            if special_msg:
-                pr_handler.submit_comment(special_msg)
+        else:
+            import random
+            tensided_dice_roll = random.randrange(10)
+            if tensided_dice_roll == 9:  # 1 out of 10 for subsequent remarks
+                special_msg = insert_special_message('')
+        if special_msg:
+            pr_handler.submit_comment(special_msg)
 
     # Post each failure as a status
 
