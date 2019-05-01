@@ -118,7 +118,10 @@ def process_pull_request(repository, number, installation, action,
     for label in pr_handler.labels:
         if label in skip_labels:
             if skip_fails:
-                pr_handler.set_status('failure', "Skipping checks due to {0} label".format(label), current_app.bot_username)
+                pr_handler.set_check(
+                    current_app.bot_username,
+                    "Skipping checks due to {0} label".format(label),
+                    status='completed', conclusion='failure')
             return
 
     results = {}
@@ -156,9 +159,10 @@ def process_pull_request(repository, number, installation, action,
         # and there were some strange caching issues where GitHub would
         # return old status messages, so we avoid doing that.
 
-        pr_handler.set_status(details['state'], details['description'],
-                              full_context,
-                              target_url=details.get('target_url'))
+        pr_handler.set_check(
+            full_context, details['description'],
+            details_url=details.get('target_url'), status='completed',
+            conclusion=details['state'])
 
     # For statuses that have been skipped this time but existed before, set
     # status to pass and set message to say skipped
@@ -168,13 +172,16 @@ def process_pull_request(repository, number, installation, action,
         if full_context.startswith(current_app.bot_username + ':'):
             context = full_context[len(current_app.bot_username) + 1:]
             if context not in results:
-                pr_handler.set_status('success', 'This check has been skipped',
-                                      current_app.bot_username + ':' + context)
+                pr_handler.set_check(
+                    current_app.bot_username + ':' + context,
+                    'This check has been skipped', status='completed',
+                    conclusion='success')
 
         # Also set the general 'single' status check as a skipped check if it
         # is present
         if full_context == current_app.bot_username:
-            pr_handler.set_status('success', 'This check has been skipped',
-                                  current_app.bot_username)
+            pr_handler.set_check(
+                current_app.bot_username, 'This check has been skipped',
+                status='completed', conclusion='success')
 
     return 'Finished pull requests checks'
