@@ -10,6 +10,9 @@
 
 * Improve logic for closing stale issues. [#69]
 
+* Removed leftover ``autoclose_stale_pull_request`` configuration item for
+  the stale pull request script.
+
 0.2 (2018-11-22)
 ----------------
 
