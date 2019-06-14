@@ -20,8 +20,8 @@
 # -- Project information -----------------------------------------------------
 
 project = 'baldrick'
-author = 'Stuart Mumford, Thomas Robitaille, Pey-Lian Lim, and Brigitta Sipocz'
-copyright = '2018, ' + author
+author = 'Stuart Mumford, Thomas Robitaille, Pey Lian Lim, and Brigitta Sipocz'
+copyright = '2019, ' + author
 
 # The short X.Y version
 version = '0.3.dev0'
