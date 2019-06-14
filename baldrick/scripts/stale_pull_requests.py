@@ -58,9 +58,6 @@ def process_pull_requests(repository, installation,
     repo = RepoHandler(repository, 'master', installation)
     pull_requests = repo.open_pull_requests()
 
-    # User config
-    enable_autoclose = repo.get_config_value('autoclose_stale_pull_request', True)
-
     for n in pull_requests:
 
         print(f'Checking {n}')
@@ -88,9 +85,7 @@ def process_pull_requests(repository, installation,
 
         if time_since_last_warning > close_seconds:
             comment_ids = pr.find_comments(f'{bot_name}[bot]', filter_keep=is_close_epilogue)
-            if not enable_autoclose:
-                print(f'-> Skipping pull request {n} (auto-close disabled)')
-            elif len(comment_ids) == 0:
+            if len(comment_ids) == 0:
                 print(f'-> CLOSING pull request {n}')
                 pr.set_labels(['closed-by-bot'])
                 pr.submit_comment(PULL_REQUESTS_CLOSE_EPILOGUE)
