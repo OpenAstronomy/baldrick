@@ -444,7 +444,8 @@ class IssueHandler(GitHubHandler):
     def set_assignees(self, assignees):
         """Assign the issue to the specified assignee(s)."""
 
-        response = requests.post(self._url_issue, headers=self._headers,
+        response = requests.post(f'{self._url_issue}/assignees',
+                                 headers=self._headers,
                                  json={'assignees': list(assignees)})
 
         assert response.ok, response.content
