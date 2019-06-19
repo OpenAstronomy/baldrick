@@ -452,7 +452,7 @@ class IssueHandler(GitHubHandler):
     def add_assignees(self, assignees):
         """Add the specified assignee(s) to the issue."""
 
-        if isinstance(assignees, str): # single assignee passed in
+        if isinstance(assignees, str):  # single assignee passed in
             assignees = [assignees]
 
         current_assignees = self.json.get('assignees', [])
