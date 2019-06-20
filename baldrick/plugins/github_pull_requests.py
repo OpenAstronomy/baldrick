@@ -6,10 +6,10 @@ from baldrick.utils import insert_special_message
 
 __all__ = ['pull_request_handler']
 
-PULL_REQUEST_CHECKS = []
+PULL_REQUEST_CHECKS = dict()
 
 
-def pull_request_handler(func):
+def pull_request_handler(func, actions=None):
     """
     A decorator to add functions to the pull request checker.
 
@@ -33,7 +33,7 @@ def pull_request_handler(func):
     * ``message``: the message to be shown in the status
     * ``target_url`` (optional): a URL to link to in the status
     """
-    PULL_REQUEST_CHECKS.append(func)
+    PULL_REQUEST_CHECKS[func] = actions
     return func
 
 
@@ -66,10 +66,12 @@ def handle_pull_requests(repo_handler, payload, headers):
     is_new = (event == 'pull_request') & (payload['action'] == 'opened')
 
     return process_pull_request(
-        repo_handler.repo, number, repo_handler.installation, is_new=is_new)
+        repo_handler.repo, number, repo_handler.installation,
+        action=payload['action'], is_new=is_new)
 
 
-def process_pull_request(repository, number, installation, is_new=False):
+def process_pull_request(repository, number, installation, action,
+                         is_new=False):
 
     # TODO: cache handlers and invalidate the internal cache of the handlers on
     # certain events.
@@ -103,11 +105,12 @@ def process_pull_request(repository, number, installation, is_new=False):
             return
 
     results = {}
-    for function in PULL_REQUEST_CHECKS:
-        result = function(pr_handler, repo_handler)
-        # Ignore skipped checks
-        if result is not None:
-            results.update(result)
+    for function, actions in PULL_REQUEST_CHECKS.items():
+        if actions is None or action in actions:
+            result = function(pr_handler, repo_handler)
+            # Ignore skipped checks
+            if result is not None:
+                results.update(result)
 
     # Special message for a special day
     not_boring = pr_handler.get_config_value('not_boring', cfg_default=True)

@@ -21,7 +21,7 @@ def setup_module(module):
 
 
 def teardown_module(module):
-    PULL_REQUEST_CHECKS[:] = module.PULL_REQUEST_CHECKS_ORIG[:]
+    PULL_REQUEST_CHECKS = module.PULL_REQUEST_CHECKS_ORIG.copy()
 
 
 class TestPullRequestHandler:
