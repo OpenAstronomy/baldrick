@@ -13,8 +13,8 @@ def pull_request_handler(func, actions=None):
     """
     A decorator to add functions to the pull request checker.
 
-    Functions decorated with this decorator will be passed events which match
-    the following actions:
+    By default, functions decorated with this decorator will be passed events
+    which match the following actions:
 
     * unlabeled
     * labeled
@@ -22,6 +22,9 @@ def pull_request_handler(func, actions=None):
     * opened
     * milestoned
     * demilestoned
+
+    However, you may pass in a list of strings with subsets of these actions to
+    control when the checks are run.
 
     They will be passed ``(pr_handler, repo_handler)`` and are expected to
     return a dictionary where the key is a unique string that refers to the
