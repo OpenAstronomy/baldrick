@@ -16,7 +16,7 @@
 * The ``pull_request_handler`` decorator now accepts a list of actions to
   trigger on. By default, functions decorated ``pull_request_handler`` are
   called with any of unlabeled, labeled, synchronize, opened, milestoned, and
-  demilestoned. [#XX]
+  demilestoned. [#77]
 
 0.2 (2018-11-22)
 ----------------
