@@ -22,7 +22,6 @@ def setup_module(module):
 
 
 def teardown_module(module):
-    global PULL_REQUEST_CHECKS
     PULL_REQUEST_CHECKS.clear()
     PULL_REQUEST_CHECKS.update(module.PULL_REQUEST_CHECKS_ORIG)
 
