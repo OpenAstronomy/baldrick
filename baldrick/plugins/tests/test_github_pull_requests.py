@@ -3,7 +3,8 @@ from copy import copy
 from unittest.mock import MagicMock, patch, PropertyMock
 
 from baldrick.github.github_api import cfg_cache
-from baldrick.plugins.github_pull_requests import pull_request_handler, PULL_REQUEST_CHECKS
+from baldrick.plugins.github_pull_requests import (pull_request_handler,
+                                                   PULL_REQUEST_CHECKS)
 
 test_hook = MagicMock()
 
@@ -21,7 +22,8 @@ def setup_module(module):
 
 
 def teardown_module(module):
-    PULL_REQUEST_CHECKS[:] = module.PULL_REQUEST_CHECKS_ORIG[:]
+    PULL_REQUEST_CHECKS.clear()
+    PULL_REQUEST_CHECKS.update(module.PULL_REQUEST_CHECKS_ORIG)
 
 
 class TestPullRequestHandler:
