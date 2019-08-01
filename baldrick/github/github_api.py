@@ -263,9 +263,8 @@ class RepoHandler(GitHubHandler):
     def get_all_labels(self):
         """Get all label options for this repo"""
         url = f'{HOST}/repos/{self.repo}/labels'
-        response = requests.get(url, headers=self._headers)
-        assert response.ok, response.content
-        return [label['name'] for label in response.json()]
+        result = paged_github_json_request(url, headers=self._headers)
+        return [label['name'] for label in result]
 
 
 class IssueHandler(GitHubHandler):
