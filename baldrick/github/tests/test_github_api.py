@@ -36,6 +36,7 @@ class TestRepoHandler:
         mock_response.json.return_value = [
             {'name': 'io.fits'},
             {'name': 'Documentation'}]
+        mock_response.headers = {}
         mock_get.return_value = mock_response
 
         assert self.repo.get_all_labels() == ['io.fits', 'Documentation']
