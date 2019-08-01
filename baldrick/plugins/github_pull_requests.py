@@ -9,7 +9,7 @@ __all__ = ['pull_request_handler']
 PULL_REQUEST_CHECKS = dict()
 
 
-def pull_request_handler(func, actions=None):
+def pull_request_handler(actions=None):
     """
     A decorator to add functions to the pull request checker.
 
@@ -36,8 +36,22 @@ def pull_request_handler(func, actions=None):
     * ``message``: the message to be shown in the status
     * ``target_url`` (optional): a URL to link to in the status
     """
-    PULL_REQUEST_CHECKS[func] = actions
-    return func
+
+    if callable(actions):
+
+        # Decorator is being used without brackets and the actions argument
+        # is just the function itself.
+        PULL_REQUEST_CHECKS[actions] = None
+
+        return actions
+
+    else:
+
+        def wrapper(func):
+            PULL_REQUEST_CHECKS[func] = actions
+            return func
+
+        return wrapper
 
 
 @github_webhook_handler
