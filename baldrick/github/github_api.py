@@ -208,6 +208,28 @@ class GitHubHandler:
 
         return statuses
 
+    def list_checks(self, commit_hash):
+        """
+        List check messages on a commit on GitHub.
+
+        Parameters
+        ----------
+        commit_hash : str
+            The commit has to get the statuses for
+        """
+        url = f'{HOST}/repos/{self.repo}/commits/{commit_hash}/check-runs'
+        results = paged_github_json_request(url, headers=self._headers)
+
+        checks = {}
+        for result in results['check_runs']:
+            context = result['name']
+            checks[context] = {'summary': result['output']['summary'],
+                               'details_url': result['details_url'],
+                               'status': result['status'],
+                               'conclusion': result['conclusion']}
+
+        return checks
+
 
 class RepoHandler(GitHubHandler):
 

@@ -148,12 +148,13 @@ def process_pull_request(repository, number, installation, action,
 
     # Post each failure as a status
 
-    existing_statuses = pr_handler.list_statuses()
+    existing_checks = pr_handler.list_checks()
 
     for context, details in sorted(results.items()):
 
         full_context = current_app.bot_username + ':' + context
 
+        # TODO: Revisit if the note made for statuses still applies to checks.
         # NOTE: we could in principle check if the status has been posted
         # before, and if so not post it again, but we had this in the past
         # and there were some strange caching issues where GitHub would
@@ -167,7 +168,7 @@ def process_pull_request(repository, number, installation, action,
     # For statuses that have been skipped this time but existed before, set
     # status to pass and set message to say skipped
 
-    for full_context in existing_statuses:
+    for full_context in existing_checks:
 
         if full_context.startswith(current_app.bot_username + ':'):
             context = full_context[len(current_app.bot_username) + 1:]
@@ -175,13 +176,13 @@ def process_pull_request(repository, number, installation, action,
                 pr_handler.set_check(
                     current_app.bot_username + ':' + context,
                     'This check has been skipped', status='completed',
-                    conclusion='success')
+                    conclusion='neutral')
 
         # Also set the general 'single' status check as a skipped check if it
         # is present
         if full_context == current_app.bot_username:
             pr_handler.set_check(
                 current_app.bot_username, 'This check has been skipped',
-                status='completed', conclusion='success')
+                status='completed', conclusion='neutral')
 
     return 'Finished pull requests checks'
