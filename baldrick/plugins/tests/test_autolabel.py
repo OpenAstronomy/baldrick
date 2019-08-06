@@ -4,7 +4,9 @@
 
 from unittest.mock import MagicMock, patch
 
-from astropy_bot.autolabel import autolabel
+import pytest
+
+from baldrick.plugins.github_pull_requests_autolabel import autolabel
 from baldrick.github.github_api import RepoHandler
 
 
@@ -20,6 +22,7 @@ class AutolabelBase:
                   'wcs', 'wcs.wcsapi']
 
     def setup_method(self, method):
+        self.labels = []
 
         self.pr_handler = MagicMock()
         self.pr_handler.number = 1234
@@ -80,3 +83,23 @@ class TestAutolabel2(AutolabelBase):
         # now check that all the subpackage labels are added:
         assert 'io.fits' in self.labels
         assert 'units' in self.labels
+
+
+@pytest.mark.xfail(reason='Not supported yet')
+class TestAutolabel3(AutolabelBase):
+    all_labels = ['kleenex', 'dummy']
+    files = ['src/towncrier/kleenex/sobsob.py',
+             'src/towncrier/check.py']
+
+    def test_autolabel_subpackages(self, app):
+        with app.app_context():
+            with patch.object(RepoHandler, 'get_all_labels') as p:
+                p.side_effect = self.get_all_labels
+                autolabel(self.pr_handler, self.repo_handler)
+
+        # make sure 'Docs' stays in there:
+        assert 'Docs' in self.pr_handler.labels
+
+        # now check that all the subpackage labels are added:
+        assert 'kleenex' in self.labels
+        assert 'dummy' not in self.labels

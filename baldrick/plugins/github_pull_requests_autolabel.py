@@ -71,7 +71,7 @@ def autolabel(pr_handler, repo_handler):
     upstream_repo = RepoHandler(pr_handler.repo,
                                 installation=pr_handler.installation)
 
-    al_config = upstream_repo.get_config_value("autolabel", {})
+    al_config = pr_handler.get_config_value("autolabel", {})
     if not al_config.get('enabled', False):
         return
 
