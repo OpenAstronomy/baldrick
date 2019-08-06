@@ -72,6 +72,9 @@ def autolabel(pr_handler, repo_handler):
                                 installation=pr_handler.installation)
 
     al_config = upstream_repo.get_config_value("autolabel", {})
+    if not al_config.get('enabled', False):
+        return
+
     files = pr_handler.get_modified_files()
 
     print('  Modified files:')
@@ -91,8 +94,6 @@ def autolabel(pr_handler, repo_handler):
     if al_config.get('subpackages', True):
         labels = get_subpackage_labels(files, all_labels)
         new_labels = new_labels.union(labels)
-
-    # TODO: add other auto-labeling logic here
 
     if new_labels:
         final_labels = list(pr_labels.union(new_labels))
