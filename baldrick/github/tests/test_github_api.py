@@ -44,7 +44,7 @@ class TestRepoHandler:
     def test_urls(self):
         assert self.repo._url_contents == 'https://api.github.com/repos/fakerepo/doesnotexist/contents/'
         assert self.repo._url_pull_requests == 'https://api.github.com/repos/fakerepo/doesnotexist/pulls'
-        assert self.repo._headers is None
+        assert self.repo._headers == {}
 
 
 TEST_CONFIG = """
