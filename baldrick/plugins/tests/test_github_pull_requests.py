@@ -65,11 +65,11 @@ class TestPullRequestHandler:
         req = MagicMock()
         req.ok = True
         if url == 'https://api.github.com/repos/test-repo/pulls/1234':
-            req.json.return_value = {'base': {'ref': 'master'},
-                                     'state': 'open' if self.pr_open else 'closed',
-                                     'head': {'ref': 'custom', 'sha': 'abc464aa',
-                                              'repo': {'full_name': 'contributor/test'}}}
-            return req
+            req.json.return_value = {
+                'base': {'ref': 'master'},
+                'state': 'open' if self.pr_open else 'closed',
+                'head': {'ref': 'custom', 'sha': 'abc464aa',
+                         'repo': {'full_name': 'contributor/test'}}}
         elif url == 'https://api.github.com/repos/test-repo/issues/1234/comments':
             req.json.return_value = self.pr_comments
         elif url == 'https://api.github.com/repos/test-repo/commits/abc464aa/statuses':
