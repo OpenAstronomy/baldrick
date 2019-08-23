@@ -136,15 +136,18 @@ def repo_to_installation_id_mapping():
     return repos
 
 
-def repo_to_installation_id(repository):
+def repo_to_installation_id(repository, raise_error=True):
     """
     Return the installation ID for a repository.
     """
     mapping = repo_to_installation_id_mapping()
     if repository in mapping:
         return mapping[repository]
+    elif raise_error:
+        raise ValueError("Repository not recognized - should be one of:\n\n"
+                         "  - " + "\n  - ".join(mapping))
     else:
-        raise ValueError("Repository not recognized - should be one of:\n\n  - " + "\n  - ".join(mapping))
+        return None
 
 
 def get_app_name():

@@ -28,6 +28,9 @@ class TestMilestonePlugin:
 
     def setup_method(self, method):
 
+        self.get_installation = patch('baldrick.github.github_auth.repo_to_installation_id_mapping')
+        i = self.get_installation.start()
+        i.return_value = {}
         self.get_file_contents_mock = patch('baldrick.github.github_api.PullRequestHandler.get_file_contents')
         self.get_base_branch_mock = patch('baldrick.github.github_api.PullRequestHandler.base_branch')
         a = self.get_base_branch_mock.start()
@@ -45,6 +48,7 @@ class TestMilestonePlugin:
         cfg_cache.clear()
 
     def teardown_method(self, method):
+        self.get_installation.stop()
         self.get_file_contents_mock.stop()
         self.milestone_mock.stop()
         self.get_base_branch_mock.stop()
