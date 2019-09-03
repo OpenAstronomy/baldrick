@@ -62,7 +62,7 @@ class GitHubHandler:
     @property
     def _headers(self):
         if self.installation is None:
-            return None
+            return {}
         else:
             return github_request_headers(self.installation)
 
@@ -207,6 +207,30 @@ class GitHubHandler:
                                  'target_url': result.get('target_url')}
 
         return statuses
+
+    def list_checks(self, commit_hash):
+        """
+        List check messages on a commit on GitHub.
+
+        Parameters
+        ----------
+        commit_hash : str
+            The commit has to get the statuses for
+        """
+        url = f'{HOST}/repos/{self.repo}/commits/{commit_hash}/check-runs'
+        headers = self._headers
+        headers['Accept'] = 'application/vnd.github.antiope-preview+json'
+        results = paged_github_json_request(url, headers=headers)
+
+        checks = {}
+        for result in results.get('check_runs', []):
+            context = result['name']
+            checks[context] = {'summary': result['output']['summary'],
+                               'details_url': result.get('details_url'),
+                               'status': result['status'],
+                               'conclusion': result['conclusion']}
+
+        return checks
 
 
 class RepoHandler(GitHubHandler):
@@ -559,6 +583,21 @@ class PullRequestHandler(IssueHandler):
         elif commit_hash == "base":
             commit_hash = self.base_sha
         return super().list_statuses(commit_hash)
+
+    def list_checks(self, commit_hash="head"):
+        """
+        List checks on a commit on GitHub.
+
+        Parameters
+        ----------
+        commit_hash : str, optional
+            The commit hash to set the check on. Defaults to "head" can also be "base".
+        """
+        if commit_hash == "head":
+            commit_hash = self.head_sha
+        elif commit_hash == "base":
+            commit_hash = self.base_sha
+        return super().list_checks(commit_hash)
 
     @property
     def _url_pull_request(self):

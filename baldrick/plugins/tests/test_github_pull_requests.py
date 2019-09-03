@@ -33,7 +33,7 @@ class TestPullRequestHandler:
         test_hook.resetmock()
 
         self.pr_comments = []
-        self.existing_statuses = []
+        self.existing_checks = {}
         self.pr_open = True
 
         self.requests_get_mock = patch('requests.get', self._requests_get)
@@ -72,8 +72,8 @@ class TestPullRequestHandler:
                          'repo': {'full_name': 'contributor/test'}}}
         elif url == 'https://api.github.com/repos/test-repo/issues/1234/comments':
             req.json.return_value = self.pr_comments
-        elif url == 'https://api.github.com/repos/test-repo/commits/abc464aa/statuses':
-            req.json.return_value = self.existing_statuses
+        elif url == 'https://api.github.com/repos/test-repo/commits/abc464aa/check-runs':
+            req.json.return_value = self.existing_checks
         else:
             raise ValueError('Unexepected URL: {0}'.format(url))
         return req
@@ -106,8 +106,9 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {'test1': {'description': 'No problem', 'state': 'success'},
-                                  'test2': {'description': 'All good here', 'state': 'success'}}
+        test_hook.return_value = {
+            'test1': {'description': 'No problem', 'state': 'success'},
+            'test2': {'description': 'All good here', 'state': 'success'}}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE
 
@@ -116,23 +117,32 @@ class TestPullRequestHandler:
         assert self.requests_post.call_count == 2
 
         args, kwargs = self.requests_post.call_args_list[0]
-        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
-        assert kwargs['json'] == {'state': 'success',
-                                  'description': 'No problem',
-                                  'context': 'testbot:test1'}
+        kwargs['json'].pop('completed_at')  # Actual value not important
+        assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+        assert kwargs['json'] == {'name': 'testbot:test1',
+                                  'head_sha': 'abc464aa',
+                                  'status': 'completed',
+                                  'conclusion': 'success',
+                                  'output': {'title': 'testbot:test1',
+                                             'summary': 'No problem'}}
 
         args, kwargs = self.requests_post.call_args_list[1]
-        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
-        assert kwargs['json'] == {'state': 'success',
-                                  'description': 'All good here',
-                                  'context': 'testbot:test2'}
+        kwargs['json'].pop('completed_at')  # Actual value not important
+        assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+        assert kwargs['json'] == {'name': 'testbot:test2',
+                                  'head_sha': 'abc464aa',
+                                  'status': 'completed',
+                                  'conclusion': 'success',
+                                  'output': {'title': 'testbot:test2',
+                                             'summary': 'All good here'}}
 
     def test_one_failure(self, app, client):
 
         # As above, but a default message is given
 
-        test_hook.return_value = {'test1': {'description': 'Problems here', 'state': 'failure'},
-                                  'test2': {'description': 'All good here', 'state': 'success'}}
+        test_hook.return_value = {
+            'test1': {'description': 'Problems here', 'state': 'failure'},
+            'test2': {'description': 'All good here', 'state': 'success'}}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE
 
@@ -141,78 +151,112 @@ class TestPullRequestHandler:
         assert self.requests_post.call_count == 2
 
         args, kwargs = self.requests_post.call_args_list[0]
-        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
-        assert kwargs['json'] == {'state': 'failure',
-                                  'description': 'Problems here',
-                                  'context': 'testbot:test1'}
+        kwargs['json'].pop('completed_at')  # Actual value not important
+        assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+        assert kwargs['json'] == {'name': 'testbot:test1',
+                                  'head_sha': 'abc464aa',
+                                  'status': 'completed',
+                                  'conclusion': 'failure',
+                                  'output': {'title': 'testbot:test1',
+                                             'summary': 'Problems here'}}
 
         args, kwargs = self.requests_post.call_args_list[1]
-        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
-        assert kwargs['json'] == {'state': 'success',
-                                  'description': 'All good here',
-                                  'context': 'testbot:test2'}
+        kwargs['json'].pop('completed_at')  # Actual value not important
+        assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+        assert kwargs['json'] == {'name': 'testbot:test2',
+                                  'head_sha': 'abc464aa',
+                                  'status': 'completed',
+                                  'conclusion': 'success',
+                                  'output': {'title': 'testbot:test2',
+                                             'summary': 'All good here'}}
 
     # The following test is not relevant currently since we don't skip posting
-    # statuses, due to strange caching issues with GitHub. But if we ever add
+    # checks, due to strange caching issues with GitHub. But if we ever add
     # back this functionality, the test below could come in handy.
     #
-    # def test_skip_existing_statuses(self, app, client):
+    # def test_skip_existing_checks(self, app, client):
     #
-    #     # If statuses already exist, don't post them again
+    #     # If checks already exist, don't post them again
     #
-    #     test_hook.return_value = {'test1': {'description': 'Problems here', 'state': 'failure'},
-    #                               'test2': {'description': 'All good here', 'state': 'success'}}
+    #     test_hook.return_value = {
+    #         'test1': {'description': 'Problems here', 'state': 'failure'},
+    #         'test2': {'description': 'All good here', 'state': 'success'}}
     #
     #     self.get_file_contents.return_value = CONFIG_TEMPLATE
     #
-    #     self.existing_statuses = [{'context': 'testbot:test1',
-    #                                'description': 'Problems here',
-    #                                'state': 'failure'}]
+    #     self.existing_checks = {
+    #         'total_count': 1,
+    #         'check_runs': [{'name': 'testbot:test1',
+    #                         'status': 'completed',
+    #                         'conclusion': 'failure',
+    #                         'output': {'title': 'testbot:test1',
+    #                                    'summary': 'Problems here'}}]}
     #
     #     self.send_event(client)
     #
     #     assert self.requests_post.call_count == 1
     #
     #     args, kwargs = self.requests_post.call_args_list[0]
-    #     assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
-    #     assert kwargs['json'] == {'state': 'success',
-    #                               'description': 'All good here',
-    #                               'context': 'testbot:test2'}
+    #     kwargs['json'].pop('completed_at')  # Actual value not important
+    #     assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+    #     assert kwargs['json'] == {'name': 'testbot:test2',
+    #                               'head_sha': 'abc464aa',
+    #                               'status': 'completed',
+    #                               'conclusion': 'success',
+    #                               'output': {'title': 'testbot:test2',
+    #                                          'summary': 'All good here'}}
 
-    def test_no_skip_existing_different_statuses(self, app, client):
+    def test_no_skip_existing_different_checks(self, app, client):
 
-        # If statuses already exist but has some differences, post again
+        # If checks already exist but has some differences, post again
 
-        test_hook.return_value = {'test1': {'description': 'Problems here', 'state': 'failure'},
-                                  'test2': {'description': 'All good here', 'state': 'success'}}
+        test_hook.return_value = {
+            'test1': {'description': 'Problems here', 'state': 'failure'},
+            'test2': {'description': 'All good here', 'state': 'success'}}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE
 
-        self.existing_statuses = [{'context': 'testbot:test1',
-                                   'description': 'Problems here',
-                                   'state': 'pending'},
-                                  {'context': 'testbot:test2',
-                                   'description': 'All good here (extra comment)',
-                                   'state': 'success'},
-                                  {'context': 'travis',
-                                   'description': 'An unrelated status',
-                                   'state': 'failure'}]
+        self.existing_checks = {
+            'total_count': 3,
+            'check_runs': [{'name': 'testbot:test1',
+                            'status': 'in_progress',
+                            'conclusion': 'neutral',
+                            'output': {'title': 'testbot:test1',
+                                       'summary': 'Problems here'}},
+                           {'name': 'testbot:test2',
+                            'status': 'completed',
+                            'conclusion': 'success',
+                            'output': {'title': 'testbot:test2',
+                                       'summary': 'All good here (extra comment)'}},
+                           {'name': 'travis',
+                            'status': 'completed',
+                            'conclusion': 'failure',
+                            'output': {'title': 'travis',
+                                       'summary': 'An unrelated check'}}]}
 
         self.send_event(client)
 
         assert self.requests_post.call_count == 2
 
         args, kwargs = self.requests_post.call_args_list[0]
-        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
-        assert kwargs['json'] == {'state': 'failure',
-                                  'description': 'Problems here',
-                                  'context': 'testbot:test1'}
+        kwargs['json'].pop('completed_at')  # Actual value not important
+        assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+        assert kwargs['json'] == {'name': 'testbot:test1',
+                                  'head_sha': 'abc464aa',
+                                  'status': 'completed',
+                                  'conclusion': 'failure',
+                                  'output': {'title': 'testbot:test1',
+                                             'summary': 'Problems here'}}
 
         args, kwargs = self.requests_post.call_args_list[1]
-        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
-        assert kwargs['json'] == {'state': 'success',
-                                  'description': 'All good here',
-                                  'context': 'testbot:test2'}
+        kwargs['json'].pop('completed_at')  # Actual value not important
+        assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+        assert kwargs['json'] == {'name': 'testbot:test2',
+                                  'head_sha': 'abc464aa',
+                                  'status': 'completed',
+                                  'conclusion': 'success',
+                                  'output': {'title': 'testbot:test2',
+                                             'summary': 'All good here'}}
 
     def test_skip_on_labels(self, app, client):
 
@@ -230,10 +274,14 @@ class TestPullRequestHandler:
         assert self.requests_post.call_count == 1
 
         args, kwargs = self.requests_post.call_args
-        assert args[0] == 'https://api.github.com/repos/test-repo/statuses/abc464aa'
-        assert kwargs['json'] == {'state': 'failure',
-                                  'description': 'Skipping checks due to Experimental label',
-                                  'context': 'testbot'}
+        kwargs['json'].pop('completed_at')  # Actual value not important
+        assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+        assert kwargs['json'] == {'name': 'testbot',
+                                  'head_sha': 'abc464aa',
+                                  'status': 'completed',
+                                  'conclusion': 'failure',
+                                  'output': {'title': 'testbot',
+                                             'summary': 'Skipping checks due to Experimental label'}}
 
     def test_check_returns_none(self, app, client):
         """
