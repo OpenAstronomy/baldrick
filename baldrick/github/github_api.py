@@ -137,12 +137,14 @@ class GitHubHandler:
                     logger.debug(f"Didn't find a fallback config in {self.repo} on branch {branch}.")
 
         # Priority is 1) repo_config 2) fallback_config 3) app_config
+        logger.debug(f"{app_config}, {fallback_config}")
         app_config.update_from_config(fallback_config)
-        repo_config.update_from_config(app_config)
+        logger.debug(f"{app_config}, {repo_config}")
+        app_config.update_from_config(repo_config)
 
-        logger.debug(f"Got this combined config {repo_config}")
+        logger.debug(f"Got this combined config {app_config}")
 
-        return repo_config
+        return app_config
 
     def get_config_value(self, cfg_key, cfg_default=None, branch=None):
         """
