@@ -126,6 +126,7 @@ class GitHubHandler:
         if file_content:
             try:
                 config = loads(file_content, tool=current_app.bot_username)
+                logger.debug(f"Got the following config from {self.repo}@{branch}: {config}")
             except Exception:
                 logger.exception(f"Failed to load config in {self.repo} on branch {branch}.")
 
@@ -139,7 +140,7 @@ class GitHubHandler:
         app_config.update_from_config(fallback_config)
         repo_config.update_from_config(app_config)
 
-        logger.debug(f"Got this repo_config {repo_config}")
+        logger.debug(f"Got this combined config {repo_config}")
 
         return repo_config
 
