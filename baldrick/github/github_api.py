@@ -73,8 +73,13 @@ class GitHubHandler:
     def get_file_contents(self, path_to_file, branch='master'):
         global file_cache
         cache_key = f"{self.repo}:{path_to_file}@{branch}"
-        if cache_key in file_cache:
+
+        # It seems that this is the only safe way to do this with
+        # TTLOrderedDict
+        try:
             return file_cache[cache_key]
+        except KeyError:
+            pass
 
         url_file = self._url_contents + path_to_file
         data = {'ref': branch}
@@ -133,6 +138,8 @@ class GitHubHandler:
         # Priority is 1) repo_config 2) fallback_config 3) app_config
         app_config.update_from_config(fallback_config)
         repo_config.update_from_config(app_config)
+
+        logger.trace(repo_config)
 
         return repo_config
 

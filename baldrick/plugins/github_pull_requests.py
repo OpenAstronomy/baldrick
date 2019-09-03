@@ -83,7 +83,7 @@ def handle_pull_requests(repo_handler, payload, headers):
 
     is_new = (event == 'pull_request') & (payload['action'] == 'opened')
 
-    logger.debug(f"Processing {event} event for {event} #{number} on {repo_handler.repo}")
+    logger.debug(f"Processing event {event} #{number} on {repo_handler.repo}")
 
     return process_pull_request(
         repo_handler.repo, number, repo_handler.installation,

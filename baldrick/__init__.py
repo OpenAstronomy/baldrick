@@ -1,8 +1,8 @@
 import logging
 
-from loguru import logger
 from flask.logging import default_handler
 
+import baldrick.logging
 from baldrick import github  # noqa
 
 __all__ = ['create_app', '__version__']
@@ -10,23 +10,6 @@ __all__ = ['create_app', '__version__']
 __version__ = '0.3.dev0'
 
 GLOBAL_TOML = ''
-
-
-class InterceptHandler(logging.Handler):
-    log_level_to_name = {5: 'TRACE',
-                         10: 'DEBUG',
-                         20: 'INFO',
-                         25: 'SUCCESS',
-                         30: 'WARNING',
-                         40: 'ERROR',
-                         50: 'CRITICAL'}
-
-    def emit(self, record):
-        # Retrieve context where the logging call occurred, this happens to be in the 6th frame upward
-        logger_opt = logger.opt(depth=6, exception=record.exc_info)
-        logger_opt.log(self.log_level_to_name.get(record.levelno, record.levelno), record.getMessage())
-
-logging.basicConfig(handlers=[InterceptHandler()], level=0)
 
 
 def _init_global_toml():
