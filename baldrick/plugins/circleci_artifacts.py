@@ -15,7 +15,7 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers):
         return msg
 
     if payload['status'] == 'success':
-        logger.info(f"Got successful call for repo: {payload['username']}{payload['reponame']}")
+        logger.info(f"Got CircleCI 'success' status for repo: {payload['username']}/{payload['reponame']}")
         artifacts = get_artifacts_from_build(payload)
 
         for name, config in ci_config.items():
@@ -24,7 +24,7 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers):
                 continue
 
             url = get_documentation_url_from_artifacts(artifacts, config['url'])
-            logger.debug("Found artifact: {url}")
+            logger.debug(f"Found artifact: {url}")
 
             if url:
                 repo_handler.set_status("success",

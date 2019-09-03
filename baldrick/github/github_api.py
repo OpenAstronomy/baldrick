@@ -139,7 +139,7 @@ class GitHubHandler:
         app_config.update_from_config(fallback_config)
         repo_config.update_from_config(app_config)
 
-        logger.trace(f"Got this repo_config {repo_config}")
+        logger.debug(f"Got this repo_config {repo_config}")
 
         return repo_config
 
