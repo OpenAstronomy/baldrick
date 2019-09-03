@@ -1,7 +1,7 @@
 import logging
 from unittest.mock import patch, call
 
-from baldrick.github.github_api import cfg_cache
+from baldrick.github.github_api import file_cache
 from baldrick.github.github_api import RepoHandler
 from baldrick.plugins.circleci_artifacts import set_commit_status_for_artifacts
 
@@ -48,7 +48,7 @@ class TestArtifactPlugin:
 
         self.repo_handler = RepoHandler("nota/repo", "1234")
         self.get_file_contents = self.get_file_contents_mock.start()
-        cfg_cache.clear()
+        file_cache.clear()
 
     def teardown_method(self, method):
         self.get_file_contents_mock.stop()

@@ -5,7 +5,7 @@ from unittest.mock import patch, Mock, PropertyMock, MagicMock
 import pytest
 
 from baldrick.config import loads
-from baldrick.github.github_api import (cfg_cache, RepoHandler, IssueHandler,
+from baldrick.github.github_api import (file_cache, RepoHandler, IssueHandler,
                                         PullRequestHandler)
 
 
@@ -78,7 +78,7 @@ setting3 = 4
 class TestRealRepoHandler:
 
     def setup_method(self, method):
-        cfg_cache.clear()
+        file_cache.clear()
 
     def setup_class(self):
         self.repo = RepoHandler('astropy/astropy-bot')

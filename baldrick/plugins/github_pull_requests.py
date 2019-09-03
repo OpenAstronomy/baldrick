@@ -1,4 +1,5 @@
 from flask import current_app
+from loguru import logger
 
 from baldrick.github.github_api import RepoHandler, PullRequestHandler
 from baldrick.blueprints.github import github_webhook_handler
@@ -82,6 +83,8 @@ def handle_pull_requests(repo_handler, payload, headers):
 
     is_new = (event == 'pull_request') & (payload['action'] == 'opened')
 
+    logger.debug(f"Processing {event} event for {event} #{number} on {repo_handler.repo}")
+
     return process_pull_request(
         repo_handler.repo, number, repo_handler.installation,
         action=payload['action'], is_new=is_new)
@@ -96,11 +99,9 @@ def process_pull_request(repository, number, installation, action,
 
     pr_config = pr_handler.get_config_value("pull_requests", {})
     if not pr_config.get("enabled", False):
-        return "Skipping PR checks, disabled in config."
-
-    # Disable if the config is not present
-    if pr_config is None:
-        return
+        msg = "Skipping PR checks, disabled in config."
+        logger.debug(msg)
+        return msg
 
     # Don't comment on closed PR
     if pr_handler.is_closed:

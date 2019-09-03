@@ -2,7 +2,7 @@ import json
 from copy import copy
 from unittest.mock import MagicMock, patch, PropertyMock
 
-from baldrick.github.github_api import cfg_cache
+from baldrick.github.github_api import file_cache
 from baldrick.plugins.github_pull_requests import (pull_request_handler,
                                                    PULL_REQUEST_CHECKS)
 
@@ -52,7 +52,7 @@ class TestPullRequestHandler:
         self.get_installation_token.return_value = 'abcdefg'
         self.labels.return_value = []
 
-        cfg_cache.clear()
+        file_cache.clear()
 
     def teardown_method(self, method):
         self.requests_get_mock.stop()

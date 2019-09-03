@@ -1,6 +1,6 @@
 from unittest.mock import patch, PropertyMock
 
-from baldrick.github.github_api import cfg_cache
+from baldrick.github.github_api import file_cache
 from baldrick.github.github_api import RepoHandler, PullRequestHandler
 from baldrick.plugins.github_milestones import process_milestone, MISSING_MESSAGE, PRESENT_MESSAGE
 
@@ -42,7 +42,7 @@ class TestMilestonePlugin:
         self.milestone.return_value = None
 
         self.get_file_contents = self.get_file_contents_mock.start()
-        cfg_cache.clear()
+        file_cache.clear()
 
     def teardown_method(self, method):
         self.get_file_contents_mock.stop()

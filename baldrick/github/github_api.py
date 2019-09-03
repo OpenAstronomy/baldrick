@@ -7,9 +7,10 @@ from datetime import datetime
 
 import dateutil.parser
 from flask import current_app
+from loguru import logger
 from ttldict import TTLOrderedDict
 
-from baldrick.config import loads
+from baldrick.config import loads, Config
 from baldrick.github.github_auth import github_request_headers
 
 __all__ = ['GitHubHandler', 'IssueHandler', 'RepoHandler', 'PullRequestHandler']
@@ -17,8 +18,7 @@ __all__ = ['GitHubHandler', 'IssueHandler', 'RepoHandler', 'PullRequestHandler']
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
 
-cfg_cache = TTLOrderedDict(default_ttl=60 * 60)
-
+file_cache = TTLOrderedDict(default_ttl=60)
 
 def paged_github_json_request(url, headers=None):
 
@@ -70,9 +70,12 @@ class GitHubHandler:
     def _url_contents(self):
         return f'{HOST}/repos/{self.repo}/contents/'
 
-    def get_file_contents(self, path_to_file, branch=None):
-        if not branch:
-            branch = 'master'
+    def get_file_contents(self, path_to_file, branch='master'):
+        global file_cache
+        cache_key = f"{self.repo}:{path_to_file}@{branch}"
+        if cache_key in file_cache:
+            return file_cache[cache_key]
+
         url_file = self._url_contents + path_to_file
         data = {'ref': branch}
         response = requests.get(url_file, params=data, headers=self._headers)
@@ -80,10 +83,12 @@ class GitHubHandler:
             raise FileNotFoundError(url_file)
         assert response.ok, response.content
         contents_base64 = response.json()['content']
-        return base64.b64decode(contents_base64).decode()
+        contents = base64.b64decode(contents_base64).decode()
 
-    def get_repo_config(self, branch=None, path_to_file='pyproject.toml',
-                        warn_on_failure=True):
+        file_cache[cache_key] = contents
+        return contents
+
+    def get_repo_config(self, branch='master', path_to_file='pyproject.toml'):
         """
         Load configuration from the repository.
 
@@ -97,32 +102,37 @@ class GitHubHandler:
             Path to the ``pyproject.toml`` file in the repository. Will default
             to the root of the repository.
 
-        warn_on_failure : `bool`
-            Emit warning on failure to load the pyproject file.
-
         Returns
         -------
         cfg : `baldrick.config.Config`
             Configuration parameters.
 
         """
-        # Allow non-existent file but raise error when cannot parse
+        app_config = current_app.conf.copy()
+        fallback_config = Config()
+        repo_config = Config()
+
         try:
             file_content = self.get_file_contents(path_to_file, branch=branch)
-            return loads(file_content, tool=current_app.bot_username)
-        except Exception as e:
-            # Attempt to load the fallback config just in case
+        except FileNotFoundError:
+            logger.debug(f"No config file found in {self.repo} on branch {branch}.")
+            file_content = None
+
+        if file_content:
+            try:
+                config = loads(file_content, tool=current_app.bot_username)
+            except Exception:
+                logger.exception("Failed to load config in {self.repo} on branch {branch}.")
+
             if getattr(current_app, "fall_back_config", None):
                 try:
-                    return loads(file_content, tool=current_app.fall_back_config)
-                except Exception:  # pragma: no cover
-                    pass
+                    fallback_config = loads(file_content, tool=current_app.fall_back_config)
+                except Exception:
+                    logger.info("Failed to load fallback config in {self.repo} on branch {branch}.")
 
-            if warn_on_failure:
-                warnings.warn(str(e))
-
-            # Empty dict means calling code set the default
-            repo_config = current_app.conf.copy()
+        # Priority is 1) repo_config 2) fallback_config 3) app_config
+        app_config.update_from_config(fallback_config)
+        repo_config.update_from_config(app_config)
 
         return repo_config
 
@@ -134,14 +144,7 @@ class GitHubHandler:
         defined, they are extracted from the global app configuration. If this
         does not exist either, the value is set to the ``cfg_default`` argument.
         """
-
-        global cfg_cache
-
-        cfg_cache_key = (self.repo, branch, self.installation)
-        if cfg_cache_key not in cfg_cache:
-            cfg_cache[cfg_cache_key] = self.get_repo_config(branch=branch)
-
-        cfg = cfg_cache.get(cfg_cache_key, {})
+        cfg = self.get_repo_config(branch=branch)
 
         config = current_app.conf.get(cfg_key, {}).copy()
         config.update(cfg.get(cfg_key, {}))
@@ -675,8 +678,7 @@ class PullRequestHandler(IssueHandler):
             branch = self.head_branch
         return super().get_file_contents(path_to_file, branch=branch)
 
-    def get_repo_config(self, branch=None, path_to_file='pyproject.toml',
-                        warn_on_failure=True):
+    def get_repo_config(self, branch=None, path_to_file='pyproject.toml'):
         """
         Load user configuration for bot.
 
@@ -690,9 +692,6 @@ class PullRequestHandler(IssueHandler):
             Path to the ``pyproject.toml`` file in the repository. Will default
             to the root of the repository.
 
-        warn_on_failure : `bool`
-            Emit warning on failure to load the pyproject file.
-
         Returns
         -------
         cfg : dict
@@ -701,8 +700,7 @@ class PullRequestHandler(IssueHandler):
         """
         if not branch:
             branch = self.base_branch
-        return super().get_repo_config(branch=branch, path_to_file=path_to_file,
-                                       warn_on_failure=warn_on_failure)
+        return super().get_repo_config(branch=branch, path_to_file=path_to_file)
 
     def has_modified(self, filelist):
         """Check if PR has modified any of the given list of filename(s)."""
