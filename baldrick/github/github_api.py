@@ -122,13 +122,13 @@ class GitHubHandler:
             try:
                 config = loads(file_content, tool=current_app.bot_username)
             except Exception:
-                logger.exception("Failed to load config in {self.repo} on branch {branch}.")
+                logger.exception(f"Failed to load config in {self.repo} on branch {branch}.")
 
             if getattr(current_app, "fall_back_config", None):
                 try:
                     fallback_config = loads(file_content, tool=current_app.fall_back_config)
                 except Exception:
-                    logger.info("Failed to load fallback config in {self.repo} on branch {branch}.")
+                    logger.debug(f"Didn't find a fallback config in {self.repo} on branch {branch}.")
 
         # Priority is 1) repo_config 2) fallback_config 3) app_config
         app_config.update_from_config(fallback_config)
