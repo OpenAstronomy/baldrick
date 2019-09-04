@@ -99,7 +99,8 @@ class TestArtifactPlugin:
             with caplog.at_level(logging.DEBUG):
                 set_commit_status_for_artifacts(self.repo_handler, self.basic_payload(), {})
 
-        assert len(caplog.records) == 3
+        circle_records = [r for r in caplog.records if r.name == 'baldrick.plugins.circleci_artifacts']
+        assert len(circle_records) == 3
         assert "test/testbot" in caplog.text
         assert "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test-report.xml" in caplog.text
         assert "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out" in caplog.text

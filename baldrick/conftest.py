@@ -1,8 +1,8 @@
 import os
+import logging
 
 import pytest
-
-from baldrick import create_app
+from loguru import logger
 
 
 PRIVATE_KEY = """
@@ -38,6 +38,7 @@ IJVMoU0lvK0zKm5VlXh3jbRXt/M5cTNu/1+xZxUbGJ0b+Go3FYc=
 
 @pytest.fixture
 def app():
+    from baldrick import create_app
     os.environ['GITHUB_APP_INTEGRATION_ID'] = '1234'
     os.environ['GITHUB_APP_PRIVATE_KEY'] = PRIVATE_KEY
     return create_app('testbot')
@@ -46,3 +47,23 @@ def app():
 @pytest.fixture
 def client(app):
     return app.test_client()
+
+
+@pytest.fixture
+def caplog(caplog):
+    """
+    Override the default pytest caplog fixture to work with loguru.
+    """
+
+    # Remove all logging but this redirect to standard logging
+    logger.remove()
+
+    class PropogateHandler(logging.Handler):
+        def emit(self, record):
+            logging.getLogger(record.name).handle(record)
+
+    handler_id = logger.add(PropogateHandler(), format="{message}")
+
+    yield caplog
+
+    logger.remove(handler_id)

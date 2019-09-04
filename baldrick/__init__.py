@@ -1,8 +1,6 @@
+import os
 import logging
 
-from flask.logging import default_handler
-
-import baldrick.logging
 from baldrick import github  # noqa
 
 __all__ = ['create_app', '__version__']
@@ -37,7 +35,8 @@ def create_app(name, register_blueprints=True):
     app
 
     """
-    import os
+    # Setup loguru integration, must be run before import flask.
+    import baldrick.logging  # noqa
 
     from flask import Flask
 
@@ -50,7 +49,6 @@ def create_app(name, register_blueprints=True):
     from baldrick.blueprints import github_blueprint, circleci_blueprint
 
     app = Flask(name)
-    app.logger.removeHandler(default_handler)
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
 
