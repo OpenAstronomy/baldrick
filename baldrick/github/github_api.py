@@ -125,7 +125,7 @@ class GitHubHandler:
 
         if file_content:
             try:
-                app_config = loads(file_content, tool=current_app.bot_username)
+                repo_config = loads(file_content, tool=current_app.bot_username)
                 logger.debug(f"Got the following config from {self.repo}@{branch}: {config}")
             except Exception:
                 logger.error(
