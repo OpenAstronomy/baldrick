@@ -120,13 +120,13 @@ class GitHubHandler:
         try:
             file_content = self.get_file_contents(path_to_file, branch=branch)
         except FileNotFoundError:
-            logger.debug(f"No config file found in {self.repo} on branch {branch}.")
+            logger.debug(f"No config file found in {self.repo}@{branch}.")
             file_content = None
 
         if file_content:
             try:
                 repo_config = loads(file_content, tool=current_app.bot_username)
-                logger.debug(f"Got the following config from {self.repo}@{branch}: {repo_config}")
+                logger.trace(f"Got the following config from {self.repo}@{branch}: {repo_config}")
             except Exception:
                 logger.error(
                     f"Failed to load config in {self.repo} on branch {branch}, despite finding a pyproject.toml file.")
@@ -135,13 +135,13 @@ class GitHubHandler:
                 try:
                     fallback_config = loads(file_content, tool=current_app.fall_back_config)
                 except Exception:
-                    logger.debug(f"Didn't find a fallback config in {self.repo} on branch {branch}.")
+                    logger.trace(f"Didn't find a fallback config in {self.repo}@{branch}.")
 
         # Priority is 1) repo_config 2) fallback_config 3) app_config
         app_config.update_from_config(fallback_config)
         app_config.update_from_config(repo_config)
 
-        logger.debug(f"Got this combined config {app_config}")
+        logger.debug(f"Got this combined config from {self.repo}@{branch}: {app_config}")
 
         return app_config
 
