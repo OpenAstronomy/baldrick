@@ -162,7 +162,7 @@ def process_pull_request(repository, number, installation, action,
         # return old status messages, so we avoid doing that.
 
         pr_handler.set_check(
-            full_context, details['description'],
+            full_context, details['description'], text=details.get("text"),
             details_url=details.get('target_url'), status='completed',
             conclusion=details['state'])
 

@@ -494,7 +494,7 @@ class IssueHandler(GitHubHandler):
 class PullRequestHandler(IssueHandler):
 
     # https://developer.github.com/v3/checks/runs/#create-a-check-run
-    def set_check(self, name, summary, commit_hash='head', details_url=None,
+    def set_check(self, name, summary, text=None, commit_hash='head', details_url=None,
                   status='queued', conclusion='neutral'):
         """
         Set check status.
@@ -510,6 +510,9 @@ class PullRequestHandler(IssueHandler):
 
         summary : str
             Summary of the check run.
+
+        text : str
+            The full body of the check
 
         commit_hash: { 'head' | 'base' }, optional
             The SHA of the commit.
@@ -543,11 +546,25 @@ class PullRequestHandler(IssueHandler):
         completed_at = tt.isoformat(timespec='seconds') + 'Z'
 
         output = {'title': name, 'summary': summary}
+        if text is not None:
+            output['text'] = text
+
         parameters = {'name': name, 'head_sha': commit_hash, 'status': status,
-                      'conclusion': conclusion, 'completed_at': completed_at,
                       'output': output}
+
         if details_url is not None:
             parameters['details_url'] = details_url
+
+        if status == "completed" and conclusion is None:
+            logger.warning(
+                "When a GitHub check status is completed, conclusion must be specified, setting it to 'neutral'")
+            conclusion = "neutral"
+
+        if conclusion is not None:
+            parameters['conclusion'] = conclusion
+            parameters['completed_at'] = completed_at
+
+        logger.trace(f"Sending GitHub check with {parameters}")
 
         response = requests.post(url, headers=headers, json=parameters)
         assert response.ok, response.content
