@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from baldrick.github.github_api import file_cache
+from baldrick.github.github_api import FILE_CACHE
 from baldrick.github.github_api import RepoHandler, PullRequestHandler
 from baldrick.plugins.github_towncrier_changelog import process_towncrier_changelog
 
@@ -35,7 +35,7 @@ class TestTowncrierPlugin:
         self.get_file_contents = self.get_file_contents_mock.start()
         self.modified_files = self.modified_files_mock.start()
 
-        file_cache.clear()
+        FILE_CACHE.clear()
 
     def teardown_method(self, method):
         self.get_file_contents_mock.stop()

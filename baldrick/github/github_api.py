@@ -17,7 +17,7 @@ __all__ = ['GitHubHandler', 'IssueHandler', 'RepoHandler', 'PullRequestHandler']
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
 
-file_cache = TTLOrderedDict(default_ttl=60)
+FILE_CACHE = TTLOrderedDict(default_ttl=60)
 
 
 def paged_github_json_request(url, headers=None):
@@ -71,13 +71,12 @@ class GitHubHandler:
         return f'{HOST}/repos/{self.repo}/contents/'
 
     def get_file_contents(self, path_to_file, branch='master'):
-        global file_cache
         cache_key = f"{self.repo}:{path_to_file}@{branch}"
 
         # It seems that this is the only safe way to do this with
         # TTLOrderedDict
         try:
-            return file_cache[cache_key]
+            return FILE_CACHE[cache_key]
         except KeyError:
             pass
 
@@ -90,7 +89,7 @@ class GitHubHandler:
         contents_base64 = response.json()['content']
         contents = base64.b64decode(contents_base64).decode()
 
-        file_cache[cache_key] = contents
+        FILE_CACHE[cache_key] = contents
         return contents
 
     def get_repo_config(self, branch='master', path_to_file='pyproject.toml'):
