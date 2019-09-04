@@ -2,7 +2,6 @@
 import base64
 import re
 import requests
-import warnings
 from datetime import datetime
 
 import dateutil.parser
@@ -19,6 +18,7 @@ HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
 
 file_cache = TTLOrderedDict(default_ttl=60)
+
 
 def paged_github_json_request(url, headers=None):
 
@@ -126,7 +126,7 @@ class GitHubHandler:
         if file_content:
             try:
                 repo_config = loads(file_content, tool=current_app.bot_username)
-                logger.debug(f"Got the following config from {self.repo}@{branch}: {config}")
+                logger.debug(f"Got the following config from {self.repo}@{branch}: {repo_config}")
             except Exception:
                 logger.error(
                     f"Failed to load config in {self.repo} on branch {branch}, despite finding a pyproject.toml file.")
@@ -138,9 +138,7 @@ class GitHubHandler:
                     logger.debug(f"Didn't find a fallback config in {self.repo} on branch {branch}.")
 
         # Priority is 1) repo_config 2) fallback_config 3) app_config
-        logger.debug(f"{app_config}, {fallback_config}")
         app_config.update_from_config(fallback_config)
-        logger.debug(f"{app_config}, {repo_config}")
         app_config.update_from_config(repo_config)
 
         logger.debug(f"Got this combined config {app_config}")

@@ -14,6 +14,7 @@ LOG_LEVEL_TO_NAME = {5: 'TRACE',
 
 LOG_NAME_TO_LEVEL = {v: k for k, v in LOG_LEVEL_TO_NAME.items()}
 
+
 class InterceptHandler(logging.Handler):
     """
     Handler to route stdlib logs to loguru
@@ -24,6 +25,7 @@ class InterceptHandler(logging.Handler):
 
         # Log with name to support formatting if known, otherwise use the level number
         logger_opt.log(LOG_LEVEL_TO_NAME.get(record.levelno, record.levelno), record.getMessage())
+
 
 # Retrieve default log level from same environment variable as loguru
 log_level = LOG_NAME_TO_LEVEL.get(environ.get("BALDRICK_LOG_LEVEL", "INFO"), "INFO")
