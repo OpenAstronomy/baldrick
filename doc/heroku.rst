@@ -54,4 +54,4 @@ interface, as mentioned. The main required environment variables (also see
 * ``BALDRICK_FILE_CACHE_TTL``, This defaults to 60 seconds and controls the
   amount of time a file retrieved from GitHub will be cached. This is important
   because otherwise reading the bot config from the repository will cause many
-  requests to GitHub.
+  requests to GitHub. The value is in seconds.
