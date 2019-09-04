@@ -1,15 +1,16 @@
 """Module to handle GitHub API."""
 import base64
+import os
 import re
-import requests
 from datetime import datetime
 
 import dateutil.parser
+import requests
 from flask import current_app
 from loguru import logger
 from ttldict import TTLOrderedDict
 
-from baldrick.config import loads, Config
+from baldrick.config import Config, loads
 from baldrick.github.github_auth import github_request_headers
 
 __all__ = ['GitHubHandler', 'IssueHandler', 'RepoHandler', 'PullRequestHandler']
@@ -17,7 +18,7 @@ __all__ = ['GitHubHandler', 'IssueHandler', 'RepoHandler', 'PullRequestHandler']
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
 
-FILE_CACHE = TTLOrderedDict(default_ttl=60)
+FILE_CACHE = TTLOrderedDict(default_ttl=os.environ('BALDRICK_FILE_CACHE_TTL', 60))
 
 
 def paged_github_json_request(url, headers=None):
