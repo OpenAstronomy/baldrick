@@ -133,6 +133,33 @@ def process_pull_request(repository, number, installation, action,
             if result is not None:
                 results.update(result)
 
+    for context, details in sorted(results.items()):
+        full_context = current_app.bot_username + ':' + context
+        pr_handler.set_check(full_context, status="completed", **details)
+
+    # Iterate over all the existing checks and update them if they are not in
+    # results this time, to say they have been skipped.
+    existing_checks = pr_handler.list_checks(only_ours=True)
+    for external_id, check in existing_checks.items():
+        if external_id not in results:
+            check.update({
+                'summary': 'This check has been skipped',
+                'commit_hash': 'head',
+                'status': 'completed',
+                'conclusion': 'neutral'})
+            pr_handler.set_check(**check)
+
+    # Also set the general 'single' status check as a skipped check if it
+    # is present
+    if current_app.bot_username in existing_checks.keys():
+        check.update({
+            'summary': 'This check has been skipped',
+            'commit_hash': 'head',
+            'status': 'completed',
+            'conclusion': 'neutral'})
+        pr_handler.set_check(**check)
+
+
     # Special message for a special day
     not_boring = pr_handler.get_config_value('not_boring', cfg_default=True)
     if not_boring:  # pragma: no cover
@@ -146,44 +173,5 @@ def process_pull_request(repository, number, installation, action,
                 special_msg = insert_special_message('')
         if special_msg:
             pr_handler.submit_comment(special_msg)
-
-    # Post each failure as a status
-
-    existing_checks = pr_handler.list_checks()
-
-    for context, details in sorted(results.items()):
-
-        full_context = current_app.bot_username + ':' + context
-
-        # TODO: Revisit if the note made for statuses still applies to checks.
-        # NOTE: we could in principle check if the status has been posted
-        # before, and if so not post it again, but we had this in the past
-        # and there were some strange caching issues where GitHub would
-        # return old status messages, so we avoid doing that.
-
-        pr_handler.set_check(
-            full_context, details['description'], text=details.get("text"),
-            details_url=details.get('target_url'), status='completed',
-            conclusion=details['state'])
-
-    # For statuses that have been skipped this time but existed before, set
-    # status to pass and set message to say skipped
-
-    for full_context in existing_checks:
-
-        if full_context.startswith(current_app.bot_username + ':'):
-            context = full_context[len(current_app.bot_username) + 1:]
-            if context not in results:
-                pr_handler.set_check(
-                    current_app.bot_username + ':' + context,
-                    'This check has been skipped', status='completed',
-                    conclusion='neutral')
-
-        # Also set the general 'single' status check as a skipped check if it
-        # is present
-        if full_context == current_app.bot_username:
-            pr_handler.set_check(
-                current_app.bot_username, 'This check has been skipped',
-                status='completed', conclusion='neutral')
 
     return 'Finished pull requests checks'

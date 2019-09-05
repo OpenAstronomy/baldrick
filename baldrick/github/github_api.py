@@ -220,7 +220,7 @@ class GitHubHandler:
 
         return statuses
 
-    def list_checks(self, commit_hash):
+    def list_checks(self, commit_hash, only_ours=True):
         """
         List check messages on a commit on GitHub.
 
@@ -228,6 +228,9 @@ class GitHubHandler:
         ----------
         commit_hash : str
             The commit has to get the statuses for
+
+        only_ours : `bool`, optional
+            Only return status that this app has posted.
         """
         url = f'{HOST}/repos/{self.repo}/commits/{commit_hash}/check-runs'
         headers = self._headers
@@ -236,11 +239,23 @@ class GitHubHandler:
 
         checks = {}
         for result in results.get('check_runs', []):
-            context = result['name']
-            checks[context] = {'summary': result['output']['summary'],
-                               'details_url': result.get('details_url'),
-                               'status': result['status'],
-                               'conclusion': result['conclusion']}
+
+            # Skip checks from other apps if specified.
+            if only_ours and result['app']['id'] != current_app.integration_id:
+                continue
+
+            context = result['external_id']
+            # These keys match the kwargs to set_check
+            checks[context] = {
+                'external_id': result['external_id'],
+                'summary': result['output']['summary'],
+                'name': result['name'],
+                'text': result['output'].get('text'),
+                'commit_hash': result['head_sha'],
+                'details_url': result.get('details_url'),
+                'status': result['status'],
+                'conclusion': result['conclusion']
+            }
 
         return checks
 
@@ -494,30 +509,34 @@ class IssueHandler(GitHubHandler):
 class PullRequestHandler(IssueHandler):
 
     # https://developer.github.com/v3/checks/runs/#create-a-check-run
-    def set_check(self, name, summary, text=None, commit_hash='head', details_url=None,
-                  status='queued', conclusion='neutral'):
+    def set_check(self, external_id, summary, name=None, text=None,
+                  commit_hash='head', details_url=None, status='queued',
+                  conclusion='neutral'):
         """
         Set check status.
 
         .. note:: This method does not provide API access to full
-                  check run capability (e.g., Markdown text, annotation,
+                  check run capability (e.g., annotation,
                   image). Add them as needed.
 
         Parameters
         ----------
-        name : str
-            Name of the check.
+        external_id : `str`
+            The reference for this check.
 
-        summary : str
+        summary : `str`
             Summary of the check run.
 
-        text : str
+        name : `str`, optional
+            Name of the check, defaults to ``external_id`` if not specified.
+
+        text : `str`, optional
             The full body of the check
 
         commit_hash: { 'head' | 'base' }, optional
             The SHA of the commit.
 
-        details_url : str or `None`, optional
+        details_url : `str` or `None`, optional
             The URL of the integrator's site that has the full details
             of the check.
 
@@ -545,12 +564,15 @@ class PullRequestHandler(IssueHandler):
         tt = datetime.utcnow()
         completed_at = tt.isoformat(timespec='seconds') + 'Z'
 
+        # If name isn't specified revert to external_id
+        name = name or external_id
+
         output = {'title': name, 'summary': summary}
         if text is not None:
             output['text'] = text
 
-        parameters = {'name': name, 'head_sha': commit_hash, 'status': status,
-                      'output': output}
+        parameters = {'external_id': external_id, 'name': name, 'head_sha':
+                      commit_hash, 'status': status, 'output': output }
 
         if details_url is not None:
             parameters['details_url'] = details_url
@@ -613,7 +635,7 @@ class PullRequestHandler(IssueHandler):
             commit_hash = self.base_sha
         return super().list_statuses(commit_hash)
 
-    def list_checks(self, commit_hash="head"):
+    def list_checks(self, commit_hash="head", only_ours=True):
         """
         List checks on a commit on GitHub.
 
@@ -626,7 +648,7 @@ class PullRequestHandler(IssueHandler):
             commit_hash = self.head_sha
         elif commit_hash == "base":
             commit_hash = self.base_sha
-        return super().list_checks(commit_hash)
+        return super().list_checks(commit_hash, only_ours=only_ours)
 
     @property
     def _url_pull_request(self):
