@@ -144,27 +144,44 @@ def process_towncrier_changelog(pr_handler, repo_handler):
 
     elif not matching_file:
 
-        messages['missing_file'] = {'description': cl_config.get('changelog_missing', CHANGELOG_MISSING),
-                                    'state': 'failure'}
+        messages['missing_file'] = {
+            'name': cl_config.get('changelog_missing_name', "changelog: Missing entry"),
+            'title': cl_config.get('changelog_missing', CHANGELOG_MISSING),
+            'summary': cl_config.get('changelog_missing_long', ''),
+            'conclusion': 'failure'
+        }
 
     else:
 
-        messages['missing_file'] = {'description': cl_config.get('changelog_exists', CHANGELOG_EXISTS),
-                                    'state': 'success'}
+        messages['missing_file'] = {
+            'name': cl_config.get('changelog_exists_name', 'changelog: Found'),
+            'title': cl_config.get('changelog_exists', CHANGELOG_EXISTS),
+            'summary': cl_config.get('changelog_exists_long', ''),
+            'conclusion': 'success'
+            }
 
         if check_changelog_type(types, matching_file):
-            messages['wrong_type'] = {'description': cl_config.get('type_correct', TYPE_CORRECT),
-                                      'state': 'success'}
+            messages['wrong_type'] = {'name': cl_config.get('type_correct_name', 'changelog: Type correct'),
+                                      'title': cl_config.get('type_correct', TYPE_CORRECT),
+                                      'summary': cl_config.get('type_correct_long', ''),
+                                      'conclusion': 'success'}
         else:
-            messages['wrong_type'] = {'description': cl_config.get('type_incorrect', TYPE_INCORRECT),
-                                      'state': 'failure'}
+            messages['wrong_type'] = {'name': cl_config.get('type_incorrect_name', 'changelog: Type incorrect'),
+                                      'title': cl_config.get('type_incorrect', TYPE_INCORRECT),
+                                      'summary': cl_config.get('type_incorrect_long', ''),
+                                      'conclusion': 'failure'}
 
-        if cl_config.get('verify_pr_number', False) and not verify_pr_number(pr_handler.number, matching_file):
-            messages['wrong_number'] = {'description': cl_config.get('number_incorrect', NUMBER_INCORRECT),
-                                        'state': 'failure'}
-        else:
-            messages['wrong_number'] = {'description': cl_config.get('number_correc', NUMBER_CORRECT),
-                                        'state': 'success'}
+        if cl_config.get('verify_pr_number', False):
+            if verify_pr_number(pr_handler.number, matching_file):
+                messages['wrong_number'] = {'name': cl_config.get('number_incorrect_name', 'changelog: Number not PR number'),
+                                            'title': cl_config.get('number_incorrect', NUMBER_INCORRECT),
+                                            'summary': cl_config.get('number_incorrect_long', ''),
+                                            'conclusion': 'failure'}
+            else:
+                messages['wrong_number'] = {'name': cl_config.get('number_correct_name', 'changelog: Number correct'),
+                                            'title': cl_config.get('number_correct', NUMBER_CORRECT),
+                                            'summary': cl_config.get('number_correct_long', ''),
+                                            'conclusion': 'success'}
 
     # Add help URL
     for message in messages.values():
