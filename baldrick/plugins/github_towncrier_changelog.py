@@ -2,6 +2,7 @@ import os
 import re
 from collections import OrderedDict
 
+from loguru import logger
 from toml import loads
 
 from .github_pull_requests import pull_request_handler
@@ -119,8 +120,10 @@ def process_towncrier_changelog(pr_handler, repo_handler):
     cl_config = pr_handler.get_config_value('towncrier_changelog', {})
 
     if not cl_config.get('enabled', False):
+        logger.debug("Skipping towncrier changelog plugin as disabled in config")
         return None
 
+    logger.debug(f"Checking towncrier changelog on {pr_handler.repo}#{pr_handler.number}")
     skip_label = cl_config.get('changelog_skip_label', None)
 
     config = load_towncrier_config(pr_handler)

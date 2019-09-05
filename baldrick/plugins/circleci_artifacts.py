@@ -1,9 +1,8 @@
-import logging
 import requests
 
-from baldrick.blueprints.circleci import circleci_webhook_handler
+from loguru import logger
 
-LOGGER = logging.getLogger(__name__)
+from baldrick.blueprints.circleci import circleci_webhook_handler
 
 
 @circleci_webhook_handler
@@ -11,10 +10,12 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers):
 
     ci_config = repo_handler.get_config_value("circleci_artifacts", {})
     if not ci_config.get("enabled", False):
-        return "Skipping artifact check, disabled in config."
+        msg = "Skipping artifact check, disabled in config."
+        logger.debug(msg)
+        return msg
 
     if payload['status'] == 'success':
-        LOGGER.info(r"Got successful call for repo: %s/%s", payload['username'], payload['reponame'])
+        logger.info(f"Got CircleCI 'success' status for repo: {payload['username']}/{payload['reponame']}")
         artifacts = get_artifacts_from_build(payload)
 
         for name, config in ci_config.items():
@@ -23,7 +24,7 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers):
                 continue
 
             url = get_documentation_url_from_artifacts(artifacts, config['url'])
-            LOGGER.debug("Found artifact: %s", url)
+            logger.debug(f"Found artifact: {url}")
 
             if url:
                 repo_handler.set_status("success",

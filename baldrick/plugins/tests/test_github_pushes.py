@@ -2,7 +2,7 @@ import json
 from copy import copy
 from unittest.mock import MagicMock, patch
 
-from baldrick.github.github_api import cfg_cache
+from baldrick.github.github_api import FILE_CACHE
 from baldrick.plugins.github_pushes import push_handler, PUSH_HANDLERS
 
 test_handler = MagicMock()
@@ -38,7 +38,7 @@ class TestPushHandler:
 
         self.get_installation_token.return_value = 'abcdefg'
 
-        cfg_cache.clear()
+        FILE_CACHE.clear()
 
     def teardown_method(self, method):
         self.get_file_contents_mock.stop()

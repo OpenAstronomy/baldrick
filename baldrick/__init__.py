@@ -1,3 +1,5 @@
+import os
+
 from baldrick import github  # noqa
 
 __all__ = ['create_app', '__version__']
@@ -32,7 +34,8 @@ def create_app(name, register_blueprints=True):
     app
 
     """
-    import os
+    # Setup loguru integration, must be run before import flask.
+    import baldrick.logging  # noqa
 
     from flask import Flask
 
