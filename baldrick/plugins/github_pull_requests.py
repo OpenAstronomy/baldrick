@@ -1,3 +1,5 @@
+import copy
+
 from flask import current_app
 from loguru import logger
 
@@ -121,7 +123,8 @@ def process_pull_request(repository, number, installation, action,
             if skip_fails:
                 pr_handler.set_check(
                     current_app.bot_username,
-                    "Skipping checks due to {0} label".format(label),
+                    title="Skipping checks due to {0} label".format(label),
+                    name=current_app.bot_username,
                     status='completed', conclusion='failure')
             return
 
@@ -137,33 +140,44 @@ def process_pull_request(repository, number, installation, action,
                     if check is not None:
                         title = check.pop('description', None)
                         if title:
-                            logger.warn(
+                            logger.warning(
                                 f"'description' is deprecated as a key in the return value from {function},"
                                 " it will be interpreted as 'title'")
                             check['title'] = title
                         conclusion = check.pop('state', None)
                         if conclusion:
-                            logger.warn(
+                            logger.warning(
                                 f"'state' is deprecated as a key in the return value from {function},"
                                 "it will be interpreted as 'conclusion'.")
                             check['conclusion'] = conclusion
                     result[context] = check
                 results.update(result)
 
-    for context, details in sorted(results.items()):
-        full_context = current_app.bot_username + ':' + context
-        pr_handler.set_check(full_context, status="completed", **details)
 
-    # Iterate over all the existing checks and update them if they are not in
-    # results this time, to say they have been skipped.
+    # Get existing checks from our app, for the 'head' commit
     existing_checks = pr_handler.list_checks(only_ours=True)
+    # For each existing check, see if it needs updating or skipping
+    new_results = copy.copy(results)
     for external_id, check in existing_checks.items():
-        if external_id not in results:
+        if external_id in results.keys():
+            details = new_results.pop(external_id)
+            # Update the previous check with the new check (this includes the check_id to update)
+            check.update(details)
+            # Send the check to be updated
+            pr_handler.set_check(**check)
+        else:
+            # If check is in existing_checks but not results mark it as skipped.
             check.update({
                 'title': 'This check has been skipped.',
                 'status': 'completed',
                 'conclusion': 'neutral'})
             pr_handler.set_check(**check)
+
+
+    # Any keys left in results are new checks we haven't sent on this commit yet.
+    for external_id, details in sorted(new_results.items()):
+        pr_handler.set_check(external_id, status="completed", **details)
+
 
     # Also set the general 'single' status check as a skipped check if it
     # is present

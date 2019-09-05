@@ -254,7 +254,8 @@ class GitHubHandler:
                 'commit_hash': result['head_sha'],
                 'details_url': result.get('details_url'),
                 'status': result['status'],
-                'conclusion': result['conclusion']
+                'conclusion': result['conclusion'],
+                'check_id': result['id'],
             }
 
         return checks
@@ -510,8 +511,8 @@ class PullRequestHandler(IssueHandler):
 
     # https://developer.github.com/v3/checks/runs/#create-a-check-run
     def set_check(self, external_id, title, name=None, summary=None, text=None,
-                  commit_hash='head', details_url=None, status='queued',
-                  conclusion='neutral'):
+                  commit_hash='head', details_url=None, status=None,
+                  conclusion='neutral', check_id=None):
         """
         Set check status.
 
@@ -555,6 +556,10 @@ class PullRequestHandler(IssueHandler):
             Note: Providing conclusion will automatically set the status
             parameter to ``'completed'``.
 
+        check_id : `str`, optional
+            If specified this check will be updated rather than a new check
+            being made.
+
         """
         url = f'{HOST}/repos/{self.repo}/check-runs'
         headers = self._headers
@@ -569,9 +574,9 @@ class PullRequestHandler(IssueHandler):
         completed_at = tt.isoformat(timespec='seconds') + 'Z'
 
         # If name isn't specified revert to external_id
-        name = name or external_id
+        name = name or f"{current_app.bot_username}:{external_id}"
 
-        output = {'title': name, 'summary': summary}
+        output = {'title': title, 'summary': summary or ''}
         if text is not None:
             output['text'] = text
 
@@ -589,10 +594,14 @@ class PullRequestHandler(IssueHandler):
         if conclusion is not None:
             parameters['conclusion'] = conclusion
             parameters['completed_at'] = completed_at
+            parameters['status'] = "completed"
 
         logger.trace(f"Sending GitHub check with {parameters}")
 
-        response = requests.post(url, headers=headers, json=parameters)
+        if not check_id:
+            response = requests.post(url, headers=headers, json=parameters)
+        else:
+            response = requests.patch(url + f'/{check_id}', headers=headers, json=parameters)
         assert response.ok, response.content
 
     def set_status(self, state, description, context, commit_hash="head", target_url=None):

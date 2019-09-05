@@ -38,6 +38,7 @@ class TestPullRequestHandler:
 
         self.requests_get_mock = patch('requests.get', self._requests_get)
         self.requests_post_mock = patch('requests.post')
+        self.requests_patch_mock = patch('requests.patch')
         self.get_file_contents_mock = patch('baldrick.github.github_api.GitHubHandler.get_file_contents')
         self.get_installation_token_mock = patch('baldrick.github.github_auth.get_installation_token')
         self.labels_mock = patch('baldrick.github.github_api.PullRequestHandler.labels',
@@ -45,6 +46,7 @@ class TestPullRequestHandler:
 
         self.requests_get = self.requests_get_mock.start()
         self.requests_post = self.requests_post_mock.start()
+        self.requests_patch = self.requests_patch_mock.start()
         self.get_file_contents = self.get_file_contents_mock.start()
         self.get_installation_token = self.get_installation_token_mock.start()
         self.labels = self.labels_mock.start()
@@ -95,7 +97,7 @@ class TestPullRequestHandler:
         # Test case where the config doesn't give a default message, and the
         # registered handlers don't return any checks
 
-        test_hook.return_value = {}
+        test_hook.return_value = None
         self.get_file_contents.return_value = CONFIG_TEMPLATE
 
         self.send_event(client)
@@ -123,8 +125,9 @@ class TestPullRequestHandler:
                                   'head_sha': 'abc464aa',
                                   'status': 'completed',
                                   'conclusion': 'success',
-                                  'output': {'title': 'testbot:test1',
-                                             'summary': 'No problem'}}
+                                  'external_id': 'test1',
+                                  'output': {'title': 'No problem',
+                                             'summary': ''}}
 
         args, kwargs = self.requests_post.call_args_list[1]
         kwargs['json'].pop('completed_at')  # Actual value not important
@@ -133,8 +136,9 @@ class TestPullRequestHandler:
                                   'head_sha': 'abc464aa',
                                   'status': 'completed',
                                   'conclusion': 'success',
-                                  'output': {'title': 'testbot:test2',
-                                             'summary': 'All good here'}}
+                                  'external_id': 'test2',
+                                  'output': {'title': 'All good here',
+                                             'summary': ''}}
 
     def test_one_failure(self, app, client):
 
@@ -157,8 +161,9 @@ class TestPullRequestHandler:
                                   'head_sha': 'abc464aa',
                                   'status': 'completed',
                                   'conclusion': 'failure',
-                                  'output': {'title': 'testbot:test1',
-                                             'summary': 'Problems here'}}
+                                  'external_id': 'test1',
+                                  'output': {'title': 'Problems here',
+                                             'summary': ''}}
 
         args, kwargs = self.requests_post.call_args_list[1]
         kwargs['json'].pop('completed_at')  # Actual value not important
@@ -167,8 +172,9 @@ class TestPullRequestHandler:
                                   'head_sha': 'abc464aa',
                                   'status': 'completed',
                                   'conclusion': 'success',
-                                  'output': {'title': 'testbot:test2',
-                                             'summary': 'All good here'}}
+                                  'external_id': 'test2',
+                                  'output': {'title': 'All good here',
+                                             'summary': ''}}
 
     # The following test is not relevant currently since we don't skip posting
     # checks, due to strange caching issues with GitHub. But if we ever add
@@ -221,42 +227,56 @@ class TestPullRequestHandler:
             'check_runs': [{'name': 'testbot:test1',
                             'status': 'in_progress',
                             'conclusion': 'neutral',
-                            'output': {'title': 'testbot:test1',
-                                       'summary': 'Problems here'}},
+                            'output': {'title': 'Problems here',
+                                       'summary': ''},
+                            'head_sha': 'abc464aa',
+                            'external_id': 'test1',
+                            'id': 1,
+                            'app': {'id': app.integration_id}},
                            {'name': 'testbot:test2',
                             'status': 'completed',
                             'conclusion': 'success',
-                            'output': {'title': 'testbot:test2',
-                                       'summary': 'All good here (extra comment)'}},
+                            'output': {'title': 'All good here (extra comment)',
+                                       'summary': ''},
+                            'head_sha': 'abc464aa',
+                            'external_id': 'test2',
+                            'id': 2,
+                            'app': {'id': app.integration_id}},
                            {'name': 'travis',
                             'status': 'completed',
                             'conclusion': 'failure',
                             'output': {'title': 'travis',
-                                       'summary': 'An unrelated check'}}]}
+                                       'summary': 'An unrelated check'},
+                            'head_sha': 'abc464aa',
+                            'external_id': 'travis',
+                            'id': 3,
+                            'app': {'id': 999999}}]}
 
         self.send_event(client)
 
-        assert self.requests_post.call_count == 2
+        assert self.requests_patch.call_count == 2
 
-        args, kwargs = self.requests_post.call_args_list[0]
+        args, kwargs = self.requests_patch.call_args_list[0]
         kwargs['json'].pop('completed_at')  # Actual value not important
-        assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+        assert args[0].startswith('https://api.github.com/repos/test-repo/check-runs')
         assert kwargs['json'] == {'name': 'testbot:test1',
                                   'head_sha': 'abc464aa',
                                   'status': 'completed',
                                   'conclusion': 'failure',
-                                  'output': {'title': 'testbot:test1',
-                                             'summary': 'Problems here'}}
+                                  'external_id': 'test1',
+                                  'output': {'title': 'Problems here',
+                                             'summary': ''}}
 
-        args, kwargs = self.requests_post.call_args_list[1]
+        args, kwargs = self.requests_patch.call_args_list[1]
         kwargs['json'].pop('completed_at')  # Actual value not important
-        assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+        assert args[0].startswith('https://api.github.com/repos/test-repo/check-runs')
         assert kwargs['json'] == {'name': 'testbot:test2',
                                   'head_sha': 'abc464aa',
                                   'status': 'completed',
                                   'conclusion': 'success',
-                                  'output': {'title': 'testbot:test2',
-                                             'summary': 'All good here'}}
+                                  'external_id': 'test2',
+                                  'output': {'title': 'All good here',
+                                             'summary': ''}}
 
     def test_skip_on_labels(self, app, client):
 
@@ -275,13 +295,13 @@ class TestPullRequestHandler:
 
         args, kwargs = self.requests_post.call_args
         kwargs['json'].pop('completed_at')  # Actual value not important
-        assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+        assert args[0].startswith('https://api.github.com/repos/test-repo/check-runs')
         assert kwargs['json'] == {'name': 'testbot',
+                                  'external_id': 'testbot',
                                   'head_sha': 'abc464aa',
                                   'status': 'completed',
                                   'conclusion': 'failure',
-                                  'output': {'title': 'testbot',
-                                             'summary': 'Skipping checks due to Experimental label'}}
+                                  'output': {'title': 'Skipping checks due to Experimental label', 'summary': ''}}
 
     def test_check_returns_none(self, app, client):
         """
