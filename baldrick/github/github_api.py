@@ -18,7 +18,7 @@ __all__ = ['GitHubHandler', 'IssueHandler', 'RepoHandler', 'PullRequestHandler']
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
 
-FILE_CACHE = TTLOrderedDict(default_ttl=os.environ('BALDRICK_FILE_CACHE_TTL', 60))
+FILE_CACHE = TTLOrderedDict(default_ttl=os.environ.get('BALDRICK_FILE_CACHE_TTL', 60))
 
 
 def paged_github_json_request(url, headers=None):
