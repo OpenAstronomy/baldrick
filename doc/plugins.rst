@@ -96,6 +96,9 @@ If you wish to customize the message shown in the results of the check, you can
 use the ``missing_message = "..."`` and ``present_message = "..."`` configuration
 items.
 
+If you wish to set a longer message to be shown on the checks tab, you can set
+``missing_message_long=`` and ``present_message_long``.
+
 Towncrier changelog checker
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -133,6 +136,10 @@ the following parameters:
 * ``type_correct = "..."`` and ``type_incorrect = "..."``: the messages
   to use when a changelog entry is not of the right type.
 
+Each of these configuration options has a ``_long`` equivalent, i.e.
+``changelog_missing_long``, which will be displayed on the checks page to
+provide more details.
+
 Custom plugin
 ^^^^^^^^^^^^^
 
@@ -155,6 +162,8 @@ the class names to find out the available properties/methods).
 Your function should then return either `None` (no check results), or
 a dictionary where each key is the code name for one of the checks (this will
 be used to match checks with previous checks, so make sure this is consistent
-across calls), and the value should be a dictionary with two entries: ``state``,
-which can be set to ``'failure'`` or ``'success'``, and ``description``, which
-gives a description of the check results.
+across calls), and the value should be a dictionary with at least two entries:
+``conclusion``, which can be set to ``success``, ``failure``, ``neutral``,
+``cancelled``, ``timed_out``, or, ``action_required`` and ``title``, which sets
+the description of the check on the status line. Other keys in this dictionary
+will be passed to the `baldrick.github.PullRequestHandler.set_check` method.
