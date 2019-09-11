@@ -131,6 +131,23 @@ def process_pull_request(repository, number, installation, action,
             result = function(pr_handler, repo_handler)
             # Ignore skipped checks
             if result is not None:
+                # Map old plugin keys to new checks names.
+                # It's possible that the hook returns {}
+                for context, check in result.items():
+                    if check is not None:
+                        title = check.pop('description', None)
+                        if title:
+                            logger.warn(
+                                f"'description' is deprecated as a key in the return value from {function},"
+                                " it will be interpreted as 'title'")
+                            check['title'] = title
+                        conclusion = check.pop('state', None)
+                        if conclusion:
+                            logger.warn(
+                                f"'state' is deprecated as a key in the return value from {function},"
+                                "it will be interpreted as 'conclusion'.")
+                            check['conclusion'] = conclusion
+                    result[context] = check
                 results.update(result)
 
     for context, details in sorted(results.items()):
@@ -143,8 +160,7 @@ def process_pull_request(repository, number, installation, action,
     for external_id, check in existing_checks.items():
         if external_id not in results:
             check.update({
-                'summary': 'This check has been skipped',
-                'commit_hash': 'head',
+                'title': 'This check has been skipped.',
                 'status': 'completed',
                 'conclusion': 'neutral'})
             pr_handler.set_check(**check)
@@ -153,7 +169,7 @@ def process_pull_request(repository, number, installation, action,
     # is present
     if current_app.bot_username in existing_checks.keys():
         check.update({
-            'summary': 'This check has been skipped',
+            'title': 'This check has been skipped',
             'commit_hash': 'head',
             'status': 'completed',
             'conclusion': 'neutral'})

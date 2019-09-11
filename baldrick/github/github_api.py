@@ -509,14 +509,14 @@ class IssueHandler(GitHubHandler):
 class PullRequestHandler(IssueHandler):
 
     # https://developer.github.com/v3/checks/runs/#create-a-check-run
-    def set_check(self, external_id, summary, name=None, text=None,
+    def set_check(self, external_id, title, name=None, summary=None, text=None,
                   commit_hash='head', details_url=None, status='queued',
                   conclusion='neutral'):
         """
         Set check status.
 
         .. note:: This method does not provide API access to full
-                  check run capability (e.g., annotation,
+                  check run capability (e.g., annotation and
                   image). Add them as needed.
 
         Parameters
@@ -524,14 +524,18 @@ class PullRequestHandler(IssueHandler):
         external_id : `str`
             The reference for this check.
 
-        summary : `str`
-            Summary of the check run.
+        title: `str`
+            The short description of the check to be put in the status line of the PR.
 
         name : `str`, optional
-            Name of the check, defaults to ``external_id`` if not specified.
+            Name of the check, defaults to ``{bot_username}:{external_id}`` if
+            not specified, is displayed first in the status line.
+
+        summary : `str`
+            Summary of the check run, displays at the top of the checks page.
 
         text : `str`, optional
-            The full body of the check
+            The full body of the check, displayed on the checks page.
 
         commit_hash: { 'head' | 'base' }, optional
             The SHA of the commit.
