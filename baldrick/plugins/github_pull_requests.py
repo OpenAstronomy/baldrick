@@ -178,9 +178,9 @@ def process_pull_request(repository, number, installation, action,
 
     # Also set the general 'single' status check as a skipped check if it
     # is present
-    if current_app.bot_username in existing_checks.keys():
+    if current_app.bot_username in new_results.keys():
         check.update({
-            'title': 'This check has been skipped',
+            'title': 'This check has been skipped.',
             'commit_hash': 'head',
             'status': 'completed',
             'conclusion': 'neutral'})

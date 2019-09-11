@@ -176,41 +176,57 @@ class TestPullRequestHandler:
                                   'output': {'title': 'All good here',
                                              'summary': ''}}
 
-    # The following test is not relevant currently since we don't skip posting
-    # checks, due to strange caching issues with GitHub. But if we ever add
-    # back this functionality, the test below could come in handy.
-    #
-    # def test_skip_existing_checks(self, app, client):
-    #
-    #     # If checks already exist, don't post them again
-    #
-    #     test_hook.return_value = {
-    #         'test1': {'description': 'Problems here', 'state': 'failure'},
-    #         'test2': {'description': 'All good here', 'state': 'success'}}
-    #
-    #     self.get_file_contents.return_value = CONFIG_TEMPLATE
-    #
-    #     self.existing_checks = {
-    #         'total_count': 1,
-    #         'check_runs': [{'name': 'testbot:test1',
-    #                         'status': 'completed',
-    #                         'conclusion': 'failure',
-    #                         'output': {'title': 'testbot:test1',
-    #                                    'summary': 'Problems here'}}]}
-    #
-    #     self.send_event(client)
-    #
-    #     assert self.requests_post.call_count == 1
-    #
-    #     args, kwargs = self.requests_post.call_args_list[0]
-    #     kwargs['json'].pop('completed_at')  # Actual value not important
-    #     assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
-    #     assert kwargs['json'] == {'name': 'testbot:test2',
-    #                               'head_sha': 'abc464aa',
-    #                               'status': 'completed',
-    #                               'conclusion': 'success',
-    #                               'output': {'title': 'testbot:test2',
-    #                                          'summary': 'All good here'}}
+    def test_skip_existing_checks(self, app, client):
+
+        # If checks already exist, don't post them again
+
+        test_hook.return_value = {
+            'test2': {'title': 'All good here', 'conclusion': 'success'}}
+
+        self.get_file_contents.return_value = CONFIG_TEMPLATE
+
+        self.existing_checks = {
+            'total_count': 1,
+            'check_runs': [{'name': 'testbot:test1',
+                            'status': 'completed',
+                            'conclusion': 'failure',
+                            'external_id': 'test1',
+                            'head_sha': 'abc464aa',
+                            'external_id': 'test1',
+                            'id': 1,
+                            'app': {'id': app.integration_id},
+                            'output': {'title': 'Problems here',
+                                       'summary': ''}}]}
+
+        self.send_event(client)
+
+        # We send one new check for test2
+        assert self.requests_post.call_count == 1
+
+        args, kwargs = self.requests_post.call_args_list[0]
+        kwargs['json'].pop('completed_at')  # Actual value not important
+        assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
+        assert kwargs['json'] == {'name': 'testbot:test2',
+                                  'head_sha': 'abc464aa',
+                                  'status': 'completed',
+                                  'conclusion': 'success',
+                                  'external_id': 'test2',
+                                  'output': {'title': 'All good here',
+                                             'summary': ''}}
+
+        # And update the old check (test1) to be skipped
+        assert self.requests_patch.call_count == 1
+
+        args, kwargs = self.requests_patch.call_args_list[0]
+        kwargs['json'].pop('completed_at')  # Actual value not important
+        assert args[0].startswith('https://api.github.com/repos/test-repo/check-runs')
+        assert kwargs['json'] == {'name': 'testbot:test1',
+                                  'head_sha': 'abc464aa',
+                                  'status': 'completed',
+                                  'conclusion': 'neutral',
+                                  'external_id': 'test1',
+                                  'output': {'title': 'This check has been skipped.',
+                                             'summary': ''}}
 
     def test_no_skip_existing_different_checks(self, app, client):
 
