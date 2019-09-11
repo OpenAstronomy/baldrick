@@ -119,7 +119,6 @@ class TestPullRequestHandler:
         assert self.requests_post.call_count == 2
 
         args, kwargs = self.requests_post.call_args_list[0]
-        kwargs['json'].pop('completed_at')  # Actual value not important
         assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
         assert kwargs['json'] == {'name': 'testbot:test1',
                                   'head_sha': 'abc464aa',
@@ -130,7 +129,6 @@ class TestPullRequestHandler:
                                              'summary': ''}}
 
         args, kwargs = self.requests_post.call_args_list[1]
-        kwargs['json'].pop('completed_at')  # Actual value not important
         assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
         assert kwargs['json'] == {'name': 'testbot:test2',
                                   'head_sha': 'abc464aa',
@@ -155,7 +153,6 @@ class TestPullRequestHandler:
         assert self.requests_post.call_count == 2
 
         args, kwargs = self.requests_post.call_args_list[0]
-        kwargs['json'].pop('completed_at')  # Actual value not important
         assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
         assert kwargs['json'] == {'name': 'testbot:test1',
                                   'head_sha': 'abc464aa',
@@ -166,7 +163,6 @@ class TestPullRequestHandler:
                                              'summary': ''}}
 
         args, kwargs = self.requests_post.call_args_list[1]
-        kwargs['json'].pop('completed_at')  # Actual value not important
         assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
         assert kwargs['json'] == {'name': 'testbot:test2',
                                   'head_sha': 'abc464aa',
@@ -204,7 +200,6 @@ class TestPullRequestHandler:
         assert self.requests_post.call_count == 1
 
         args, kwargs = self.requests_post.call_args_list[0]
-        kwargs['json'].pop('completed_at')  # Actual value not important
         assert args[0] == 'https://api.github.com/repos/test-repo/check-runs'
         assert kwargs['json'] == {'name': 'testbot:test2',
                                   'head_sha': 'abc464aa',
@@ -218,7 +213,6 @@ class TestPullRequestHandler:
         assert self.requests_patch.call_count == 1
 
         args, kwargs = self.requests_patch.call_args_list[0]
-        kwargs['json'].pop('completed_at')  # Actual value not important
         assert args[0].startswith('https://api.github.com/repos/test-repo/check-runs')
         assert kwargs['json'] == {'name': 'testbot:test1',
                                   'head_sha': 'abc464aa',
@@ -273,7 +267,6 @@ class TestPullRequestHandler:
         assert self.requests_patch.call_count == 2
 
         args, kwargs = self.requests_patch.call_args_list[0]
-        kwargs['json'].pop('completed_at')  # Actual value not important
         assert args[0].startswith('https://api.github.com/repos/test-repo/check-runs')
         assert kwargs['json'] == {'name': 'testbot:test1',
                                   'head_sha': 'abc464aa',
@@ -284,7 +277,6 @@ class TestPullRequestHandler:
                                              'summary': ''}}
 
         args, kwargs = self.requests_patch.call_args_list[1]
-        kwargs['json'].pop('completed_at')  # Actual value not important
         assert args[0].startswith('https://api.github.com/repos/test-repo/check-runs')
         assert kwargs['json'] == {'name': 'testbot:test2',
                                   'head_sha': 'abc464aa',
@@ -310,7 +302,6 @@ class TestPullRequestHandler:
         assert self.requests_post.call_count == 1
 
         args, kwargs = self.requests_post.call_args
-        kwargs['json'].pop('completed_at')  # Actual value not important
         assert args[0].startswith('https://api.github.com/repos/test-repo/check-runs')
         assert kwargs['json'] == {'name': 'testbot',
                                   'external_id': 'testbot',

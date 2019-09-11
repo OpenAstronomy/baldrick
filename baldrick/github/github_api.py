@@ -512,7 +512,7 @@ class PullRequestHandler(IssueHandler):
     # https://developer.github.com/v3/checks/runs/#create-a-check-run
     def set_check(self, external_id, title, name=None, summary=None, text=None,
                   commit_hash='head', details_url=None, status=None,
-                  conclusion='neutral', check_id=None):
+                  conclusion='neutral', check_id=None, completed_at=None):
         """
         Set check status.
 
@@ -560,6 +560,11 @@ class PullRequestHandler(IssueHandler):
             If specified this check will be updated rather than a new check
             being made.
 
+        completed_at : `bool` or `datetime.datetime`
+            The time the check completed. If `None` this will not be set, if
+            `True` it will be set to the time this method is called, otherwise
+            it should be a `datetime.datetime.`
+
         """
         url = f'{HOST}/repos/{self.repo}/check-runs'
         headers = self._headers
@@ -570,8 +575,10 @@ class PullRequestHandler(IssueHandler):
         elif commit_hash == "base":
             commit_hash = self.base_sha
 
-        tt = datetime.utcnow()
-        completed_at = tt.isoformat(timespec='seconds') + 'Z'
+        if completed_at is True:
+            completed_at = datetime.utcnow()
+        if completed_at is not None:
+            completed_at = completed_at.isoformat(timespec='seconds') + 'Z'
 
         # If name isn't specified revert to external_id
         name = name or f"{current_app.bot_username}:{external_id}"
@@ -593,7 +600,8 @@ class PullRequestHandler(IssueHandler):
 
         if conclusion is not None:
             parameters['conclusion'] = conclusion
-            parameters['completed_at'] = completed_at
+            if completed_at is not None:
+                parameters['completed_at'] = completed_at
             parameters['status'] = "completed"
 
         logger.trace(f"Sending GitHub check with {parameters}")
