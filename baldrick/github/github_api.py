@@ -581,7 +581,7 @@ class PullRequestHandler(IssueHandler):
             output['text'] = text
 
         parameters = {'external_id': external_id, 'name': name, 'head_sha':
-                      commit_hash, 'status': status, 'output': output }
+                      commit_hash, 'status': status, 'output': output}
 
         if details_url is not None:
             parameters['details_url'] = details_url

@@ -158,7 +158,7 @@ def process_towncrier_changelog(pr_handler, repo_handler):
             'title': cl_config.get('changelog_exists', CHANGELOG_EXISTS),
             'summary': cl_config.get('changelog_exists_long', ''),
             'conclusion': 'success'
-            }
+        }
 
         if check_changelog_type(types, matching_file):
             messages['wrong_type'] = {'name': cl_config.get('type_correct_name', 'changelog: Type correct'),

@@ -153,7 +153,6 @@ def process_pull_request(repository, number, installation, action,
                     result[context] = check
                 results.update(result)
 
-
     # Get existing checks from our app, for the 'head' commit
     existing_checks = pr_handler.list_checks(only_ours=True)
     # For each existing check, see if it needs updating or skipping
@@ -173,11 +172,9 @@ def process_pull_request(repository, number, installation, action,
                 'conclusion': 'neutral'})
             pr_handler.set_check(**check)
 
-
     # Any keys left in results are new checks we haven't sent on this commit yet.
     for external_id, details in sorted(new_results.items()):
         pr_handler.set_check(external_id, status="completed", **details)
-
 
     # Also set the general 'single' status check as a skipped check if it
     # is present
@@ -188,7 +185,6 @@ def process_pull_request(repository, number, installation, action,
             'status': 'completed',
             'conclusion': 'neutral'})
         pr_handler.set_check(**check)
-
 
     # Special message for a special day
     not_boring = pr_handler.get_config_value('not_boring', cfg_default=True)
