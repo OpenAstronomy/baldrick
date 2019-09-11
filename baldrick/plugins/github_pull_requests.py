@@ -31,13 +31,19 @@ def pull_request_handler(actions=None):
 
     They will be passed ``(pr_handler, repo_handler)`` and are expected to
     return a dictionary where the key is a unique string that refers to the
-    specific check that has been made, and the values are dictionaries with
-    the following keys:
+    specific check that has been made, and the values are dictionaries with any
+    arguments to the `~baldrick.github.github_api.PullRequestHandler.set_check`
+    method. Required ones are:
 
-    * ``status`` is a string giving the state for the latest commit (one of
-      ``success``, ``failure``, ``error``, or ``pending``).
-    * ``message``: the message to be shown in the status
-    * ``target_url`` (optional): a URL to link to in the status
+    * ``conclusion`` is a string giving the state for the latest commit (one of
+      ``success``, ``failure``, ``neutral``, ``cancelled``, ``timed_out``, or
+      ``action_required``).
+    * ``title``: the message to be shown in the status line of the PR
+
+    Common optional ones are:
+    * ``name``:: The name of the check in the status line of the PR.
+    * ``summary``:: A summary of the check to be put on the check page.
+    * ``target_url``: a URL to link to in the status
     """
 
     if callable(actions):
