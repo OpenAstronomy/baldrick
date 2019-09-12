@@ -38,12 +38,13 @@ def pull_request_handler(actions=None):
     * ``conclusion`` is a string giving the state for the latest commit (one of
       ``success``, ``failure``, ``neutral``, ``cancelled``, ``timed_out``, or
       ``action_required``).
-    * ``title``: the message to be shown in the status line of the PR
+    * ``title`` is the message to be shown in the status line of the PR
 
     Common optional ones are:
+
     * ``name``:: The name of the check in the status line of the PR.
     * ``summary``:: A summary of the check to be put on the check page.
-    * ``target_url``: a URL to link to in the status
+    * ``target_url``: A URL to link to in the status.
     """
 
     if callable(actions):
