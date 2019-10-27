@@ -248,6 +248,7 @@ class GitHubHandler:
             # These keys match the kwargs to set_check
             checks[context] = {
                 'external_id': result['external_id'],
+                'title': result['output']['title'],
                 'summary': result['output']['summary'],
                 'name': result['name'],
                 'text': result['output'].get('text'),
@@ -662,8 +663,10 @@ class PullRequestHandler(IssueHandler):
 
         Parameters
         ----------
-        commit_hash : str, optional
+        commit_hash : `str`, optional
             The commit hash to set the check on. Defaults to "head" can also be "base".
+        only_ours : `bool`, optional
+            Only return checks which were posted by this GitHub app.
         """
         if commit_hash == "head":
             commit_hash = self.head_sha

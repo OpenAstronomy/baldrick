@@ -97,7 +97,7 @@ use the ``missing_message = "..."`` and ``present_message = "..."`` configuratio
 items.
 
 If you wish to set a longer message to be shown on the checks tab, you can set
-``missing_message_long=`` and ``present_message_long``.
+``missing_message_long`` and ``present_message_long``.
 
 Towncrier changelog checker
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

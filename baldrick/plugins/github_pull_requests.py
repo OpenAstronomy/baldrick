@@ -42,9 +42,9 @@ def pull_request_handler(actions=None):
 
     Common optional ones are:
 
-    * ``name``:: The name of the check in the status line of the PR.
-    * ``summary``:: A summary of the check to be put on the check page.
-    * ``target_url``: A URL to link to in the status.
+    * ``name`` : The name of the check in the status line of the PR.
+    * ``summary`` : A summary of the check to be put on the check page.
+    * ``target_url`` : A URL to link to in the status.
     """
 
     if callable(actions):
@@ -145,13 +145,17 @@ def process_pull_request(repository, number, installation, action,
                 # It's possible that the hook returns {}
                 for context, check in result.items():
                     if check is not None:
-                        title = check.pop('description', None)
+                        title = None
+                        if 'title' not in check:
+                            title = check.pop('description', None)
                         if title:
                             logger.warning(
                                 f"'description' is deprecated as a key in the return value from {function},"
                                 " it will be interpreted as 'title'")
                             check['title'] = title
-                        conclusion = check.pop('state', None)
+                        conclusion = None
+                        if 'state' not in check:
+                            conclusion = check.pop('state', None)
                         if conclusion:
                             logger.warning(
                                 f"'state' is deprecated as a key in the return value from {function},"
@@ -186,6 +190,7 @@ def process_pull_request(repository, number, installation, action,
     # Also set the general 'single' status check as a skipped check if it
     # is present
     if current_app.bot_username in new_results.keys():
+        check = new_results[current_app.bot_username]
         check.update({
             'title': 'This check has been skipped.',
             'commit_hash': 'head',
