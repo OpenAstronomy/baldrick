@@ -145,17 +145,15 @@ def process_pull_request(repository, number, installation, action,
                 # It's possible that the hook returns {}
                 for context, check in result.items():
                     if check is not None:
-                        title = None
-                        if 'title' not in check:
-                            title = check.pop('description', None)
+                        title = check.pop('description', None)
+                        title = check.pop('title', title)
                         if title:
                             logger.warning(
                                 f"'description' is deprecated as a key in the return value from {function},"
                                 " it will be interpreted as 'title'")
                             check['title'] = title
-                        conclusion = None
-                        if 'state' not in check:
-                            conclusion = check.pop('state', None)
+                        conclusion = check.pop('state', None)
+                        conclusion = check.pop('conclusion', conclusion)
                         if conclusion:
                             logger.warning(
                                 f"'state' is deprecated as a key in the return value from {function},"

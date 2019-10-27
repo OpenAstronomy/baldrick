@@ -603,6 +603,8 @@ class PullRequestHandler(IssueHandler):
             parameters['conclusion'] = conclusion
             if completed_at is not None:
                 parameters['completed_at'] = completed_at
+            # The GitHub API does this automatically, but we do it explicitly
+            # here for consistency and for tests!
             parameters['status'] = "completed"
 
         logger.trace(f"Sending GitHub check with {parameters}")
