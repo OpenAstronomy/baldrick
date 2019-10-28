@@ -230,7 +230,6 @@ class TestPullRequestHandler:
             assert self.pr.has_modified(['file1.txt', 'notthis.txt'])
             assert not self.pr.has_modified(['notthis.txt'])
 
-
     def test_set_check(self, app):
         with patch("baldrick.github.github_api.PullRequestHandler.json", new_callable=PropertyMock) as json:
             json.return_value = {'head': {'sha': 987654321},
