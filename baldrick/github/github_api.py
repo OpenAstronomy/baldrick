@@ -526,7 +526,8 @@ class PullRequestHandler(IssueHandler):
         Parameters
         ----------
         external_id : `str`
-            The reference for this check.
+            The internal reference for this check, used to reference the check
+            later, to update it.
 
         title: `str`
             The short description of the check to be put in the status line of the PR.

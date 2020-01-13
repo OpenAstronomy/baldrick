@@ -146,19 +146,19 @@ def process_pull_request(repository, number, installation, action,
                 for context, check in result.items():
                     if check is not None:
                         title = check.pop('description', None)
-                        title = check.pop('title', title)
                         if title:
                             logger.warning(
                                 f"'description' is deprecated as a key in the return value from {function},"
                                 " it will be interpreted as 'title'")
                             check['title'] = title
+                        check['title'] = check.pop('title', title)
                         conclusion = check.pop('state', None)
-                        conclusion = check.pop('conclusion', conclusion)
                         if conclusion:
                             logger.warning(
                                 f"'state' is deprecated as a key in the return value from {function},"
                                 "it will be interpreted as 'conclusion'.")
                             check['conclusion'] = conclusion
+                        check['conclusion'] = check.pop('conclusion', conclusion)
                     result[context] = check
                 results.update(result)
 
