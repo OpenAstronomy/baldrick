@@ -113,6 +113,8 @@ class GitHubHandler:
             Configuration parameters.
 
         """
+        # Also default to 'master' if branch is None
+        branch = branch or 'master'
         app_config = current_app.conf.copy()
         fallback_config = Config()
         repo_config = Config()

@@ -44,7 +44,7 @@ def pull_request_handler(actions=None):
 
     * ``name`` : The name of the check in the status line of the PR.
     * ``summary`` : A summary of the check to be put on the check page.
-    * ``target_url`` : A URL to link to in the status.
+    * ``details_url`` : A URL to link to in the status.
     """
 
     if callable(actions):
@@ -169,21 +169,27 @@ def process_pull_request(repository, number, installation, action,
     for external_id, check in existing_checks.items():
         if external_id in results.keys():
             details = new_results.pop(external_id)
+            # Remove skip key.
+            details.pop("skip_if_missing", False)
             # Update the previous check with the new check (this includes the check_id to update)
             check.update(details)
             # Send the check to be updated
             pr_handler.set_check(**check)
         else:
             # If check is in existing_checks but not results mark it as skipped.
+            logging.debug(check)
             check.update({
                 'title': 'This check has been skipped.',
                 'status': 'completed',
                 'conclusion': 'neutral'})
+            logging.debug(check)
             pr_handler.set_check(**check)
 
     # Any keys left in results are new checks we haven't sent on this commit yet.
     for external_id, details in sorted(new_results.items()):
-        pr_handler.set_check(external_id, status="completed", **details)
+        skip = check.pop("skip_if_missing", False)
+        if not skip:
+            pr_handler.set_check(external_id, status="completed", **details)
 
     # Also set the general 'single' status check as a skipped check if it
     # is present
