@@ -9,3 +9,4 @@ build/
 dist/
 doc/api/
 doc/_build/
+.tox/
