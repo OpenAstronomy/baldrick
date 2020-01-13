@@ -148,7 +148,7 @@ def process_towncrier_changelog(pr_handler, repo_handler):
     elif not matching_file:
 
         messages['missing_file'] = {
-            'name': cl_config.get('changelog_missing_name', "changelog: missing"),
+            'name': cl_config.get('changelog_missing_name', "changelog: absent"),
             'title': cl_config.get('changelog_missing', CHANGELOG_MISSING),
             'summary': cl_config.get('changelog_missing_long', ''),
             'conclusion': 'failure'
@@ -157,7 +157,8 @@ def process_towncrier_changelog(pr_handler, repo_handler):
     else:
         all_passes = True
         if check_changelog_type(types, matching_file):
-            messages['wrong_type'] = {'name': cl_config.get('type_correct_name', 'changelog: type correct'),
+            messages['wrong_type'] = {'name': cl_config.get('type_correct_name',
+                                                            'changelog: type correct'),
                                       'title': cl_config.get('type_correct', TYPE_CORRECT),
                                       'summary': cl_config.get('type_correct_long', ''),
                                       'conclusion': 'success',
