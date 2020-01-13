@@ -94,7 +94,8 @@ def check_changelog_type(types, matching_file):
 
 def verify_pr_number(pr_number, matching_file):
     # TODO: Make this a regex to check that the number is in the right place etc.
-    return pr_number in matching_file
+    logger.trace(f"Checking {pr_number} in {matching_file}")
+    return str(pr_number) in matching_file
 
 
 def load_towncrier_config(pr_handler):
@@ -154,7 +155,7 @@ def process_towncrier_changelog(pr_handler, repo_handler):
         }
 
     else:
-        report_success = True
+        all_passes = True
         if check_changelog_type(types, matching_file):
             messages['wrong_type'] = {'name': cl_config.get('type_correct_name', 'changelog: Type correct'),
                                       'title': cl_config.get('type_correct', TYPE_CORRECT),
@@ -162,31 +163,36 @@ def process_towncrier_changelog(pr_handler, repo_handler):
                                       'conclusion': 'success',
                                       'skip_if_missing': True}
         else:
-            report_success = False
-            messages['wrong_type'] = {'name': cl_config.get('type_incorrect_name', 'changelog: Type incorrect'),
+            all_passes = False
+            messages['wrong_type'] = {'name': cl_config.get('type_incorrect_name',
+                                                            'changelog: Type incorrect'),
                                       'title': cl_config.get('type_incorrect', TYPE_INCORRECT),
                                       'summary': cl_config.get('type_incorrect_long', ''),
                                       'conclusion': 'failure'}
 
         if cl_config.get('verify_pr_number', False):
             if verify_pr_number(pr_handler.number, matching_file):
-                report_success = False
-                messages['wrong_number'] = {'name': cl_config.get('number_incorrect_name', 'changelog: Number not PR number'),
-                                            'title': cl_config.get('number_incorrect', NUMBER_INCORRECT),
-                                            'summary': cl_config.get('number_incorrect_long', ''),
-                                            'conclusion': 'failure'}
-            else:
-                messages['wrong_number'] = {'name': cl_config.get('number_correct_name', 'changelog: Number correct'),
+                messages['wrong_number'] = {'name': cl_config.get('number_correct_name',
+                                                                  'changelog: Number correct'),
                                             'title': cl_config.get('number_correct', NUMBER_CORRECT),
                                             'summary': cl_config.get('number_correct_long', ''),
                                             'conclusion': 'success',
                                             'skip_if_missing': True}
+            else:
+                all_passes = False
+                messages['wrong_number'] = {'name': cl_config.get('number_incorrect_name',
+                                                                  'changelog: Number not PR number'),
+                                            'title': cl_config.get('number_incorrect', NUMBER_INCORRECT),
+                                            'summary': cl_config.get('number_incorrect_long', ''),
+                                            'conclusion': 'failure'}
 
         messages['missing_file'] = {
             'name': cl_config.get('changelog_exists_name', 'changelog: Found'),
             'title': cl_config.get('changelog_exists', CHANGELOG_EXISTS),
             'summary': cl_config.get('changelog_exists_long', ''),
-            'conclusion': 'success'
+            'conclusion': 'success',
+            # Only show this status if all have passed or we already posted one.
+            'skip_if_missing': not all_passes
         }
 
     # Add help URL

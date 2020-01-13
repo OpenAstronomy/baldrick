@@ -187,7 +187,8 @@ def process_pull_request(repository, number, installation, action,
 
     # Any keys left in results are new checks we haven't sent on this commit yet.
     for external_id, details in sorted(new_results.items()):
-        skip = check.pop("skip_if_missing", False)
+        skip = details.pop("skip_if_missing", False)
+        logger.trace(f"{details} skip is {skip}")
         if not skip:
             pr_handler.set_check(external_id, status="completed", **details)
 
