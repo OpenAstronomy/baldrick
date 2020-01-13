@@ -177,12 +177,10 @@ def process_pull_request(repository, number, installation, action,
             pr_handler.set_check(**check)
         else:
             # If check is in existing_checks but not results mark it as skipped.
-            logging.debug(check)
             check.update({
                 'title': 'This check has been skipped.',
                 'status': 'completed',
                 'conclusion': 'neutral'})
-            logging.debug(check)
             pr_handler.set_check(**check)
 
     # Any keys left in results are new checks we haven't sent on this commit yet.

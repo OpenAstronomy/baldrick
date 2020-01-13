@@ -23,12 +23,14 @@ def process_milestone(pr_handler, repo_handler):
 
     if pr_handler.milestone:
         return {'milestone': {
+            'name': "milestone: present",
             'title': pass_message,
             'conclusion': 'success',
             'summary': mc_config.get("present_message_long", '')
         }}
     else:
         return {'milestone': {
+            'name': "milestone: absent",
             'title': fail_message,
             'conclusion': 'failure',
             'summary': mc_config.get("missing_message_long", '')
