@@ -130,7 +130,7 @@ class GitHubHandler:
                 repo_config = loads(file_content, tool=current_app.bot_username)
                 logger.trace(f"Got the following config from {self.repo}@{branch}: {repo_config}")
             except Exception:
-                logger.error(
+                logger.exception(
                     f"Failed to load config in {self.repo} on branch {branch}, despite finding a pyproject.toml file.")
 
             if getattr(current_app, "fall_back_config", None):
