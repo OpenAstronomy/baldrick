@@ -1,3 +1,5 @@
+import copy
+
 from flask import current_app
 from loguru import logger
 
@@ -29,13 +31,20 @@ def pull_request_handler(actions=None):
 
     They will be passed ``(pr_handler, repo_handler)`` and are expected to
     return a dictionary where the key is a unique string that refers to the
-    specific check that has been made, and the values are dictionaries with
-    the following keys:
+    specific check that has been made, and the values are dictionaries with any
+    arguments to the `~baldrick.github.github_api.PullRequestHandler.set_check`
+    method. Required ones are:
 
-    * ``status`` is a string giving the state for the latest commit (one of
-      ``success``, ``failure``, ``error``, or ``pending``).
-    * ``message``: the message to be shown in the status
-    * ``target_url`` (optional): a URL to link to in the status
+    * ``conclusion`` is a string giving the state for the latest commit (one of
+      ``success``, ``failure``, ``neutral``, ``cancelled``, ``timed_out``, or
+      ``action_required``).
+    * ``title`` is the message to be shown in the status line of the PR
+
+    Common optional ones are:
+
+    * ``name`` : The name of the check in the status line of the PR.
+    * ``summary`` : A summary of the check to be put on the check page.
+    * ``details_url`` : A URL to link to in the status.
     """
 
     if callable(actions):
@@ -121,7 +130,8 @@ def process_pull_request(repository, number, installation, action,
             if skip_fails:
                 pr_handler.set_check(
                     current_app.bot_username,
-                    "Skipping checks due to {0} label".format(label),
+                    title="Skipping checks due to {0} label".format(label),
+                    name=current_app.bot_username,
                     status='completed', conclusion='failure')
             return
 
@@ -131,7 +141,65 @@ def process_pull_request(repository, number, installation, action,
             result = function(pr_handler, repo_handler)
             # Ignore skipped checks
             if result is not None:
+                # Map old plugin keys to new checks names.
+                # It's possible that the hook returns {}
+                for context, check in result.items():
+                    if check is not None:
+                        title = check.pop('description', None)
+                        if title:
+                            logger.warning(
+                                f"'description' is deprecated as a key in the return value from {function},"
+                                " it will be interpreted as 'title'")
+                            check['title'] = title
+                        check['title'] = check.pop('title', title)
+                        conclusion = check.pop('state', None)
+                        if conclusion:
+                            logger.warning(
+                                f"'state' is deprecated as a key in the return value from {function},"
+                                "it will be interpreted as 'conclusion'.")
+                            check['conclusion'] = conclusion
+                        check['conclusion'] = check.pop('conclusion', conclusion)
+                    result[context] = check
                 results.update(result)
+
+    # Get existing checks from our app, for the 'head' commit
+    existing_checks = pr_handler.list_checks(only_ours=True)
+    # For each existing check, see if it needs updating or skipping
+    new_results = copy.copy(results)
+    for external_id, check in existing_checks.items():
+        if external_id in results.keys():
+            details = new_results.pop(external_id)
+            # Remove skip key.
+            details.pop("skip_if_missing", False)
+            # Update the previous check with the new check (this includes the check_id to update)
+            check.update(details)
+            # Send the check to be updated
+            pr_handler.set_check(**check)
+        else:
+            # If check is in existing_checks but not results mark it as skipped.
+            check.update({
+                'title': 'This check has been skipped.',
+                'status': 'completed',
+                'conclusion': 'neutral'})
+            pr_handler.set_check(**check)
+
+    # Any keys left in results are new checks we haven't sent on this commit yet.
+    for external_id, details in sorted(new_results.items()):
+        skip = details.pop("skip_if_missing", False)
+        logger.trace(f"{details} skip is {skip}")
+        if not skip:
+            pr_handler.set_check(external_id, status="completed", **details)
+
+    # Also set the general 'single' status check as a skipped check if it
+    # is present
+    if current_app.bot_username in new_results.keys():
+        check = new_results[current_app.bot_username]
+        check.update({
+            'title': 'This check has been skipped.',
+            'commit_hash': 'head',
+            'status': 'completed',
+            'conclusion': 'neutral'})
+        pr_handler.set_check(**check)
 
     # Special message for a special day
     not_boring = pr_handler.get_config_value('not_boring', cfg_default=True)
@@ -146,44 +214,5 @@ def process_pull_request(repository, number, installation, action,
                 special_msg = insert_special_message('')
         if special_msg:
             pr_handler.submit_comment(special_msg)
-
-    # Post each failure as a status
-
-    existing_checks = pr_handler.list_checks()
-
-    for context, details in sorted(results.items()):
-
-        full_context = current_app.bot_username + ':' + context
-
-        # TODO: Revisit if the note made for statuses still applies to checks.
-        # NOTE: we could in principle check if the status has been posted
-        # before, and if so not post it again, but we had this in the past
-        # and there were some strange caching issues where GitHub would
-        # return old status messages, so we avoid doing that.
-
-        pr_handler.set_check(
-            full_context, details['description'],
-            details_url=details.get('target_url'), status='completed',
-            conclusion=details['state'])
-
-    # For statuses that have been skipped this time but existed before, set
-    # status to pass and set message to say skipped
-
-    for full_context in existing_checks:
-
-        if full_context.startswith(current_app.bot_username + ':'):
-            context = full_context[len(current_app.bot_username) + 1:]
-            if context not in results:
-                pr_handler.set_check(
-                    current_app.bot_username + ':' + context,
-                    'This check has been skipped', status='completed',
-                    conclusion='neutral')
-
-        # Also set the general 'single' status check as a skipped check if it
-        # is present
-        if full_context == current_app.bot_username:
-            pr_handler.set_check(
-                current_app.bot_username, 'This check has been skipped',
-                status='completed', conclusion='neutral')
 
     return 'Finished pull requests checks'

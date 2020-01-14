@@ -229,3 +229,62 @@ class TestPullRequestHandler:
             assert self.pr.has_modified(['file1.txt'])
             assert self.pr.has_modified(['file1.txt', 'notthis.txt'])
             assert not self.pr.has_modified(['notthis.txt'])
+
+    def test_set_check(self, app):
+        with patch("baldrick.github.github_api.PullRequestHandler.json", new_callable=PropertyMock) as json:
+            json.return_value = {'head': {'sha': 987654321},
+                                 'base': {'sha': 123456789}}
+            with patch('requests.post') as post:
+                self.pr.set_check("baldrick-1", "hello", name="test")
+                expected_json = {'external_id': 'baldrick-1',
+                                 'name': 'test',
+                                 'head_sha': 987654321,
+                                 'status': 'completed',
+                                 'output': {'title': 'hello', 'summary': ''},
+                                 'conclusion': 'neutral'}
+                post.assert_called_once_with('https://api.github.com/repos/fakerepo/doesnotexist/check-runs',
+                                             headers={'Accept': 'application/vnd.github.antiope-preview+json'},
+                                             json=expected_json)
+
+                post.reset_mock()
+
+                self.pr.set_check("baldrick-1", "hello", name="test",
+                                  commit_hash='base', text="hello world", summary="why hello")
+                expected_json = {'external_id': 'baldrick-1',
+                                 'name': 'test',
+                                 'head_sha': 123456789,
+                                 'status': 'completed',
+                                 'output': {'title': 'hello', 'summary': 'why hello', 'text': 'hello world'},
+                                 'conclusion': 'neutral'}
+                post.assert_called_once_with('https://api.github.com/repos/fakerepo/doesnotexist/check-runs',
+                                             headers={'Accept': 'application/vnd.github.antiope-preview+json'},
+                                             json=expected_json)
+
+                post.reset_mock()
+
+                self.pr.set_check("baldrick-1", "hello", name="test",
+                                  commit_hash='hello', details_url="this_is_a_url")
+                expected_json = {'external_id': 'baldrick-1',
+                                 'name': 'test',
+                                 'head_sha': 'hello',
+                                 'details_url': 'this_is_a_url',
+                                 'status': 'completed',
+                                 'output': {'title': 'hello', 'summary': ''},
+                                 'conclusion': 'neutral'}
+                post.assert_called_once_with('https://api.github.com/repos/fakerepo/doesnotexist/check-runs',
+                                             headers={'Accept': 'application/vnd.github.antiope-preview+json'},
+                                             json=expected_json)
+
+                post.reset_mock()
+
+                self.pr.set_check("baldrick-1", "hello", name="test",
+                                  status="completed", conclusion=None)
+                expected_json = {'external_id': 'baldrick-1',
+                                 'name': 'test',
+                                 'head_sha': 987654321,
+                                 'status': 'completed',
+                                 'output': {'title': 'hello', 'summary': ''},
+                                 'conclusion': 'neutral'}
+                post.assert_called_once_with('https://api.github.com/repos/fakerepo/doesnotexist/check-runs',
+                                             headers={'Accept': 'application/vnd.github.antiope-preview+json'},
+                                             json=expected_json)

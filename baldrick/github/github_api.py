@@ -113,6 +113,8 @@ class GitHubHandler:
             Configuration parameters.
 
         """
+        # Also default to 'master' if branch is None
+        branch = branch or 'master'
         app_config = current_app.conf.copy()
         fallback_config = Config()
         repo_config = Config()
@@ -128,7 +130,7 @@ class GitHubHandler:
                 repo_config = loads(file_content, tool=current_app.bot_username)
                 logger.trace(f"Got the following config from {self.repo}@{branch}: {repo_config}")
             except Exception:
-                logger.error(
+                logger.exception(
                     f"Failed to load config in {self.repo} on branch {branch}, despite finding a pyproject.toml file.")
 
             if getattr(current_app, "fall_back_config", None):
@@ -220,7 +222,7 @@ class GitHubHandler:
 
         return statuses
 
-    def list_checks(self, commit_hash):
+    def list_checks(self, commit_hash, only_ours=True):
         """
         List check messages on a commit on GitHub.
 
@@ -228,6 +230,9 @@ class GitHubHandler:
         ----------
         commit_hash : str
             The commit has to get the statuses for
+
+        only_ours : `bool`, optional
+            Only return status that this app has posted.
         """
         url = f'{HOST}/repos/{self.repo}/commits/{commit_hash}/check-runs'
         headers = self._headers
@@ -236,11 +241,25 @@ class GitHubHandler:
 
         checks = {}
         for result in results.get('check_runs', []):
-            context = result['name']
-            checks[context] = {'summary': result['output']['summary'],
-                               'details_url': result.get('details_url'),
-                               'status': result['status'],
-                               'conclusion': result['conclusion']}
+
+            # Skip checks from other apps if specified.
+            if only_ours and result['app']['id'] != current_app.integration_id:
+                continue
+
+            context = result['external_id']
+            # These keys match the kwargs to set_check
+            checks[context] = {
+                'external_id': result['external_id'],
+                'title': result['output']['title'],
+                'summary': result['output']['summary'],
+                'name': result['name'],
+                'text': result['output'].get('text'),
+                'commit_hash': result['head_sha'],
+                'details_url': result.get('details_url'),
+                'status': result['status'],
+                'conclusion': result['conclusion'],
+                'check_id': result['id'],
+            }
 
         return checks
 
@@ -494,27 +513,39 @@ class IssueHandler(GitHubHandler):
 class PullRequestHandler(IssueHandler):
 
     # https://developer.github.com/v3/checks/runs/#create-a-check-run
-    def set_check(self, name, summary, commit_hash='head', details_url=None,
-                  status='queued', conclusion='neutral'):
+    def set_check(self, external_id, title, name=None, summary=None, text=None,
+                  commit_hash='head', details_url=None, status=None,
+                  conclusion='neutral', check_id=None, completed_at=None):
         """
         Set check status.
 
         .. note:: This method does not provide API access to full
-                  check run capability (e.g., Markdown text, annotation,
+                  check run capability (e.g., annotation and
                   image). Add them as needed.
 
         Parameters
         ----------
-        name : str
-            Name of the check.
+        external_id : `str`
+            The internal reference for this check, used to reference the check
+            later, to update it.
 
-        summary : str
-            Summary of the check run.
+        title: `str`
+            The short description of the check to be put in the status line of the PR.
+
+        name : `str`, optional
+            Name of the check, defaults to ``{bot_username}:{external_id}`` if
+            not specified, is displayed first in the status line.
+
+        summary : `str`
+            Summary of the check run, displays at the top of the checks page.
+
+        text : `str`, optional
+            The full body of the check, displayed on the checks page.
 
         commit_hash: { 'head' | 'base' }, optional
             The SHA of the commit.
 
-        details_url : str or `None`, optional
+        details_url : `str` or `None`, optional
             The URL of the integrator's site that has the full details
             of the check.
 
@@ -529,6 +560,15 @@ class PullRequestHandler(IssueHandler):
             Note: Providing conclusion will automatically set the status
             parameter to ``'completed'``.
 
+        check_id : `str`, optional
+            If specified this check will be updated rather than a new check
+            being made.
+
+        completed_at : `bool` or `datetime.datetime`
+            The time the check completed. If `None` this will not be set, if
+            `True` it will be set to the time this method is called, otherwise
+            it should be a `datetime.datetime.`
+
         """
         url = f'{HOST}/repos/{self.repo}/check-runs'
         headers = self._headers
@@ -539,17 +579,43 @@ class PullRequestHandler(IssueHandler):
         elif commit_hash == "base":
             commit_hash = self.base_sha
 
-        tt = datetime.utcnow()
-        completed_at = tt.isoformat(timespec='seconds') + 'Z'
+        if completed_at is True:
+            completed_at = datetime.utcnow()
+        if completed_at is not None:
+            completed_at = completed_at.isoformat(timespec='seconds') + 'Z'
 
-        output = {'title': name, 'summary': summary}
-        parameters = {'name': name, 'head_sha': commit_hash, 'status': status,
-                      'conclusion': conclusion, 'completed_at': completed_at,
-                      'output': output}
+        # If name isn't specified revert to external_id
+        name = name or f"{current_app.bot_username}:{external_id}"
+
+        output = {'title': title, 'summary': summary or ''}
+        if text is not None:
+            output['text'] = text
+
+        parameters = {'external_id': external_id, 'name': name, 'head_sha':
+                      commit_hash, 'status': status, 'output': output}
+
         if details_url is not None:
             parameters['details_url'] = details_url
 
-        response = requests.post(url, headers=headers, json=parameters)
+        if status == "completed" and conclusion is None:
+            logger.warning(
+                "When a GitHub check status is completed, conclusion must be specified, setting it to 'neutral'")
+            conclusion = "neutral"
+
+        if conclusion is not None:
+            parameters['conclusion'] = conclusion
+            if completed_at is not None:
+                parameters['completed_at'] = completed_at
+            # The GitHub API does this automatically, but we do it explicitly
+            # here for consistency and for tests!
+            parameters['status'] = "completed"
+
+        logger.trace(f"Sending GitHub check with {parameters}")
+
+        if not check_id:
+            response = requests.post(url, headers=headers, json=parameters)
+        else:
+            response = requests.patch(url + f'/{check_id}', headers=headers, json=parameters)
         assert response.ok, response.content
 
     def set_status(self, state, description, context, commit_hash="head", target_url=None):
@@ -596,20 +662,22 @@ class PullRequestHandler(IssueHandler):
             commit_hash = self.base_sha
         return super().list_statuses(commit_hash)
 
-    def list_checks(self, commit_hash="head"):
+    def list_checks(self, commit_hash="head", only_ours=True):
         """
         List checks on a commit on GitHub.
 
         Parameters
         ----------
-        commit_hash : str, optional
+        commit_hash : `str`, optional
             The commit hash to set the check on. Defaults to "head" can also be "base".
+        only_ours : `bool`, optional
+            Only return checks which were posted by this GitHub app.
         """
         if commit_hash == "head":
             commit_hash = self.head_sha
         elif commit_hash == "base":
             commit_hash = self.base_sha
-        return super().list_checks(commit_hash)
+        return super().list_checks(commit_hash, only_ours=only_ours)
 
     @property
     def _url_pull_request(self):

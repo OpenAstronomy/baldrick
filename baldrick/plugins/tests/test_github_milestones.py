@@ -60,8 +60,8 @@ class TestMilestonePlugin:
 
         assert "milestone" in ret
         assert len(ret) == 1
-        assert ret['milestone']['state'] == "success"
-        assert ret['milestone']['description'] == "milestone present"
+        assert ret['milestone']['conclusion'] == "success"
+        assert ret['milestone']['title'] == "milestone present"
 
     def test_milestone_absent(self, app):
 
@@ -72,8 +72,8 @@ class TestMilestonePlugin:
 
         assert "milestone" in ret
         assert len(ret) == 1
-        assert ret['milestone']['state'] == "failure"
-        assert ret['milestone']['description'] == "missing milestone"
+        assert ret['milestone']['conclusion'] == "failure"
+        assert ret['milestone']['title'] == "missing milestone"
 
     def test_milestone_present_default(self, app):
 
@@ -85,8 +85,8 @@ class TestMilestonePlugin:
 
         assert "milestone" in ret
         assert len(ret) == 1
-        assert ret['milestone']['state'] == "success"
-        assert ret['milestone']['description'] == PRESENT_MESSAGE
+        assert ret['milestone']['conclusion'] == "success"
+        assert ret['milestone']['title'] == PRESENT_MESSAGE
 
     def test_milestone_absent_default(self, app):
 
@@ -96,8 +96,8 @@ class TestMilestonePlugin:
 
         assert "milestone" in ret
         assert len(ret) == 1
-        assert ret['milestone']['state'] == "failure"
-        assert ret['milestone']['description'] == MISSING_MESSAGE
+        assert ret['milestone']['conclusion'] == "failure"
+        assert ret['milestone']['title'] == MISSING_MESSAGE
 
     def test_no_config(self, app):
         self.get_file_contents.return_value = CONFIG_TEMPLATE_MISSING

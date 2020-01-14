@@ -54,4 +54,4 @@ class TestTowncrierPlugin:
             messages = process_towncrier_changelog(self.pr_handler, self.repo_handler)
 
         for message in messages.values():
-            assert message['state'] == 'success'
+            assert message['conclusion'] == 'success'
