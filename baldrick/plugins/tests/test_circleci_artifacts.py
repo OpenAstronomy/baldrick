@@ -30,6 +30,7 @@ CONFIG_TEMPLATE_ARTIFACT_2 = """
     [ tool.testbot.circleci_artifacts.other ]
         url = "go-test.out"
         message = "Something else"
+        report_on_fail = true
 """
 
 
@@ -49,6 +50,11 @@ class TestArtifactPlugin:
         self.repo_handler = RepoHandler("nota/repo", "1234")
         self.get_file_contents = self.get_file_contents_mock.start()
         FILE_CACHE.clear()
+
+        self.set_status_mock = patch(
+            'baldrick.github.github_api.RepoHandler.set_status')
+        self.set_status = self.set_status_mock.start()
+
 
     def teardown_method(self, method):
         self.get_file_contents_mock.stop()
@@ -114,3 +120,35 @@ class TestArtifactPlugin:
 
         self.set_status.call_args_list == args
         assert self.get_artifacts.call_count == 1
+
+
+    def test_report_on_fail(self, app, caplog):
+        self.get_file_contents.return_value = CONFIG_TEMPLATE_ARTIFACT_2
+        self.get_artifacts.return_value = [
+            {
+                "path": "raw-test-output/go-test-report.xml",
+                "pretty_path": "raw-test-output/go-test-report.xml",
+                "node_index": 0,
+                "url":
+                "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test-report.xml"
+            },
+            {
+                "path": "raw-test-output/go-test.out",
+                "pretty_path": "raw-test-output/go-test.out",
+                "node_index": 0,
+                "url": "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out"
+            }
+        ]
+
+        payload = self.basic_payload()
+        payload['status'] = "cancelled"
+
+        with app.app_context():
+            with caplog.at_level(logging.DEBUG):
+                set_commit_status_for_artifacts(self.repo_handler, payload, {})
+
+        self.set_status.assert_called_once_with('success',
+                                                'Something else',
+                                                'other',
+                                                '2.0',
+                                                'https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out')
