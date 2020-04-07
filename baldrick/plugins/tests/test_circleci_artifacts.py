@@ -55,7 +55,6 @@ class TestArtifactPlugin:
             'baldrick.github.github_api.RepoHandler.set_status')
         self.set_status = self.set_status_mock.start()
 
-
     def teardown_method(self, method):
         self.get_file_contents_mock.stop()
 
@@ -120,7 +119,6 @@ class TestArtifactPlugin:
 
         self.set_status.call_args_list == args
         assert self.get_artifacts.call_count == 1
-
 
     def test_report_on_fail(self, app, caplog):
         self.get_file_contents.return_value = CONFIG_TEMPLATE_ARTIFACT_2
