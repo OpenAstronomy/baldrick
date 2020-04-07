@@ -14,24 +14,25 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers):
         logger.debug(msg)
         return msg
 
-    if payload['status'] == 'success':
-        logger.info(f"Got CircleCI 'success' status for repo: {payload['username']}/{payload['reponame']}")
-        artifacts = get_artifacts_from_build(payload)
+    logger.info(f"Got CircleCI payload for repo: {payload['username']}/{payload['reponame']}")
+    artifacts = get_artifacts_from_build(payload)
 
-        for name, config in ci_config.items():
+    # Remove enabled from the config list
+    ci_config.pop("enabled", None)
 
-            if name == 'enabled':
-                continue
+    for name, config in ci_config.items():
+        if payload["status"] != "success" and not config.get("report_on_fail", False):
+            continue
 
-            url = get_documentation_url_from_artifacts(artifacts, config['url'])
-            logger.debug(f"Found artifact: {url}")
+        url = get_documentation_url_from_artifacts(artifacts, config['url'])
+        logger.debug(f"Found artifact: {url}")
 
-            if url:
-                repo_handler.set_status("success",
-                                        config["message"],
-                                        name,
-                                        payload["vcs_revision"],
-                                        url)
+        if url:
+            repo_handler.set_status("success",
+                                    config["message"],
+                                    name,
+                                    payload["vcs_revision"],
+                                    url)
 
     return "All good"
 
@@ -46,6 +47,5 @@ def get_artifacts_from_build(p):  # pragma: no cover
 
 def get_documentation_url_from_artifacts(artifacts, url):
     for artifact in artifacts:
-        # Find the root sphinx index.html
         if url in artifact['path']:
             return artifact['url']

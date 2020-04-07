@@ -28,6 +28,12 @@ set of artifacts, for example::
 The ``url`` item should be set to the file path of the artifacts, and the
 message is what will be shown in the status check.
 
+Optionally, you can also specify a ``report_on_fail = true`` option for each artifact.
+By default the artifact status will only be posted if the build reports a status
+of ``"success"``, if ``report_on_fail`` is set to ``true`` then the artifact
+status will be posted (as long as it is successfully uploaded) irrespective of
+the build status.
+
 Push handlers
 -------------
 
