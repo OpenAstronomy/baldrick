@@ -84,7 +84,7 @@ def get_installation_token(installation):
         headers['Authorization'] = 'Bearer {0}'.format(get_json_web_token())
         headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
 
-        url = 'https://api.github.com/installations/{0}/access_tokens'.format(installation)
+        url = 'https://api.github.com/app/installations/{0}/access_tokens'.format(installation)
 
         req = requests.post(url, headers=headers)
         resp = req.json()
