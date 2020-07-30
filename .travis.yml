@@ -6,7 +6,7 @@ os:
   - linux
 
 python:
-  - "3.6"
+  - "3.8"
 
 install:
   - pip install .[test]
@@ -15,6 +15,7 @@ script:
 
   - python setup.py check --restructuredtext
 
+  - pip install pytest -U
   - pytest -rx --flake8 --cov baldrick baldrick
 
   # Install sphinx now - this is to make sure that the tests for baldrick don't

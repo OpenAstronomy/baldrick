@@ -129,7 +129,7 @@ def process_towncrier_changelog(pr_handler, repo_handler):
 
     config = load_towncrier_config(pr_handler)
     if not config:
-        logger.info(f"No towncrier config detected in pyproject.toml, skipping.")
+        logger.info("No towncrier config detected in pyproject.toml, skipping.")
         return
 
     section_dirs = calculate_fragment_paths(config)
