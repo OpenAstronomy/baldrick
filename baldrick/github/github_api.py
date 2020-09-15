@@ -739,6 +739,10 @@ class PullRequestHandler(IssueHandler):
         else:
             return milestone['title']
 
+    @property
+    def draft(self):
+        return self.json['draft']
+
     def get_modified_files(self):
         """Get all the filenames of the files modified by this PR."""
         files = paged_github_json_request(self._url_files,
