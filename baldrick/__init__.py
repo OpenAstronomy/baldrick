@@ -52,10 +52,11 @@ def create_app(name, register_blueprints=True):
     app.wsgi_app = ProxyFix(app.wsgi_app)
 
     # Check if there is a global configuration
+    app.conf = Config()
     if os.path.exists(GLOBAL_TOML):
-        app.conf = load(GLOBAL_TOML, tool=name)
-    else:
-        app.conf = Config()
+        conf = load(GLOBAL_TOML, tool=name)
+        if conf:
+            app.conf = conf
 
     app.integration_id = int(os.environ['GITHUB_APP_INTEGRATION_ID'])
     app.private_key = os.environ['GITHUB_APP_PRIVATE_KEY']
