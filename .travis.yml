@@ -21,7 +21,7 @@ script:
   # Install sphinx now - this is to make sure that the tests for baldrick don't
   # need sphinx or its dependencies to be installed
   - pip install sphinx sphinx-automodapi
-  - cd doc
+  - cd docs
   - make html
   - cd ..
 
