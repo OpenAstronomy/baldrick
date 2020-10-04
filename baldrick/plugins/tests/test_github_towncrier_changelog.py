@@ -18,6 +18,26 @@ CONFIG_TEMPLATE = """
 enabled=true
 """
 
+CUSTOM_TYPE_TEMPLATE = """
+[tool.towncrier]
+    package = "sunpy"
+    directory = "changelog/"
+
+    [[tool.towncrier.type]]
+      directory = "doc"
+      name = "Improved Documentation"
+      showcontent = true
+
+    [[tool.towncrier.type]]
+      directory = "trivial"
+      name = "Trivial/Internal Changes"
+      showcontent = true
+
+[ tool.testbot ]
+[ tool.testbot.towncrier_changelog ]
+enabled=true
+"""
+
 
 class TestTowncrierPlugin:
 
@@ -55,3 +75,16 @@ class TestTowncrierPlugin:
 
         for message in messages.values():
             assert message['conclusion'] == 'success'
+
+    @pytest.mark.xfail(
+        sys.platform.startswith('win'),
+        reason='process_towncrier_changelog returns failure on Windows')
+    def test_changelog_type_substring(self, app):
+
+        self.get_file_contents.return_value = CUSTOM_TYPE_TEMPLATE
+        self.modified_files.return_value = (['changelog/1234.docfix.rst'])
+
+        with app.app_context():
+            messages = process_towncrier_changelog(self.pr_handler, self.repo_handler)
+
+        assert messages['wrong_type']['conclusion'] == 'failure'
