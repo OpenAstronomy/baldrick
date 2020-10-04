@@ -322,6 +322,62 @@ class RepoHandler(GitHubHandler):
         return [label['name'] for label in result]
 
 
+    def create_file(self, path, message, content, branch, *, committer=None, author=None):
+        """
+        Create a new file in the repo.
+
+        Parameters
+        ----------
+        path : `str`
+            The path to create the file at, from the base of the repo.
+
+        message : `str`
+            The commit message to be used with this commit.
+
+        content : `str` or `bytes`
+            The base64 encoded content to be added to the commit. If the type
+            `bytes` it is assumed to be already base64 encoded. If the type is
+            string it will be assumed to be a utf-8 string and encoded to bytes
+            and then base64.
+
+        branch : `str`
+            The branch to add the file to.
+
+        committer : `dict`, optional
+            The committer for the commit, should be a dict of ``{'name': str,
+            'email': str}``. Will default to the bot user.
+
+        author : `dict`, optional
+            The author for the commit, should be a dict of ``{'name': str,
+            'email': str}``. Will default to the bot user.
+
+        Returns
+        -------
+        sha : `str`
+            The commit hash that was created.
+
+        """
+        if isinstance(content, str):
+            content = base64.b64encode(content.encode("utf-8"))
+
+        url = f"{HOST}/repos/{self.repo}/contents/{path}"
+        data =  {
+            "message": message,
+            "content": content,
+            "branch": branch,
+            }
+
+        if committer:
+            data["committer"] = committer
+
+        if author:
+            data["author"] = author
+
+        resp = requests.put(url, data=data)
+
+        return resp["commit"]
+
+
 class IssueHandler(GitHubHandler):
 
     def __init__(self, repo, number, installation=None):

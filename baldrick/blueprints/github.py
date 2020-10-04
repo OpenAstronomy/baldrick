@@ -1,6 +1,7 @@
 import json
 
 from flask import Blueprint, request
+from loguru import logger
 
 from baldrick.github.github_api import RepoHandler
 
@@ -29,13 +30,16 @@ def github_webhook_handler(func):
 def github_webhook():
 
     if not request.data:
+        logger.trace("No payload received")
         return "No payload received"
 
     # Parse the JSON sent by GitHub
     payload = json.loads(request.data)
 
     if 'installation' not in payload:
-        return "No installation key found in payload"
+        msg = "No installation key found in payload"
+        logger.trace(msg)
+        return msg
     else:
         installation = payload['installation']['id']
 
