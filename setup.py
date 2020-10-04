@@ -1,31 +1,23 @@
-from setuptools import setup, find_packages
+#!/usr/bin/env python
 
-entry_points = {}
-entry_points['console_scripts'] = ['check-stale-issues = baldrick.scripts.stale_issues:main',
-                                   'check-stale-pull-requests = baldrick.scripts.stale_pull_requests:main']
+import os
 
-with open('README.rst') as f:
-    long_description = f.read()
+from setuptools import setup
 
-setup(version='0.3.dev0',
-      name="baldrick",
-      description="baldrick: a cunning plan for GitHub bots",
-      long_description=long_description,
-      url='https://github.com/OpenAstronomy/baldrick',
-      packages=find_packages(),
-      author='Stuart Mumford and Thomas Robitaille',
-      author_email='thomas.robitaille@gmail.com',
-      entry_points=entry_points,
-      extras_require={'test': ['pytest>=3.5,<3.7', 'pytest-flake8', 'pytest-cov', 'codecov', 'towncrier'],
-                      'docs': ['sphinx', 'sphinx-automodapi']},
-      install_requires=[
-          "flask",
-          "pyjwt",
-          "requests",
-          "python-dateutil",
-          "cryptography",
-          "humanize",
-          "towncrier",
-          "toml",
-          "loguru",
-          "ttldict"])
+
+VERSION_TEMPLATE = """
+# Note that we need to fall back to the hard-coded version if either
+# setuptools_scm can't be imported or setuptools_scm can't determine the
+# version, so we catch the generic 'Exception'.
+try:
+    from setuptools_scm import get_version
+    __version__ = get_version(root='..', relative_to=__file__)
+except Exception:
+    __version__ = '{version}'
+""".lstrip()
+
+setup(
+    use_scm_version={'write_to': os.path.join('baldrick', 'version.py'),
+                     'write_to_template': VERSION_TEMPLATE},
+
+)

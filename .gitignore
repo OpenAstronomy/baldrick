@@ -7,5 +7,7 @@ htmlcov/
 *egg-info*
 build/
 dist/
-doc/api/
-doc/_build/
+docs/api/
+docs/_build/
+.tox/
+baldrick/version.py
