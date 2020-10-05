@@ -24,6 +24,6 @@ def check_base_branch(pr_handler, repo_handler):
         sta = 'failure'
 
     return {'basebranch': {
-            'title': f'Change base to {basebranch}',
+            'title': f'Check PR opened against {basebranch}',
             'description': desc,
             'state': sta}}
