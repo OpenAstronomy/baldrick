@@ -32,3 +32,8 @@
     # type_correct = ""
     # type_incorrect = ""
     # help_url = ""
+
+  [ tool.<your-bot-name>.basebranch_checker ]
+
+    # enabled = true
+    # basebranch = "master"

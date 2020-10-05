@@ -18,6 +18,9 @@
   called with any of unlabeled, labeled, synchronize, opened, milestoned, and
   demilestoned. [#77]
 
+* Added ``check_base_branch`` plugin to make sure that a new pull request
+  is opened against the correct upstream base branch (e.g., ``master``). [#92]
+
 0.2 (2018-11-22)
 ----------------
 
