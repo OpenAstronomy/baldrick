@@ -40,7 +40,7 @@ jobs:
     # Only Upload to PyPI on tags
     ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
       pypi_connection_name : 'pypi_endpoint'
-    test_extras: 'tests'
+    test_extras: 'test'
     test_command: 'pytest -p no:warnings --pyargs baldrick'
     submodules: false
 
