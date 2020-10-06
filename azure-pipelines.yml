@@ -34,19 +34,19 @@ jobs:
         name: py37_test
 
 # On branches which aren't master, and not Pull Requests, build the wheels but only upload them on tags
-- ${{ if and(ne(variables['Build.Reason'], 'PullRequest'), not(contains(variables['Build.SourceBranch'], 'master'))) }}:
-  - template: publish.yml@OpenAstronomy
-    parameters:
-      # Only Upload to PyPI on tags
-      ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
-        pypi_connection_name : 'pypi_endpoint'
-      test_extras: 'tests'
-      test_command: 'pytest -p no:warnings --pyargs baldrick'
-      submodules: false
+# - ${{ if and(ne(variables['Build.Reason'], 'PullRequest'), not(contains(variables['Build.SourceBranch'], 'master'))) }}:
+- template: publish.yml@OpenAstronomy
+  parameters:
+    # Only Upload to PyPI on tags
+    ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
+      pypi_connection_name : 'pypi_endpoint'
+    test_extras: 'tests'
+    test_command: 'pytest -p no:warnings --pyargs baldrick'
+    submodules: false
 
-      targets:
-        - sdist
-        - wheels_universal
-      dependsOn:
-        - py37_test
-        - py38_test
+    targets:
+      - sdist
+      - wheels_universal
+    dependsOn:
+      - py37_test
+      - py38_test
