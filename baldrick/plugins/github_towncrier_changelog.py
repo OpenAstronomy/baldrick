@@ -1,6 +1,7 @@
 import os
 import re
 from collections import OrderedDict
+from pathlib import Path
 
 from loguru import logger
 from toml import loads
@@ -86,10 +87,9 @@ def check_sections(filenames, sections):
 
 
 def check_changelog_type(types, matching_file):
-    for ty in types:
-        if ty in matching_file:
-            return True
-    return False
+    filename = Path(matching_file).name
+    components = filename.split(".")
+    return components[1] in types
 
 
 def verify_pr_number(pr_number, matching_file):
