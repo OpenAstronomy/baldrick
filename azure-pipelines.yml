@@ -4,7 +4,7 @@ resources:
   repositories:
   - repository: OpenAstronomy
     type: github
-    endpoint: baldrick
+    endpoint: OpenAstronomy
     name: OpenAstronomy/azure-pipelines-templates
     ref: master
 
@@ -39,7 +39,7 @@ jobs:
     parameters:
       # Only Upload to PyPI on tags
       ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
-        pypi_connection_name : 'PyPI'
+        pypi_connection_name : 'pypi_endpoint'
       test_extras: 'tests'
       test_command: 'pytest -p no:warnings --pyargs baldrick'
       submodules: false
