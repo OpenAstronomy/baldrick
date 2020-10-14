@@ -2,7 +2,9 @@ import toml
 
 
 def load(file, tool='baldrick'):
-    return Config(toml.load(file)['tool'][tool])
+    conf = toml.load(file)
+    if 'tool' in conf and tool in conf['tool']:
+        return Config(conf['tool'][tool])
 
 
 def loads(text, tool='baldrick'):
