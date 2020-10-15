@@ -1,4 +1,3 @@
-import pytest
 from baldrick.config import Config, load, loads
 
 GLOBAL_TOML = """
