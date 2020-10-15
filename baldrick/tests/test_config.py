@@ -1,4 +1,3 @@
-import pytest
 from baldrick.config import Config, load, loads
 
 GLOBAL_TOML = """
@@ -41,8 +40,8 @@ def test_load(tmpdir):
 
 
 def test_loads_invalid_tool():
-    with pytest.raises(KeyError):
-        loads(GLOBAL_TOML, tool='testbot')
+    conf = loads(GLOBAL_TOML, tool='testbot')
+    assert conf is None
 
 
 def test_update_override():
