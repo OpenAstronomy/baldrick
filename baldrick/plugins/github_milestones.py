@@ -2,7 +2,7 @@ from loguru import logger
 
 from baldrick.plugins.github_pull_requests import pull_request_handler
 
-MISSING_MESSAGE = 'This pull request has no milestone set.'
+MISSING_MESSAGE = 'Maintainers need to set the milestone for this pull request.'
 PRESENT_MESSAGE = 'This pull request has a milestone set.'
 
 
