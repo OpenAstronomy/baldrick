@@ -8,7 +8,9 @@ def load(file, tool='baldrick'):
 
 
 def loads(text, tool='baldrick'):
-    return Config(toml.loads(text)['tool'][tool])
+    conf = toml.loads(text)
+    if 'tool' in conf and tool in conf['tool']:
+        return Config(conf['tool'][tool])
 
 
 class Config(dict):
