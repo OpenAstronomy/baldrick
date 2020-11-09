@@ -26,7 +26,8 @@ QUOTES = [
     "Are you my mommy?",
     "Resistance is futile.",
     "I'm the one who knocks!",
-    "Who are you who are so wise in the ways of science?"]
+    "Who are you who are so wise in the ways of science?",
+    "Not bad, for a human."]
 
 
 def unwrap(text):
