@@ -46,8 +46,8 @@ def get_json_web_token():
         payload['iss'] = int(os.environ['GITHUB_APP_INTEGRATION_ID'])
 
         json_web_token = jwt.encode(payload,
-                                    os.environ['GITHUB_APP_PRIVATE_KEY'].encode('ascii'),
-                                    algorithm='RS256').decode('ascii')
+                                    os.environ['GITHUB_APP_PRIVATE_KEY'],
+                                    algorithm='RS256')
 
     return json_web_token
 
