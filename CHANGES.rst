@@ -1,11 +1,6 @@
 0.3 (unreleased)
 ----------------
 
-* Fix ``PullRequestHandler`` to grab configuration file from default branch
-  of upstream repository. Default branch in ``github_api`` module is now
-  ``main``, not ``master``; but this does not affect existing plugins and
-  scripts unless they fall back to ``github_api`` default. [#??]
-
 * New API to post checks on GitHub. [#45]
 
 * Remove support for ``post_pr_comment`` - instead we now support exclusively
@@ -25,6 +20,11 @@
 
 * Added ``check_base_branch`` plugin to make sure that a new pull request
   is opened against the correct upstream base branch (e.g., ``master``). [#92]
+
+* Fix ``PullRequestHandler`` to grab configuration file from default branch
+  of upstream repository. Default branch in ``github_api`` module is now
+  ``main``, not ``master``; but this does not affect existing plugins and
+  scripts unless they fall back to ``github_api`` default. [#112]
 
 0.2 (2018-11-22)
 ----------------
