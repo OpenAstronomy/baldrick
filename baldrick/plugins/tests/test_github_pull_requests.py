@@ -1,5 +1,6 @@
 import json
 from copy import copy
+from toml import loads
 from unittest.mock import MagicMock, patch, PropertyMock
 
 from baldrick.github.github_api import FILE_CACHE
@@ -39,10 +40,12 @@ class TestPullRequestHandler:
         self.requests_get_mock = patch('requests.get', self._requests_get)
         self.requests_post_mock = patch('requests.post')
         self.requests_patch_mock = patch('requests.patch')
-        self.get_file_contents_mock = patch('baldrick.github.github_api.GitHubHandler.get_file_contents')
+        self.get_file_contents_mock = patch('baldrick.github.github_api.GitHubHandler.get_repo_config')
         self.get_installation_token_mock = patch('baldrick.github.github_auth.get_installation_token')
         self.labels_mock = patch('baldrick.github.github_api.PullRequestHandler.labels',
                                  new_callable=PropertyMock)
+        self.base_repo_name_mock = patch('baldrick.github.github_api.PullRequestHandler.base_repo_name',
+                                         new_callable=PropertyMock)
 
         self.requests_get = self.requests_get_mock.start()
         self.requests_post = self.requests_post_mock.start()
@@ -50,9 +53,11 @@ class TestPullRequestHandler:
         self.get_file_contents = self.get_file_contents_mock.start()
         self.get_installation_token = self.get_installation_token_mock.start()
         self.labels = self.labels_mock.start()
+        self.base_repo_name = self.base_repo_name_mock.start()
 
         self.get_installation_token.return_value = 'abcdefg'
         self.labels.return_value = []
+        self.base_repo_name.return_value = 'test-repo/test'
 
         FILE_CACHE.clear()
 
@@ -62,6 +67,7 @@ class TestPullRequestHandler:
         self.get_file_contents_mock.stop()
         self.get_installation_token_mock.stop()
         self.labels = self.labels_mock.stop()
+        self.base_repo_name = self.base_repo_name_mock.stop()
 
     def _requests_get(self, url, headers=None):
         req = MagicMock()
@@ -76,6 +82,8 @@ class TestPullRequestHandler:
             req.json.return_value = self.pr_comments
         elif url == 'https://api.github.com/repos/test-repo/commits/abc464aa/check-runs':
             req.json.return_value = self.existing_checks
+        elif url == 'https://api.github.com/repos/test-repo/test':
+            req.json.return_value = {'default_branch': 'master'}
         else:
             raise ValueError('Unexepected URL: {0}'.format(url))
         return req
@@ -98,7 +106,7 @@ class TestPullRequestHandler:
         # registered handlers don't return any checks
 
         test_hook.return_value = None
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE)
 
         self.send_event(client)
 
@@ -112,7 +120,7 @@ class TestPullRequestHandler:
             'test1': {'description': 'No problem', 'state': 'success'},
             'test2': {'description': 'All good here', 'state': 'success'}}
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE)
 
         self.send_event(client)
 
@@ -146,7 +154,7 @@ class TestPullRequestHandler:
             'test1': {'description': 'Problems here', 'state': 'failure'},
             'test2': {'description': 'All good here', 'state': 'success'}}
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE)
 
         self.send_event(client)
 
@@ -179,7 +187,7 @@ class TestPullRequestHandler:
         test_hook.return_value = {
             'test2': {'title': 'All good here', 'conclusion': 'success'}}
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE)
 
         self.existing_checks = {
             'total_count': 1,
@@ -230,7 +238,7 @@ class TestPullRequestHandler:
             'test1': {'description': 'Problems here', 'state': 'failure'},
             'test2': {'description': 'All good here', 'state': 'success'}}
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE)
 
         self.existing_checks = {
             'total_count': 3,
@@ -292,8 +300,8 @@ class TestPullRequestHandler:
         # registered handlers don't return any checks
 
         test_hook.return_value = {}
-        self.get_file_contents.return_value = (CONFIG_TEMPLATE +
-                                               'skip_labels = [ "Experimental" ]\n')
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE +
+                                                    'skip_labels = [ "Experimental" ]\n')
 
         self.labels.return_value = ['Experimental']
 

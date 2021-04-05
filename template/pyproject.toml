@@ -36,4 +36,4 @@
   [ tool.<your-bot-name>.basebranch_checker ]
 
     # enabled = true
-    # basebranch = "master"
+    # basebranch = "main"

@@ -1,3 +1,4 @@
+from toml import loads
 from unittest.mock import patch, PropertyMock
 
 from baldrick.github.github_api import FILE_CACHE
@@ -28,14 +29,14 @@ class TestMilestonePlugin:
 
     def setup_method(self, method):
 
-        self.get_file_contents_mock = patch('baldrick.github.github_api.PullRequestHandler.get_file_contents')
+        self.get_file_contents_mock = patch('baldrick.github.github_api.PullRequestHandler.get_repo_config')
         self.get_base_branch_mock = patch('baldrick.github.github_api.PullRequestHandler.base_branch')
         a = self.get_base_branch_mock.start()
         a.return_value = "master"
         self.milestone_mock = patch('baldrick.github.github_api.PullRequestHandler.milestone',
                                     new_callable=PropertyMock)
 
-        self.repo_handler = RepoHandler("nota/repo", "1234")
+        self.repo_handler = RepoHandler("nota/repo", branch="main", installation="1234")
         self.pr_handler = PullRequestHandler("nota/repo", "1234")
 
         self.milestone = self.milestone_mock.start()
@@ -51,8 +52,8 @@ class TestMilestonePlugin:
 
     def test_milestone_present(self, app):
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(missing="missing milestone",
-                                                                     present="milestone present")
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE.format(missing="missing milestone",
+                                                                           present="milestone present"))
         self.milestone.return_value = "0.1"
 
         with app.app_context():
@@ -65,8 +66,8 @@ class TestMilestonePlugin:
 
     def test_milestone_absent(self, app):
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(missing="missing milestone",
-                                                                     present="milestone present")
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE.format(missing="missing milestone",
+                                                                           present="milestone present"))
         with app.app_context():
             ret = process_milestone(self.pr_handler, self.repo_handler)
 
@@ -77,7 +78,7 @@ class TestMilestonePlugin:
 
     def test_milestone_present_default(self, app):
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE_DEFAULT
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE_DEFAULT)
         self.milestone.return_value = "0.1"
 
         with app.app_context():
@@ -90,7 +91,7 @@ class TestMilestonePlugin:
 
     def test_milestone_absent_default(self, app):
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE_DEFAULT
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE_DEFAULT)
         with app.app_context():
             ret = process_milestone(self.pr_handler, self.repo_handler)
 
@@ -100,7 +101,7 @@ class TestMilestonePlugin:
         assert ret['milestone']['title'] == MISSING_MESSAGE
 
     def test_no_config(self, app):
-        self.get_file_contents.return_value = CONFIG_TEMPLATE_MISSING
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE_MISSING)
         with app.app_context():
             ret = process_milestone(self.pr_handler, self.repo_handler)
 

@@ -40,7 +40,7 @@ def github_webhook():
         installation = payload['installation']['id']
 
     repo_name = payload['repository']['full_name']
-    repo = RepoHandler(repo_name, installation=installation)
+    repo = RepoHandler(repo_name, branch='main', installation=installation)
 
     for handler in GITHUB_WEBHOOK_HANDLERS:
         handler(repo, payload, request.headers)

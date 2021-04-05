@@ -180,7 +180,8 @@ class TestIssueHandler:
     def test_missing_labels(self):
         with patch('baldrick.github.github_api.IssueHandler.labels', new_callable=PropertyMock) as mock_issue_labels:  # noqa
             mock_issue_labels.return_value = ['io.fits']
-            with patch('baldrick.github.github_api.RepoHandler.get_all_labels') as mock_repo_labels:  # noqa
+            with patch('baldrick.github.github_api.RepoHandler.get_all_labels') as mock_repo_labels, patch('baldrick.github.github_api.RepoHandler.default_branch',new_callable=PropertyMock) as mock_default_branch:  # noqa
+                mock_default_branch.return_value = 'main'
                 mock_repo_labels.return_value = ['io.fits', 'closed-by-bot']
 
                 # closed-by-bot label will be added to issue in POST

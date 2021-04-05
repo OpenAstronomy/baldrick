@@ -2,6 +2,7 @@ import sys
 from unittest.mock import patch
 
 import pytest
+from toml import loads
 
 from baldrick.github.github_api import FILE_CACHE
 from baldrick.github.github_api import RepoHandler, PullRequestHandler
@@ -14,8 +15,8 @@ CONFIG_TEMPLATE = """
     filename = "NEWS.rst"
 
 [ tool.testbot ]
-[ tool.testbot.towncrier_changelog ]
-enabled=true
+  [[ tool.testbot.towncrier_changelog ]]
+    enabled=true
 """
 
 CUSTOM_TYPE_TEMPLATE = """
@@ -43,13 +44,13 @@ class TestTowncrierPlugin:
 
     def setup_method(self, method):
 
-        self.get_file_contents_mock = patch('baldrick.github.github_api.PullRequestHandler.get_file_contents')
+        self.get_file_contents_mock = patch('baldrick.github.github_api.PullRequestHandler.get_repo_config')
         self.get_base_branch_mock = patch('baldrick.github.github_api.PullRequestHandler.base_branch')
         a = self.get_base_branch_mock.start()
         a.return_value = "master"
         self.modified_files_mock = patch('baldrick.github.github_api.PullRequestHandler.get_modified_files')
 
-        self.repo_handler = RepoHandler("nota/repo", "1234")
+        self.repo_handler = RepoHandler("nota/repo", branch="main", installation="1234")
         self.pr_handler = PullRequestHandler("nota/repo", "1234")
 
         self.get_file_contents = self.get_file_contents_mock.start()
@@ -67,7 +68,7 @@ class TestTowncrierPlugin:
         reason='process_towncrier_changelog returns failure on Windows')
     def test_changelog_present(self, app):
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = loads(CONFIG_TEMPLATE)
         self.modified_files.return_value = (['./testbot/newsfragments/1234.bugfix'])
 
         with app.app_context():
@@ -81,7 +82,7 @@ class TestTowncrierPlugin:
         reason='process_towncrier_changelog returns failure on Windows')
     def test_changelog_type_substring(self, app):
 
-        self.get_file_contents.return_value = CUSTOM_TYPE_TEMPLATE
+        self.get_file_contents.return_value = loads(CUSTOM_TYPE_TEMPLATE)
         self.modified_files.return_value = (['changelog/1234.docfix.rst'])
 
         with app.app_context():

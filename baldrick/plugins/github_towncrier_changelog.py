@@ -4,7 +4,6 @@ from collections import OrderedDict
 from pathlib import Path
 
 from loguru import logger
-from toml import loads
 
 from .github_pull_requests import pull_request_handler
 
@@ -99,8 +98,7 @@ def verify_pr_number(pr_number, matching_file):
 
 
 def load_towncrier_config(pr_handler):
-    file_content = pr_handler.get_file_contents("pyproject.toml", branch=pr_handler.base_branch)
-    config = loads(file_content)
+    config = pr_handler.get_repo_config()
     if "towncrier" in config.get("tool", {}):
         return parse_toml(config)
 
