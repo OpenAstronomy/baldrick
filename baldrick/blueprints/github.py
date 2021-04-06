@@ -41,6 +41,7 @@ def github_webhook():
 
     repo_name = payload['repository']['full_name']
     repo = RepoHandler(repo_name, installation=installation)
+    print(f'Webhook created handler for {repo_name}')
 
     for handler in GITHUB_WEBHOOK_HANDLERS:
         handler(repo, payload, request.headers)
