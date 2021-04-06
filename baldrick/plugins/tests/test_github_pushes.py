@@ -44,7 +44,7 @@ class TestPushHandler:
         self.get_file_contents_mock.stop()
         self.get_installation_token_mock.stop()
 
-    def send_event(self, client, git_ref='refs/heads/master'):
+    def send_event(self, client, git_ref='refs/heads/main'):
 
         data = {'ref': git_ref,
                 'repository': {'full_name': 'test-repo'},
@@ -69,7 +69,7 @@ class TestPushHandler:
         assert test_handler.call_count == 1
         repo_handler, git_ref = test_handler.call_args[0]
         assert repo_handler.repo == 'test-repo'
-        assert repo_handler.branch == 'master'
+        assert repo_handler.branch == 'main'
         assert git_ref == 'refs/tags/stable'
 
     def test_disabled(self, app, client):
