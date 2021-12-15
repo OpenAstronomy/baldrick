@@ -6,7 +6,6 @@ resources:
     type: github
     endpoint: OpenAstronomy
     name: OpenAstronomy/azure-pipelines-templates
-    ref: master
 
 trigger:
   branches:
