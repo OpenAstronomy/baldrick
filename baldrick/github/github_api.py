@@ -61,6 +61,20 @@ class GitHubHandler:
         self._cache.clear()
 
     @property
+    def repo_info(self):
+        """
+        The return of GET /repos/{org}/{repo}
+        """
+        response = requests.get(f"{HOST}/repos/{self.repo}")
+        if not response.ok:
+            raise ValueError("Unable to fetch repo information {response.json()}")
+        return response.json()
+
+    @property
+    def default_branch(self):
+        return self.repo_info["default_branch"]
+
+    @property
     def _headers(self):
         if self.installation is None:
             return {}
@@ -71,7 +85,9 @@ class GitHubHandler:
     def _url_contents(self):
         return f'{HOST}/repos/{self.repo}/contents/'
 
-    def get_file_contents(self, path_to_file, branch='master'):
+    def get_file_contents(self, path_to_file, branch=None):
+        if branch is None:
+            branch = self.default_branch
         cache_key = f"{self.repo}:{path_to_file}@{branch}"
 
         # It seems that this is the only safe way to do this with
@@ -93,7 +109,7 @@ class GitHubHandler:
         FILE_CACHE[cache_key] = contents
         return contents
 
-    def get_repo_config(self, branch='master', path_to_file='pyproject.toml'):
+    def get_repo_config(self, branch=None, path_to_file='pyproject.toml'):
         """
         Load configuration from the repository.
 
@@ -101,7 +117,7 @@ class GitHubHandler:
         Parameters
         ----------
         branch : `str`
-            The branch to read the config file from. (Will default to 'master')
+            The branch to read the config file from. (Will default to the default branch)
 
         path_to_file : `str`
             Path to the ``pyproject.toml`` file in the repository. Will default
@@ -113,8 +129,7 @@ class GitHubHandler:
             Configuration parameters.
 
         """
-        # Also default to 'master' if branch is None
-        branch = branch or 'master'
+        branch = branch or self.default_branch
         app_config = current_app.conf.copy()
         fallback_config = Config()
         repo_config = Config()
@@ -264,7 +279,7 @@ class GitHubHandler:
 
 class RepoHandler(GitHubHandler):
 
-    def __init__(self, repo, branch='master', installation=None):
+    def __init__(self, repo, branch=None, installation=None):
         self.branch = branch
         super().__init__(repo, installation=installation)
 
@@ -462,7 +477,7 @@ class IssueHandler(GitHubHandler):
         if len(missing_labels) == 0:
             return
 
-        # Need repo handler (master branch)
+        # Need repo handler (default branch)
         if 'repohandler' not in self._cache:
             repo = RepoHandler(self.repo, installation=self.installation)
             self._cache['repohandler'] = repo
