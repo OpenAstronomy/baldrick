@@ -8,46 +8,7 @@ from toml import loads
 
 from .github_pull_requests import pull_request_handler
 
-try:
-    from towncrier._settings import parse_toml
-except ImportError:  # pragma: nocover
-    from towncrier._settings import _template_fname, _start_string, _title_format, _underlines, _default_types
-
-    def parse_toml(config):  # pragma: nocover
-        if 'tool' not in config:
-            raise ValueError("No [tool.towncrier] section.")
-
-        config = config['tool']['towncrier']
-
-        sections = OrderedDict()
-        types = OrderedDict()
-
-        if "section" in config:
-            for x in config["section"]:
-                sections[x.get('name', '')] = x['path']
-        else:
-            sections[''] = ''
-
-        if "type" in config:
-            for x in config["type"]:
-                types[x["directory"]] = {"name": x["name"],
-                                         "showcontent": x["showcontent"]}
-        else:
-            types = _default_types
-
-        return {
-            'package': config.get('package', ''),
-            'package_dir': config.get('package_dir', '.'),
-            'filename': config.get('filename', 'NEWS.rst'),
-            'directory': config.get('directory'),
-            'sections': sections,
-            'types': types,
-            'template': config.get('template', _template_fname),
-            'start_line': config.get('start_string', _start_string),
-            'title_format': config.get('title_format', _title_format),
-            'issue_format': config.get('issue_format'),
-            'underlines': config.get('underlines', _underlines)
-        }
+from towncrier._settings import parse_toml as parse_towncrier_toml
 
 
 def calculate_fragment_paths(config):
@@ -102,7 +63,7 @@ def load_towncrier_config(pr_handler):
     file_content = pr_handler.get_file_contents("pyproject.toml", branch=pr_handler.base_branch)
     config = loads(file_content)
     if "towncrier" in config.get("tool", {}):
-        return parse_toml(config)
+        return parse_towncrier_toml(".", config)
 
 
 CHANGELOG_EXISTS = "Changelog file was added in the correct directories."
