@@ -75,8 +75,9 @@ def circleci_new_handler():
         logger.error(msg)
         return msg
 
+    vcs = payload["pipeline"]["vcs"]
 
-    if payload["vcs"]["provider_name"] != "github":
+    if vcs["provider_name"] != "github":
         msg = "Only GitHub repositories are supported."
         logger.error(msg)
         return msg
@@ -84,7 +85,6 @@ def circleci_new_handler():
     # Get installation id
     repos = repo_to_installation_id_mapping()
 
-    vcs = payload["pipeline"]["vcs"]
     repo = vcs["origin_repository_url"].strip("https://github.com/")
 
     if repo not in repos:
