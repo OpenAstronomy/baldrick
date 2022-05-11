@@ -1,5 +1,7 @@
 import json
 
+from loguru import logger
+
 from baldrick.github.github_auth import repo_to_installation_id_mapping
 from baldrick.github.github_api import RepoHandler
 
@@ -70,10 +72,15 @@ def circleci_new_handler():
                      'pipeline'}
 
     if not required_keys.issubset(payload.keys()):
-        return 'Payload missing {}'.format(' '.join(required_keys - payload.keys()))
+        msg = 'Payload missing {}'.format(' '.join(required_keys - payload.keys()))
+        logger.error(msg)
+        return msg
+
 
     if payload["vcs"]["provider_name"] != "github":
-        return "Only GitHub repositories are supported."
+        msg = "Only GitHub repositories are supported."
+        logger.error(msg)
+        return msg
 
     # Get installation id
     repos = repo_to_installation_id_mapping()
@@ -82,7 +89,9 @@ def circleci_new_handler():
     repo = vcs["origin_repository_url"].strip("https://github.com/")
 
     if repo not in repos:
-        return f"circleci: Not installed for {repo}"
+        msg = f"Not installed for {repo}"
+        logger.error(msg)
+        return msg
 
     repo_handler = RepoHandler(repo, branch=vcs["branch"], installation=repos[repo])
 
