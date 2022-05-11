@@ -52,6 +52,46 @@ def circleci_handler():
     repo_handler = RepoHandler(repo, branch="master", installation=repos[repo])
 
     for handler in CIRCLECI_WEBHOOK_HANDLERS:
-        handler(repo_handler, payload, request.headers)
+        handler(repo_handler, payload, request.headers, payload["status"], payload["vcs_revision"], payload["build_num"])
 
-    return "CirleCI Webhook Finsihed"
+    return "CirleCI Webhook Finished"
+
+
+@circleci_blueprint.route('/circleci/v2', methods=['POST'])
+def circleci_new_handler():
+    if not request.data:
+        return "No payload received"
+
+    payload = json.loads(request.data)
+
+    # Validate we have the keys we need, otherwise ignore the push
+    required_keys = {'vcs',
+                     'workflow',
+                     'pipeline'}
+
+    if not required_keys.issubset(payload.keys()):
+        return 'Payload missing {}'.format(' '.join(required_keys - payload.keys()))
+
+    if payload["vcs"]["provider_name"] != "github":
+        return "Only GitHub repositories are supported."
+
+    # Get installation id
+    repos = repo_to_installation_id_mapping()
+
+    vcs = payload["pipeline"]["vcs"]
+    repo = vcs["origin_repository_url"].strip("https://github.com/")
+
+    if repo not in repos:
+        return f"circleci: Not installed for {repo}"
+
+    repo_handler = RepoHandler(repo, branch=vcs["branch"], installation=repos[repo])
+
+    for handler in CIRCLECI_WEBHOOK_HANDLERS:
+        handler(repo_handler,
+                payload,
+                request.headers,
+                payload["workflow"]["status"],
+                vcs["revision"],
+                payload["pipeline"]["number"])
+
+    return "CirleCI Webhook Finished"

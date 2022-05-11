@@ -67,7 +67,7 @@ class GitHubHandler:
         """
         response = requests.get(f"{HOST}/repos/{self.repo}")
         if not response.ok:
-            raise ValueError("Unable to fetch repo information {response.json()}")
+            raise ValueError(f"Unable to fetch repo information {response.json()}")
         return response.json()
 
     @property
