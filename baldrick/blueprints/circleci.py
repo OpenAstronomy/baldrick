@@ -90,7 +90,7 @@ def circleci_new_handler():
     if repo not in repos:
         msg = f"Not installed for {repo}"
         logger.error(msg)
-        logger.trace(f"Only installed for {repos}")
+        logger.trace(f"Only installed for {repos.keys()}")
         return msg
 
     repo_handler = RepoHandler(repo, branch=vcs["branch"], installation=repos[repo])
