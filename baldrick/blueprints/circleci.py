@@ -67,8 +67,7 @@ def circleci_new_handler():
     payload = json.loads(request.data)
 
     # Validate we have the keys we need, otherwise ignore the push
-    required_keys = {'vcs',
-                     'workflow',
+    required_keys = {'workflow',
                      'pipeline'}
 
     if not required_keys.issubset(payload.keys()):
