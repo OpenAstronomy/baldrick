@@ -85,7 +85,7 @@ def circleci_new_handler():
     # Get installation id
     repos = repo_to_installation_id_mapping()
 
-    repo = vcs["origin_repository_url"].strip("https://github.com/")
+    repo = vcs["origin_repository_url"].removeprefix("https://github.com/")
 
     if repo not in repos:
         msg = f"Not installed for {repo}"
