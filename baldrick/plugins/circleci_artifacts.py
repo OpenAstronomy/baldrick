@@ -40,7 +40,7 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers, status, revi
 
 def get_artifacts_from_build(repo, build_num):  # pragma: no cover
     base_url = "https://circleci.com/api/v1.1"
-    query_url = f"{base_url}/project/github/{repo}/{build_number}/artifacts"
+    query_url = f"{base_url}/project/github/{repo}/{build_num}/artifacts"
     response = requests.get(query_url)
     assert response.ok, response.content
     return response.json()
