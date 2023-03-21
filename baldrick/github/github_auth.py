@@ -1,13 +1,12 @@
 import os
+import time
 import netrc
 import datetime
-from collections import defaultdict
-
-import dateutil.parser
+from collections import defaultdict, UserDict
 
 import jwt
-
 import requests
+import dateutil.parser
 
 TEN_MIN = datetime.timedelta(minutes=9)
 ONE_MIN = datetime.timedelta(minutes=1)
@@ -110,6 +109,104 @@ def github_request_headers(installation):
     headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
 
     return headers
+
+
+class InstallationCache(UserDict):
+    """
+    Retrieve and cache a repository : installation mapping.
+
+    The objective of this class is to do the minimum amount of API calls to
+    GitHub, while also having a way to respond to installations being
+    uninstalled, and therefore removed from the cache.
+
+    To get the repositories for an installation id is one API call per
+    installation, while getting the list of installation ids is one API call.
+
+    This class maintains a cache, which it will try and fetch installation ids
+    from. The cache has a TTL, which when it expires the whole cache will be
+    invalidated, as this is the only way to detect a repository being removed
+    from an installation (as opposed to the installation being removed).
+
+    When a key is requested from the cache, before refreshing the whole cache,
+    a check is made for new installations as this is a cheaper operation than
+    checking for new repositories in existing installations.
+
+    Then we can use the username of the repository in the key to determine if
+    we already have an installation for that user, and just refresh that user.
+    """
+    def __init__(self, ttl=48*60*60):
+        self.ttl = ttl
+        self._last_removal = time.time()
+        self._install_ids = set()
+        super().__init__()
+
+    def clear_cache(self):
+        """
+        Clear the cache and fetch a whole new lot from GitHub.
+        """
+        self.data = {}
+        self._last_removal = time.time()
+        self._refresh_all_installations()
+
+    def _update_install_ids(self):
+        url = 'https://api.github.com/app/installations'
+        headers = {}
+        headers['Authorization'] = 'Bearer {0}'.format(get_json_web_token())
+        headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
+        resp = requests.get(url, headers=headers)
+        payload = resp.json()
+
+        self._install_ids = {p['id'] for p in payload}
+
+    # TODO: We could cache this function to prevent repeat refreshes in short time
+    def _get_repos_for_id(self, iid):
+        headers = github_request_headers(iid)
+        resp = requests.get('https://api.github.com/installation/repositories', headers=headers)
+        payload = resp.json()
+
+        return [repo['full_name'] for repo in payload['repositories']]
+
+    def _refresh_all_installations(self):
+        self._update_install_ids()
+
+        for iid in self._install_ids:
+            repos = self._get_repos_for_id(iid)
+            for repo in repos:
+                self.data[repo] = iid
+
+    def _add_new_installations_to_map(self):
+        self._update_install_ids()
+
+        mapped_ids = self.data.values()
+
+        # Iterate over all the installation ids that are not in the map
+        for iid in self._install_ids.difference(mapped_ids):
+            repos = self._get_repos_for_id(iid)
+            for repo in repos:
+                self.data[repo] = iid
+
+    def __getitem__(self, item):
+        refreshed = (time.time() - self._last_removal) > self.ttl
+        if refreshed:
+            self.clear_cache()
+
+        # First try with current cache, then check for new installations.
+        try:
+            return super().__getitem__(item)
+        except KeyError:
+            self._add_new_installations_to_map()
+
+        # If not found in the new installations, we have to refresh the whole
+        # lot in case someone added a new repo to an existing installation.
+        try:
+            return super().__getitem__(item)
+        except KeyError:
+            # If we have already blown away the cache, don't do it again.
+            if not refreshed:
+                self.clear_cache()  # TODO: This duplicates the work done above
+
+        # Try now, and raise KeyError if the repo is still not found.
+        return super().__getitem__(item)
 
 
 def repo_to_installation_id_mapping():
