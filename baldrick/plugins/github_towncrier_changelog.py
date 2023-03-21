@@ -77,7 +77,7 @@ NUMBER_INCORRECT = "The number in the changelog file does not match this pull re
 
 
 @pull_request_handler
-def process_towncrier_changelog(pr_handler, repo_handler):
+def process_towncrier_changelog(pr_handler, repo_handler, payload=None):
 
     cl_config = pr_handler.get_config_value('towncrier_changelog', {})
 

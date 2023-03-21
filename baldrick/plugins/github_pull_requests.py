@@ -29,7 +29,7 @@ def pull_request_handler(actions=None):
     However, you may pass in a list of strings with subsets of these actions to
     control when the checks are run.
 
-    They will be passed ``(pr_handler, repo_handler)`` and are expected to
+    They will be passed ``(pr_handler, repo_handler, payload)`` and are expected to
     return a dictionary where the key is a unique string that refers to the
     specific check that has been made, and the values are dictionaries with any
     arguments to the `~baldrick.github.github_api.PullRequestHandler.set_check`
@@ -96,11 +96,11 @@ def handle_pull_requests(repo_handler, payload, headers):
 
     return process_pull_request(
         repo_handler.repo, number, repo_handler.installation,
-        action=payload['action'], is_new=is_new)
+        action=payload['action'], is_new=is_new, payload=payload)
 
 
 def process_pull_request(repository, number, installation, action,
-                         is_new=False):
+                         is_new=False, *, payload):
 
     # TODO: cache handlers and invalidate the internal cache of the handlers on
     # certain events.
@@ -138,7 +138,7 @@ def process_pull_request(repository, number, installation, action,
     results = {}
     for function, actions in PULL_REQUEST_CHECKS.items():
         if actions is None or action in actions:
-            result = function(pr_handler, repo_handler)
+            result = function(pr_handler, repo_handler, payload)
             # Ignore skipped checks
             if result is not None:
                 # Map old plugin keys to new checks names.
