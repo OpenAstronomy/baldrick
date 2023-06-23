@@ -1,6 +1,9 @@
 import os
 
-from baldrick import github  # noqa
+from loguru import logger
+
+from baldrick import github
+from baldrick.github import github_auth  # noqa
 
 __all__ = ['create_app', '__version__']
 
@@ -60,6 +63,13 @@ def create_app(name, register_blueprints=True):
 
     app.integration_id = int(os.environ['GITHUB_APP_INTEGRATION_ID'])
     app.private_key = os.environ['GITHUB_APP_PRIVATE_KEY']
+
+    try:
+        repos = github_auth.repo_to_installation_id_mapping()
+    except Exception as e:
+        logger.exception("Failed to auth with GitHub")
+    else:
+        logger.info(f"Installed on the following repos {', '.join(repos.keys())}")
 
     app.bot_username = name
 
