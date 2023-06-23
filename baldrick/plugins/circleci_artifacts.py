@@ -6,7 +6,9 @@ from baldrick.blueprints.circleci import circleci_webhook_handler
 
 
 @circleci_webhook_handler
-def set_commit_status_for_artifacts(repo_handler, payload, headers, status, revision, build_number):
+def set_commit_status_for_artifacts(repo_handler, webhook_version, payload, headers, status, revision, build_number):
+    if webhook_version == "v2" and payload.get("type") != "workflow-completed":
+        logger.debug("Ignoring not 'workflow-completed' webhook.")
 
     ci_config = repo_handler.get_config_value("circleci_artifacts", {})
     if not ci_config.get("enabled", False):
@@ -26,9 +28,9 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers, status, revi
             continue
 
         url = get_documentation_url_from_artifacts(artifacts, config['url'])
-        logger.debug(f"Found artifact: {url}")
 
         if url:
+            logger.debug(f"Found artifact: {url}")
             repo_handler.set_status("success",
                                     config["message"],
                                     name,

@@ -69,7 +69,7 @@ def create_app(name, register_blueprints=True):
     except Exception as e:
         logger.exception("Failed to auth with GitHub")
     else:
-        logger.info(f"Installed on the following repos {', '.join(repos.keys())}")
+        logger.info(f"Installed on the following repos {repos}")
 
     app.bot_username = name
 

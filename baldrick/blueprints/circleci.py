@@ -1,4 +1,5 @@
 import json
+from pprint import pformat
 
 from loguru import logger
 
@@ -54,7 +55,7 @@ def circleci_handler():
     repo_handler = RepoHandler(repo, branch="master", installation=repos[repo])
 
     for handler in CIRCLECI_WEBHOOK_HANDLERS:
-        handler(repo_handler, payload, request.headers, payload["status"], payload["vcs_revision"], payload["build_num"])
+        handler(repo_handler, "v1", payload, request.headers, payload["status"], payload["vcs_revision"], payload["build_num"])
 
     return "CirleCI Webhook Finished"
 
@@ -66,9 +67,12 @@ def circleci_new_handler():
 
     payload = json.loads(request.data)
 
+    logger.debug(f"Got {pformat(payload)} on /circleci/v2")
     # Validate we have the keys we need, otherwise ignore the push
-    required_keys = {'workflow',
-                     'pipeline'}
+    required_keys = {
+        'workflow',
+        'pipeline',
+    }
 
     if not required_keys.issubset(payload.keys()):
         msg = 'Payload missing {}'.format(' '.join(required_keys - payload.keys()))
@@ -97,9 +101,10 @@ def circleci_new_handler():
 
     for handler in CIRCLECI_WEBHOOK_HANDLERS:
         handler(repo_handler,
+                "v2",
                 payload,
                 request.headers,
-                payload["workflow"]["status"],
+                payload["workflow"].get("status"),
                 vcs["revision"],
                 payload["pipeline"]["number"])
 
