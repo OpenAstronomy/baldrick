@@ -4,6 +4,7 @@ import datetime
 from collections import defaultdict
 
 import dateutil.parser
+from loguru import logger
 
 import jwt
 
@@ -30,7 +31,7 @@ def get_json_web_token():
 
     # Include a one-minute buffer otherwise token might expire by the time we
     # make the request with the token.
-    if json_web_token_expiry is None or now + ONE_MIN > json_web_token_expiry:
+    if json_web_token is None or json_web_token_expiry is None or now + ONE_MIN > json_web_token_expiry:
 
         json_web_token_expiry = now + TEN_MIN
 
@@ -82,7 +83,8 @@ def get_installation_token(installation):
 
         headers = {}
         headers['Authorization'] = 'Bearer {0}'.format(get_json_web_token())
-        headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
+        headers['Accept'] = 'application/vnd.github+json'
+        headers['X-GitHub-Api-Version'] = "2022-11-28"
 
         url = 'https://api.github.com/app/installations/{0}/access_tokens'.format(installation)
 
@@ -91,7 +93,7 @@ def get_installation_token(installation):
 
         if not req.ok:
             if 'message' in resp:
-                raise Exception(resp['message'])
+                raise Exception(f"{req.status_code} {resp['message']}")
             else:
                 raise Exception("An error occurred when requesting token")
 
@@ -119,9 +121,13 @@ def repo_to_installation_id_mapping():
     url = 'https://api.github.com/app/installations'
     headers = {}
     headers['Authorization'] = 'Bearer {0}'.format(get_json_web_token())
-    headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
+    headers['Accept'] = 'application/vnd.github+json'
+    headers['X-GitHub-Api-Version'] = "2022-11-28"
     resp = requests.get(url, headers=headers)
     payload = resp.json()
+
+    if resp.status_code != 200:
+        raise ValueError(f"{resp.status_code} {payload} in response from GitHub while getting installations")
 
     ids = [p['id'] for p in payload]
 
