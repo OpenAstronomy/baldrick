@@ -27,7 +27,7 @@ def set_commit_status_for_artifacts(repo_handler, webhook_version, payload, head
 
     for name, config in ci_config.items():
         logger.debug(f"Job config: {config}")
-        if not config.get("enabled", True) and (status != "success" and not config.get("report_on_fail", False)):
+        if not config.get("enabled", True) or (status != "success" and not config.get("report_on_fail", False)):
             continue
 
         if "url" not in config or "message" not in config:
