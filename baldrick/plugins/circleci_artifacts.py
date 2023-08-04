@@ -26,7 +26,7 @@ def set_commit_status_for_artifacts(repo_handler, webhook_version, payload, head
     ci_config.pop("enabled", None)
 
     for name, config in ci_config.items():
-        if status != "success" and not config.get("report_on_fail", False):
+        if status != "success" and not config.get("report_on_fail", False) and config.get("enabled", True):
             continue
 
         url = get_documentation_url_from_artifacts(artifacts, config['url'])
