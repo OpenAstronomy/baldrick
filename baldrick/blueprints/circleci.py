@@ -70,7 +70,7 @@ def circleci_new_handler():
     logger.debug(f"Got {pformat(payload)} on /circleci/v2")
     # Validate we have the keys we need, otherwise ignore the push
     required_keys = {
-        'workflow',
+        'job',
         'pipeline',
     }
 
@@ -104,8 +104,8 @@ def circleci_new_handler():
                 "v2",
                 payload,
                 request.headers,
-                payload["workflow"].get("status"),
+                payload["job"].get("status"),
                 vcs["revision"],
-                payload["pipeline"]["number"])
+                payload["job"]["number"])
 
     return "CirleCI Webhook Finished"
