@@ -11,3 +11,4 @@ docs/api/
 docs/_build/
 .tox/
 baldrick/version.py
+.coverage.xml
