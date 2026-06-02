@@ -1,27 +1,28 @@
 import os
 import re
+import tempfile
 from collections import OrderedDict
 from pathlib import Path
 
 from loguru import logger
-from toml import loads
+from tomllib import loads
 
 from .github_pull_requests import pull_request_handler
 
-from towncrier._settings import parse_toml as parse_towncrier_toml
+from towncrier._settings.load import load_config_from_file
 
 
 def calculate_fragment_paths(config):
 
-    if config.get("directory"):
-        base_directory = config["directory"]
+    if config.directory:
+        base_directory = config.directory
         fragment_directory = None
     else:
-        base_directory = os.path.join(config['package_dir'], config['package'])
+        base_directory = os.path.join(config.package_dir, config.package)
         fragment_directory = "newsfragments"
 
     section_dirs = []
-    for key, val in config['sections'].items():
+    for key, val in config.sections.items():
         if fragment_directory is not None:
             section_dirs.append(os.path.join(base_directory, val, fragment_directory))
         else:
@@ -61,9 +62,12 @@ def verify_pr_number(pr_number, matching_file):
 
 def load_towncrier_config(pr_handler):
     file_content = pr_handler.get_file_contents("pyproject.toml", branch=pr_handler.base_branch)
-    config = loads(file_content)
-    if "towncrier" in config.get("tool", {}):
-        return parse_towncrier_toml(".", config)
+    config_dict = loads(file_content)
+    if "towncrier" in config_dict.get("tool", {}):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+            f.write(file_content)
+            f.flush()
+            return load_config_from_file(".", f.name)
 
 
 CHANGELOG_EXISTS = "Changelog file was added in the correct directories."
@@ -94,7 +98,7 @@ def process_towncrier_changelog(pr_handler, repo_handler):
         return
 
     section_dirs = calculate_fragment_paths(config)
-    types = config['types'].keys()
+    types = config.types.keys()
 
     modified_files = pr_handler.get_modified_files()
 
