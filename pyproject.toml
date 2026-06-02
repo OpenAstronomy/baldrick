@@ -9,7 +9,7 @@ authors = [
     {name = "Stuart Mumford"},
     {name = "Thomas Robitaille"},
     {name = "Pey Lian Lim"},
-    {name = "Brigitta Sipocz"},
+    {name = "Brigitta Sipőcz"},
 ]
 license = {text = "BSD 3-Clause"}
 description = "Baldrick: A cunning plan for GitHub Bots"

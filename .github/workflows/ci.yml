@@ -25,12 +25,10 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v2
     with:
       submodules: false
-      coverage: codecov
+      coverage: github
       toxdeps: tox-pypi-filter
       envs: |
         - linux: py313
-    secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   sdist_verify:
     runs-on: ubuntu-latest
@@ -51,12 +49,10 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v2
     with:
       submodules: false
-      coverage: codecov
+      coverage: github
       toxdeps: tox-pypi-filter
       envs: |
         - linux: py314
-    secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   docs:
     needs: [core]
