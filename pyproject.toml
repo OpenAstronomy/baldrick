@@ -1,7 +1,98 @@
 [build-system]
+requires = ["setuptools>=64", "setuptools_scm", "wheel"]
+build-backend = "setuptools.build_meta"
 
-requires = ["setuptools",
-            "setuptools_scm",
-            "wheel"]
+[project]
+name = "baldrick"
+dynamic = ["version"]
+authors = [
+    {name = "Stuart Mumford"},
+    {name = "Thomas Robitaille"},
+    {name = "Pey Lian Lim"},
+    {name = "Brigitta Sipocz"},
+]
+license = {text = "BSD 3-Clause"}
+description = "Baldrick: A cunning plan for GitHub Bots"
+readme = "README.rst"
+requires-python = ">=3.13"
+dependencies = [
+    "flask",
+    "pyjwt",
+    "requests",
+    "python-dateutil",
+    "cryptography",
+    "humanize",
+    "towncrier==21.3.0",
+    "toml",
+    "loguru",
+    "ttldict",
+]
 
-build-backend = 'setuptools.build_meta'
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+]
+docs = [
+    "sphinx",
+    "sphinx-automodapi",
+]
+
+[tool.setuptools]
+zip-safe = false
+
+[tool.setuptools.packages.find]
+
+[tool.setuptools.package-data]
+baldrick = ["data/*"]
+
+[tool.setuptools_scm]
+write_to = "baldrick/version.py"
+write_to_template = """
+# Note that we need to fall back to the hard-coded version if either
+# setuptools_scm can't be imported or setuptools_scm can't determine the
+# version, so we catch the generic 'Exception'.
+try:
+    from setuptools_scm import get_version
+    __version__ = get_version(root='..', relative_to=__file__)
+except Exception:
+    __version__ = '{version}'
+"""
+
+[tool.pytest.ini_options]
+testpaths = ["baldrick", "docs"]
+filterwarnings = [
+    "error",
+    "ignore:Unknown config option:pytest.PytestConfigWarning",
+    "ignore:Importing 'itsdangerous.json' is deprecated:DeprecationWarning",
+]
+xfail_strict = true
+
+[tool.coverage.run]
+omit = [
+    "baldrick/__init*",
+    "baldrick/conftest.py",
+    "baldrick/*setup_package*",
+    "baldrick/tests/*",
+    "baldrick/*/tests/*",
+    "baldrick/extern/*",
+    "baldrick/version*",
+    "*/baldrick/__init*",
+    "*/baldrick/conftest.py",
+    "*/baldrick/*setup_package*",
+    "*/baldrick/tests/*",
+    "*/baldrick/*/tests/*",
+    "*/baldrick/extern/*",
+    "*/baldrick/version*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "except ImportError",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "def main\\(.*\\):",
+    "pragma: py{ignore_python_version}",
+    "def _ipython_key_completions_",
+]
