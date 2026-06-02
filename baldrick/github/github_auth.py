@@ -44,7 +44,7 @@ def get_json_web_token():
         payload['exp'] = int(json_web_token_expiry.timestamp())
 
         # Integration's GitHub identifier
-        payload['iss'] = int(os.environ['GITHUB_APP_INTEGRATION_ID'])
+        payload['iss'] = os.environ['GITHUB_APP_INTEGRATION_ID']
 
         json_web_token = jwt.encode(payload,
                                     os.environ['GITHUB_APP_PRIVATE_KEY'],

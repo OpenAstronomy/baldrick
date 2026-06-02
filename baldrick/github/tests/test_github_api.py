@@ -74,13 +74,14 @@ setting3 = 4
 """
 
 
+@pytest.mark.skip(reason="Requires real GitHub API access")
 class TestRealRepoHandler:
 
     def setup_method(self, method):
         FILE_CACHE.clear()
 
     def setup_class(self):
-        self.repo = RepoHandler('astropy/astropy-bot')
+        self.repo = RepoHandler('OpenAstronomy/baldrick')
 
     def test_get_config(self, app):
 
