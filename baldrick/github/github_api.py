@@ -65,9 +65,9 @@ class GitHubHandler:
         """
         The return of GET /repos/{org}/{repo}
         """
-        response = requests.get(f"{HOST}/repos/{self.repo}")
+        response = requests.get(f"{HOST}/repos/{self.repo}", headers=self._headers)
         if not response.ok:
-            raise ValueError("Unable to fetch repo information {response.json()}")
+            raise ValueError(f"Unable to fetch repo information {response.json()}")
         return response.json()
 
     @property
@@ -319,7 +319,7 @@ class RepoHandler(GitHubHandler):
         """
         url = f'{HOST}/repos/{self.repo}/issues'
         kwargs = {'state': state, 'labels': labels}
-        r = requests.get(url, kwargs)
+        r = requests.get(url, kwargs, headers=headers)
         result = r.json()
         if exclude_pr:
             issue_list = [d['number'] for d in result

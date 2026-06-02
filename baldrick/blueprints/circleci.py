@@ -1,4 +1,7 @@
 import json
+from pprint import pformat
+
+from loguru import logger
 
 from baldrick.github.github_auth import repo_to_installation_id_mapping
 from baldrick.github.github_api import RepoHandler
@@ -52,6 +55,57 @@ def circleci_handler():
     repo_handler = RepoHandler(repo, branch="master", installation=repos[repo])
 
     for handler in CIRCLECI_WEBHOOK_HANDLERS:
-        handler(repo_handler, payload, request.headers)
+        handler(repo_handler, "v1", payload, request.headers, payload["status"], payload["vcs_revision"], payload["build_num"])
 
-    return "CirleCI Webhook Finsihed"
+    return "CirleCI Webhook Finished"
+
+
+@circleci_blueprint.route('/circleci/v2', methods=['POST'])
+def circleci_new_handler():
+    if not request.data:
+        return "No payload received"
+
+    payload = json.loads(request.data)
+
+    logger.debug(f"Got {pformat(payload)} on /circleci/v2")
+    # Validate we have the keys we need, otherwise ignore the push
+    required_keys = {
+        'job',
+        'pipeline',
+    }
+
+    if not required_keys.issubset(payload.keys()):
+        msg = 'Payload missing {}'.format(' '.join(required_keys - payload.keys()))
+        logger.error(msg)
+        return msg
+
+    vcs = payload["pipeline"]["vcs"]
+
+    if vcs["provider_name"] != "github":
+        msg = "Only GitHub repositories are supported."
+        logger.error(msg)
+        return msg
+
+    # Get installation id
+    repos = repo_to_installation_id_mapping()
+
+    repo = vcs["target_repository_url"].removeprefix("https://github.com/")
+
+    if repo not in repos:
+        msg = f"Not installed for {repo}"
+        logger.error(msg)
+        logger.trace(f"Only installed for {repos.keys()}")
+        return msg
+
+    repo_handler = RepoHandler(repo, branch=vcs["branch"], installation=repos[repo])
+
+    for handler in CIRCLECI_WEBHOOK_HANDLERS:
+        handler(repo_handler,
+                "v2",
+                payload,
+                request.headers,
+                payload["job"].get("status"),
+                vcs["revision"],
+                payload["job"]["number"])
+
+    return "CirleCI Webhook Finished"

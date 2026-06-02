@@ -6,7 +6,11 @@ from baldrick.blueprints.circleci import circleci_webhook_handler
 
 
 @circleci_webhook_handler
-def set_commit_status_for_artifacts(repo_handler, payload, headers):
+def set_commit_status_for_artifacts(repo_handler, webhook_version, payload, headers, status, revision, build_number):
+    if webhook_version == "v2" and payload.get("type") != "job-completed":
+        msg = "Ignoring not 'job-completed' webhook."
+        logger.debug(msg)
+        return
 
     ci_config = repo_handler.get_config_value("circleci_artifacts", {})
     if not ci_config.get("enabled", False):
@@ -14,32 +18,39 @@ def set_commit_status_for_artifacts(repo_handler, payload, headers):
         logger.debug(msg)
         return msg
 
-    logger.info(f"Got CircleCI payload for repo: {payload['username']}/{payload['reponame']}")
-    artifacts = get_artifacts_from_build(payload)
+    repo = repo_handler.repo
+    logger.info(f"Got CircleCI payload for repo: {repo}")
+    artifacts = get_artifacts_from_build(repo, build_number)
 
     # Remove enabled from the config list
     ci_config.pop("enabled", None)
 
     for name, config in ci_config.items():
-        if payload["status"] != "success" and not config.get("report_on_fail", False):
+        logger.debug(f"Job {name=} {config=}")
+        if not config.get("enabled", True) or (status != "success" and not config.get("report_on_fail", False)):
+            continue
+
+        if "url" not in config or "message" not in config:
+            logger.warning(f"Incorrectly configured job {name}, skipping because missing url or message")
             continue
 
         url = get_documentation_url_from_artifacts(artifacts, config['url'])
-        logger.debug(f"Found artifact: {url}")
 
         if url:
+            logger.debug(f"Found artifact: {url}")
             repo_handler.set_status("success",
                                     config["message"],
                                     name,
-                                    payload["vcs_revision"],
+                                    revision,
                                     url)
 
     return "All good"
 
 
-def get_artifacts_from_build(p):  # pragma: no cover
+def get_artifacts_from_build(repo, build_num):  # pragma: no cover
     base_url = "https://circleci.com/api/v1.1"
-    query_url = f"{base_url}/project/github/{p['username']}/{p['reponame']}/{p['build_num']}/artifacts"
+    query_url = f"{base_url}/project/github/{repo}/{build_num}/artifacts"
+    logger.debug(f"Getting build {query_url}")
     response = requests.get(query_url)
     assert response.ok, response.content
     return response.json()
