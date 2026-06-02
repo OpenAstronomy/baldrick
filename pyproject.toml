@@ -58,7 +58,8 @@ except Exception:
     __version__ = '{version}'
 """
 
-[tool.pytest.ini_options]
+[tool.pytest]
+minversion = "9.0"
 testpaths = ["baldrick", "docs"]
 filterwarnings = [
     "error",
@@ -66,6 +67,8 @@ filterwarnings = [
     "ignore:Importing 'itsdangerous.json' is deprecated:DeprecationWarning",
 ]
 xfail_strict = true
+markers = ["github_api"]
+addopts = ["-m not github_api"]
 
 [tool.coverage.run]
 omit = [

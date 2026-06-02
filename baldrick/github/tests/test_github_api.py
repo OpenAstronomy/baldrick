@@ -74,7 +74,7 @@ setting3 = 4
 """
 
 
-@pytest.mark.skip(reason="Requires real GitHub API access")
+@pytest.mark.github_api
 class TestRealRepoHandler:
 
     def setup_method(self, method):
@@ -137,27 +137,14 @@ class TestRealRepoHandler:
                 assert self.repo.get_config_value('pr') == {'setting1': 2, 'setting2': 3, 'setting3': 6}
                 assert self.repo.get_config_value('other') == {'setting4': 5}
 
-    @patch('requests.get')
-    def test_get_file_contents(self, mock_get):
-        content = b"I, for one, welcome our new robot overlords"
+    def test_get_file_contents(self):
+        result = self.repo.get_file_contents('README.rst', branch='master')
+        assert 'Baldrick' in result
+        assert 'cunning plan' in result
 
-        mock_response = Mock()
-        mock_response.ok = True
-        mock_response.json.return_value = {'content': base64.b64encode(content)}
-        mock_get.return_value = mock_response
-
-        result = self.repo.get_file_contents('some/file/here.txt')
-        assert result == content.decode('utf-8')
-
-    @patch('requests.get')
-    def test_missing_file_contents(self, mock_get):
-        mock_response = Mock()
-        mock_response.ok = False
-        mock_response.json.return_value = {'message': 'Not Found'}
-        mock_get.return_value = mock_response
-
+    def test_missing_file_contents(self):
         with pytest.raises(FileNotFoundError):
-            self.repo.get_file_contents('some/file/here.txt')
+            self.repo.get_file_contents('this/file/does/not/exist.txt', branch='master')
 
 
 class TestIssueHandler:
