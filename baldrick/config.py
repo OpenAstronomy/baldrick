@@ -1,14 +1,15 @@
-import toml
+import tomllib
 
 
 def load(file, tool='baldrick'):
-    conf = toml.load(file)
+    with open(file, "rb") as f:
+        conf = tomllib.load(f)
     if 'tool' in conf and tool in conf['tool']:
         return Config(conf['tool'][tool])
 
 
 def loads(text, tool='baldrick'):
-    conf = toml.loads(text)
+    conf = tomllib.loads(text)
     if 'tool' in conf and tool in conf['tool']:
         return Config(conf['tool'][tool])
 

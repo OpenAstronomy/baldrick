@@ -22,8 +22,7 @@ dependencies = [
     "python-dateutil",
     "cryptography",
     "humanize",
-    "towncrier==21.3.0",
-    "toml",
+    "towncrier",
     "loguru",
     "ttldict",
 ]

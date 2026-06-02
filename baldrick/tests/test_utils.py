@@ -40,7 +40,7 @@ def test_is_special_day_1(month, day, hour, answer):
 
 def test_is_special_day_2():
     """System timestamp with default special day."""
-    tt = datetime.datetime.utcnow()
+    tt = datetime.datetime.now(datetime.timezone.utc)
     undeterministic = [(3, 31), (4, 1), (4, 2)]
 
     if (tt.month, tt.day) in undeterministic:
