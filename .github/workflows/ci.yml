@@ -60,7 +60,7 @@ jobs:
     with:
       python-version: '3.13'
       test_extras: 'test'
-      test_command: 'pytest -p no:warnings --doctest-rst --pyargs baldrick'
+      test_command: 'pytest -p no:warnings --pyargs baldrick'
       submodules: false
       save_artifacts: true
       upload_to_pypi: false
