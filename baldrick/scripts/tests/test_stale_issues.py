@@ -125,7 +125,7 @@ class TestProcessIssues:
         # comment yet, so a comment should be posted.
 
         self.get_issues.return_value = ['123']
-        self.get_label_added_date.return_value = now() - 34400
+        self.get_label_added_date.return_value = now() - 32400  # 9 hours
         self.last_comment_date.return_value = None
         self.find_comments.return_value = []
 
