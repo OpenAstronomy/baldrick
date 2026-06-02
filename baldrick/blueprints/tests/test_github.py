@@ -5,13 +5,13 @@ from unittest.mock import MagicMock
 from baldrick.blueprints.github import github_webhook_handler, GITHUB_WEBHOOK_HANDLERS
 
 
-test_hook = MagicMock()
+mock_hook = MagicMock()
 
 
 def setup_module(module):
     module.GITHUB_WEBOOK_HANDLERS_ORIGINAL = copy(GITHUB_WEBHOOK_HANDLERS)
     GITHUB_WEBHOOK_HANDLERS[:] = []
-    github_webhook_handler(test_hook)
+    github_webhook_handler(mock_hook)
 
 
 def teardown_module(module):
@@ -21,7 +21,7 @@ def teardown_module(module):
 class TestHook:
 
     def setup_method(self, method):
-        test_hook.resetmock()
+        mock_hook.reset_mock()
 
     def test_valid(self, app, client):
 
@@ -35,8 +35,8 @@ class TestHook:
         client.post('/github', data=json.dumps(data), headers=headers,
                     content_type='application/json')
 
-        assert test_hook.call_args[0][1]['pull_request']['number'] == '1234'
-        assert test_hook.call_args[0][1]['installation']['id'] == '123'
+        assert mock_hook.call_args[0][1]['pull_request']['number'] == '1234'
+        assert mock_hook.call_args[0][1]['installation']['id'] == '123'
 
     def test_missing_installation(self, app, client):
 

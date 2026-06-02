@@ -4,13 +4,13 @@ from unittest.mock import MagicMock, patch
 
 from baldrick.blueprints.circleci import circleci_webhook_handler, CIRCLECI_WEBHOOK_HANDLERS
 
-test_hook = MagicMock()
+mock_hook = MagicMock()
 
 
 def setup_module(module):
     module.CIRCLECI_WEBOOK_HANDLERS_ORIGINAL = copy(CIRCLECI_WEBHOOK_HANDLERS)
     CIRCLECI_WEBHOOK_HANDLERS[:] = []
-    circleci_webhook_handler(test_hook)
+    circleci_webhook_handler(mock_hook)
 
 
 def teardown_module(module):
@@ -20,7 +20,7 @@ def teardown_module(module):
 class TestHook:
 
     def setup_method(self, method):
-        test_hook.resetmock()
+        mock_hook.reset_mock()
 
     def test_valid(self, app, client):
 
@@ -37,7 +37,7 @@ class TestHook:
             client.post('/circleci', data=json.dumps(data),
                         content_type='application/json')
 
-        assert test_hook.call_args[0][1]['vcs_revision'] == '2.0'
+        assert mock_hook.call_args[0][2]['vcs_revision'] == '2.0'
 
     def test_incorrect_repo(self, app, client):
 
