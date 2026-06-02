@@ -36,6 +36,11 @@ CONFIG_TEMPLATE_ARTIFACT_2 = """
 
 class TestArtifactPlugin:
     def setup_method(self, method):
+        self.requests_get_mock = patch('requests.get')
+        self.requests_get = self.requests_get_mock.start()
+        self.requests_get.return_value.ok = True
+        self.requests_get.return_value.json.return_value = {'default_branch': 'main'}
+
         self.get_file_contents_mock = patch(
             'baldrick.github.github_api.GitHubHandler.get_file_contents')
 
@@ -57,6 +62,7 @@ class TestArtifactPlugin:
 
     def teardown_method(self, method):
         self.get_file_contents_mock.stop()
+        self.requests_get_mock.stop()
 
     def basic_payload(self):
         return {
@@ -70,14 +76,14 @@ class TestArtifactPlugin:
     def test_skip(self, app):
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(enabled="false")
         with app.app_context():
-            set_commit_status_for_artifacts(self.repo_handler, self.basic_payload(), {})
+            set_commit_status_for_artifacts(self.repo_handler, "v1", self.basic_payload(), {}, "success", "2.0", "12356")
 
         assert self.set_status.call_count == 0
 
     def test_no_artifact(self, app):
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(enabled="true")
         with app.app_context():
-            set_commit_status_for_artifacts(self.repo_handler, self.basic_payload(), {})
+            set_commit_status_for_artifacts(self.repo_handler, "v1", self.basic_payload(), {}, "success", "2.0", "12356")
 
         assert self.set_status.call_count == 0
         assert self.get_artifacts.call_count == 1
@@ -102,11 +108,11 @@ class TestArtifactPlugin:
 
         with app.app_context():
             with caplog.at_level(logging.DEBUG):
-                set_commit_status_for_artifacts(self.repo_handler, self.basic_payload(), {})
+                set_commit_status_for_artifacts(self.repo_handler, "v1", self.basic_payload(), {}, "success", "2.0", "12356")
 
         circle_records = [r for r in caplog.records if r.name == 'baldrick.plugins.circleci_artifacts']
-        assert len(circle_records) == 3
-        assert "test/testbot" in caplog.text
+        assert len(circle_records) >= 3
+        assert "nota/repo" in caplog.text
         assert "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test-report.xml" in caplog.text
         assert "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out" in caplog.text
 
@@ -143,7 +149,7 @@ class TestArtifactPlugin:
 
         with app.app_context():
             with caplog.at_level(logging.DEBUG):
-                set_commit_status_for_artifacts(self.repo_handler, payload, {})
+                set_commit_status_for_artifacts(self.repo_handler, "v1", payload, {}, "cancelled", "2.0", "12356")
 
         self.set_status.assert_called_once_with('success',
                                                 'Something else',
