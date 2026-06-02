@@ -26,9 +26,9 @@ jobs:
     with:
       submodules: false
       coverage: github
-      toxdeps: tox-pypi-filter
       envs: |
         - linux: py313
+        - linux: py314
 
   sdist_verify:
     runs-on: ubuntu-latest
@@ -44,16 +44,6 @@ jobs:
       - run: python -m pip install -U --user twine
       - run: python -m twine check dist/*
 
-  test:
-    needs: [core, sdist_verify]
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v2
-    with:
-      submodules: false
-      coverage: github
-      toxdeps: tox-pypi-filter
-      envs: |
-        - linux: py314
-
   docs:
     needs: [core]
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v2
@@ -61,18 +51,11 @@ jobs:
       default_python: '3.13'
       submodules: false
       pytest: false
-      toxdeps: tox-pypi-filter
       envs: |
         - linux: build_docs
 
   build_dists:
-    if: |
-      github.event_name != 'pull_request' ||
-      (
-        github.event_name == 'pull_request' &&
-        contains(github.event.pull_request.labels.*.name, 'Run publish')
-      )
-    needs: [test, docs]
+    needs: [core, docs]
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/publish_pure_python.yml@v2
     with:
       python-version: '3.13'
