@@ -162,14 +162,14 @@ class TestProcessPullRequests:
         # comment yet, so a comment should be posted.
 
         self.open_pull_requests.return_value = ['123']
-        self.last_commit_date.return_value = now() - 221
+        self.last_commit_date.return_value = now() - 240  # 4 minutes
         self.last_comment_date.return_value = None
         self.find_comments.return_value = []
 
         process_pull_requests('repo', 'installation', warn_seconds=220, close_seconds=20)
 
         assert self.submit_comment.call_count == 1
-        expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='3 minutes', futuretime='20 seconds')
+        expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='4 minutes', futuretime='20 seconds')
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
@@ -214,14 +214,14 @@ class TestProcessPullRequests:
         # warning and warn again.
 
         self.open_pull_requests.return_value = ['123']
-        self.last_commit_date.return_value = now() - 221
+        self.last_commit_date.return_value = now() - 240  # 4 minutes
         self.last_comment_date.return_value = now() - 300
         self.find_comments.return_value = [122331]
 
         process_pull_requests('repo', 'installation', warn_seconds=220, close_seconds=20)
 
         assert self.submit_comment.call_count == 1
-        expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='3 minutes', futuretime='20 seconds')
+        expected = PULL_REQUESTS_CLOSE_WARNING.format(pasttime='4 minutes', futuretime='20 seconds')
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0

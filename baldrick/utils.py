@@ -77,7 +77,7 @@ def is_special_day_now(timestamp=None, special_days=[(4, 1)]):
 
     """
     if timestamp is None:
-        tt = datetime.datetime.utcnow()  # UTC because we're astronomers!
+        tt = datetime.datetime.now(datetime.timezone.utc)  # UTC because we're astronomers!
         dt = timedelta(hours=12)  # This roughly covers both hemispheres
         tt_min = tt - dt
         tt_max = tt + dt

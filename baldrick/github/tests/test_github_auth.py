@@ -40,10 +40,11 @@ def test_get_installation_token_invalid_with_message():
 
     with patch('requests.post') as post:
         post.return_value.ok = False
+        post.return_value.status_code = 400
         post.return_value.json.return_value = TOKEN_RESPONSE_INVALID_WITH_MESSAGE
         with pytest.raises(Exception) as exc:
             get_installation_token(12345)
-        assert exc.value.args[0] == TOKEN_RESPONSE_INVALID_WITH_MESSAGE['message']
+        assert exc.value.args[0] == f"{post.return_value.status_code} {TOKEN_RESPONSE_INVALID_WITH_MESSAGE['message']}"
 
 
 TOKEN_RESPONSE_INVALID_WITHOUT_MESSAGE = {}
@@ -71,6 +72,7 @@ def test_github_request_headers():
 
 def requests_patch(url, headers=None):
     req = MagicMock()
+    req.status_code = 200
     if url == 'https://api.github.com/app/installations':
         req.json.return_value = [{'id': 3331}]
     elif url == 'https://api.github.com/installation/repositories':

@@ -38,10 +38,13 @@ IJVMoU0lvK0zKm5VlXh3jbRXt/M5cTNu/1+xZxUbGJ0b+Go3FYc=
 
 @pytest.fixture
 def app():
+    from unittest.mock import patch
     from baldrick import create_app
     os.environ['GITHUB_APP_INTEGRATION_ID'] = '1234'
     os.environ['GITHUB_APP_PRIVATE_KEY'] = PRIVATE_KEY
-    return create_app('testbot')
+    with patch('baldrick.github.github_auth.repo_to_installation_id_mapping') as mock_mapping:
+        mock_mapping.return_value = {'test/test-repo': 123}
+        return create_app('testbot')
 
 
 @pytest.fixture

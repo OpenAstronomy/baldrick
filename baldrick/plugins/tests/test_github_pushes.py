@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from baldrick.github.github_api import FILE_CACHE
 from baldrick.plugins.github_pushes import push_handler, PUSH_HANDLERS
 
-test_handler = MagicMock()
+mock_handler = MagicMock()
 
 
 CONFIG_TEMPLATE = """
@@ -17,7 +17,7 @@ enabled = true
 
 def setup_module(module):
     module.PUSH_HANDLERS_ORIG = copy(PUSH_HANDLERS)
-    push_handler(test_handler)
+    push_handler(mock_handler)
 
 
 def teardown_module(module):
@@ -28,7 +28,12 @@ class TestPushHandler:
 
     def setup_method(self, method):
 
-        test_handler.reset_mock()
+        mock_handler.reset_mock()
+
+        self.requests_get_mock = patch('requests.get')
+        self.requests_get = self.requests_get_mock.start()
+        self.requests_get.return_value.ok = True
+        self.requests_get.return_value.json.return_value = {'default_branch': 'main'}
 
         self.get_file_contents_mock = patch('baldrick.github.github_api.GitHubHandler.get_file_contents')
         self.get_installation_token_mock = patch('baldrick.github.github_auth.get_installation_token')
@@ -43,6 +48,7 @@ class TestPushHandler:
     def teardown_method(self, method):
         self.get_file_contents_mock.stop()
         self.get_installation_token_mock.stop()
+        self.requests_get_mock.stop()
 
     def send_event(self, client, git_ref='refs/heads/master'):
 
@@ -57,8 +63,8 @@ class TestPushHandler:
     def test_branch(self, app, client):
         self.get_file_contents.return_value = CONFIG_TEMPLATE
         self.send_event(client, git_ref='refs/heads/experimental')
-        assert test_handler.call_count == 1
-        repo_handler, git_ref = test_handler.call_args[0]
+        assert mock_handler.call_count == 1
+        repo_handler, git_ref = mock_handler.call_args[0]
         assert repo_handler.repo == 'test-repo'
         assert repo_handler.branch == 'experimental'
         assert git_ref == 'refs/heads/experimental'
@@ -66,19 +72,19 @@ class TestPushHandler:
     def test_tags(self, app, client):
         self.get_file_contents.return_value = CONFIG_TEMPLATE
         self.send_event(client, git_ref='refs/tags/stable')
-        assert test_handler.call_count == 1
-        repo_handler, git_ref = test_handler.call_args[0]
+        assert mock_handler.call_count == 1
+        repo_handler, git_ref = mock_handler.call_args[0]
         assert repo_handler.repo == 'test-repo'
-        assert repo_handler.branch == 'master'
+        assert repo_handler.branch is None
         assert git_ref == 'refs/tags/stable'
 
     def test_disabled(self, app, client):
         self.get_file_contents.return_value = CONFIG_TEMPLATE.replace('enabled = true',
                                                                       'enabled = false')
         self.send_event(client, git_ref='refs/tags/stable')
-        assert test_handler.call_count == 0
+        assert mock_handler.call_count == 0
 
     def test_missing_config(self, app, client):
         self.get_file_contents.return_value = ""
         self.send_event(client, git_ref='refs/tags/stable')
-        assert test_handler.call_count == 0
+        assert mock_handler.call_count == 0

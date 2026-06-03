@@ -6,7 +6,7 @@ from baldrick.github.github_api import FILE_CACHE
 from baldrick.plugins.github_pull_requests import (pull_request_handler,
                                                    PULL_REQUEST_CHECKS)
 
-test_hook = MagicMock()
+mock_hook = MagicMock()
 
 
 CONFIG_TEMPLATE = """
@@ -18,7 +18,7 @@ enabled = true
 
 def setup_module(module):
     module.PULL_REQUEST_CHECKS_ORIG = copy(PULL_REQUEST_CHECKS)
-    pull_request_handler(test_hook)
+    pull_request_handler(mock_hook)
 
 
 def teardown_module(module):
@@ -30,7 +30,7 @@ class TestPullRequestHandler:
 
     def setup_method(self, method):
 
-        test_hook.resetmock()
+        mock_hook.reset_mock()
 
         self.pr_comments = []
         self.existing_checks = {}
@@ -72,6 +72,8 @@ class TestPullRequestHandler:
                 'state': 'open' if self.pr_open else 'closed',
                 'head': {'ref': 'custom', 'sha': 'abc464aa',
                          'repo': {'full_name': 'contributor/test'}}}
+        elif url == 'https://api.github.com/repos/contributor/test':
+            req.json.return_value = {'default_branch': 'main'}
         elif url == 'https://api.github.com/repos/test-repo/issues/1234/comments':
             req.json.return_value = self.pr_comments
         elif url == 'https://api.github.com/repos/test-repo/commits/abc464aa/check-runs':
@@ -97,7 +99,7 @@ class TestPullRequestHandler:
         # Test case where the config doesn't give a default message, and the
         # registered handlers don't return any checks
 
-        test_hook.return_value = None
+        mock_hook.return_value = None
         self.get_file_contents.return_value = CONFIG_TEMPLATE
 
         self.send_event(client)
@@ -108,7 +110,7 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {
+        mock_hook.return_value = {
             'test1': {'description': 'No problem', 'state': 'success'},
             'test2': {'description': 'All good here', 'state': 'success'}}
 
@@ -142,7 +144,7 @@ class TestPullRequestHandler:
 
         # As above, but a default message is given
 
-        test_hook.return_value = {
+        mock_hook.return_value = {
             'test1': {'description': 'Problems here', 'state': 'failure'},
             'test2': {'description': 'All good here', 'state': 'success'}}
 
@@ -176,7 +178,7 @@ class TestPullRequestHandler:
 
         # If checks already exist, don't post them again
 
-        test_hook.return_value = {
+        mock_hook.return_value = {
             'test2': {'title': 'All good here', 'conclusion': 'success'}}
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE
@@ -226,7 +228,7 @@ class TestPullRequestHandler:
 
         # If checks already exist but has some differences, post again
 
-        test_hook.return_value = {
+        mock_hook.return_value = {
             'test1': {'description': 'Problems here', 'state': 'failure'},
             'test2': {'description': 'All good here', 'state': 'success'}}
 
@@ -291,7 +293,7 @@ class TestPullRequestHandler:
         # Test case where the config doesn't give a default message, and the
         # registered handlers don't return any checks
 
-        test_hook.return_value = {}
+        mock_hook.return_value = {}
         self.get_file_contents.return_value = (CONFIG_TEMPLATE +
                                                'skip_labels = [ "Experimental" ]\n')
 
@@ -315,6 +317,6 @@ class TestPullRequestHandler:
         Test that a check can return None to skip itself.
         """
 
-        test_hook.return_value = None
+        mock_hook.return_value = None
         self.send_event(client)
         assert self.requests_post.call_count == 0

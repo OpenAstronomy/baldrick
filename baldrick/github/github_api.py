@@ -2,7 +2,7 @@
 import base64
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 import dateutil.parser
 import requests
@@ -319,7 +319,7 @@ class RepoHandler(GitHubHandler):
         """
         url = f'{HOST}/repos/{self.repo}/issues'
         kwargs = {'state': state, 'labels': labels}
-        r = requests.get(url, kwargs, headers=headers)
+        r = requests.get(url, kwargs, headers=self._headers)
         result = r.json()
         if exclude_pr:
             issue_list = [d['number'] for d in result
@@ -593,7 +593,7 @@ class PullRequestHandler(IssueHandler):
             commit_hash = self.base_sha
 
         if completed_at is True:
-            completed_at = datetime.utcnow()
+            completed_at = datetime.now(timezone.utc)
         if completed_at is not None:
             completed_at = completed_at.isoformat(timespec='seconds') + 'Z'
 
