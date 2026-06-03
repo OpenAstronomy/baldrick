@@ -21,6 +21,12 @@
 * Added ``check_base_branch`` plugin to make sure that a new pull request
   is opened against the correct upstream base branch (e.g., ``master``). [#92]
 
+* Updated the Circle CI plugin to v2 webhooks. [#119]
+
+* Always use GitHub default branch not hard coded ``master`` [#116]
+
+* Refresh package for Python 3.14 and fix some bugs with GitHub auth [#120]
+
 0.2 (2018-11-22)
 ----------------
 
