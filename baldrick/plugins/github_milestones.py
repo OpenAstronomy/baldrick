@@ -7,7 +7,7 @@ PRESENT_MESSAGE = 'This pull request has a milestone set.'
 
 
 @pull_request_handler
-def process_milestone(pr_handler, repo_handler):
+def process_milestone(pr_handler, repo_handler, payload=None):
     """
     A very simple set a failing status if the milestone is not set.
     """
