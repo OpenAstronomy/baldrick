@@ -508,6 +508,24 @@ class IssueHandler(GitHubHandler):
                                  json=missing_labels)
         assert response.ok, response.content
 
+    def set_assignees(self, assignees):
+        """Assign the issue to the specified assignee(s)."""
+
+        response = requests.post(f'{self._url_issue}/assignees',
+                                 headers=self._headers,
+                                 json={'assignees': list(assignees)})
+
+        assert response.ok, response.content
+
+    def add_assignees(self, assignees):
+        """Add the specified assignee(s) to the issue."""
+
+        if isinstance(assignees, str):  # single assignee passed in
+            assignees = [assignees]
+
+        current_assignees = self.json.get('assignees', [])
+        return self.set_assignees(current_assignees + list(assignees))
+
     def close(self):
         url = f'{HOST}/repos/{self.repo}/issues/{self.number}'
         parameters = {'state': 'closed'}
