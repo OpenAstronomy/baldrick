@@ -51,6 +51,12 @@ interface, as mentioned. The main required environment variables (also see
   The whole key, including the ``BEGIN`` and ``END`` header and footer
   should be pasted into the field.
 
+* ``GITHUB_APP_WEBHOOK_SECRET``, which must be set to the same value as the
+  "Webhook secret" field in the GitHub App settings (see :ref:`github`).
+  Incoming webhook deliveries are only processed if their signature matches
+  this secret, so webhooks that do not genuinely come from GitHub are
+  rejected.
+
 * ``BALDRICK_FILE_CACHE_TTL``, This defaults to 60 seconds and controls the
   amount of time a file retrieved from GitHub will be cached. This is important
   because otherwise reading the bot config from the repository will cause many
