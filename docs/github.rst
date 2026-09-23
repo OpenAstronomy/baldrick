@@ -49,7 +49,7 @@ install it for select repositories by start typing a repository name and let
 auto-completion do the hard work for you (repeat this once per repository). Once
 you are done, click "Install".
 
-After a successfull installation, you will be taken to a
+After a successful installation, you will be taken to a
 ``https://github.com/settings/installations/<installation-number>`` page.
 This page is also accessible from your account or organization settings in
 "Applications", specifically under "Installed GitHub Apps".

@@ -813,7 +813,7 @@ class PullRequestHandler(IssueHandler):
         Parameters
         ----------
         decision : { 'approve' | 'request_changes' | 'comment' }
-            The decision as to whether to aprove or reject the changes so far.
+            The decision as to whether to approve or reject the changes so far.
         body : str
             The body of the review comment
         """
