@@ -67,6 +67,8 @@ def circleci_new_handler():
         logger.exception("Failed to fetch the list of installations of this bot from GitHub")
         return "Failed to fetch installations from GitHub", 502
 
+    repo = vcs["target_repository_url"].removeprefix("https://github.com/")
+
     if repo not in repos:
         msg = f"Not installed for {repo}"
         logger.error(msg)
