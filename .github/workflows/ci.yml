@@ -29,6 +29,11 @@ jobs:
       envs: |
         - linux: py313
         - linux: py314
+        - linux: py314
+          name: py314 (Github API)
+          posargs: -m github_api
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   sdist_verify:
     runs-on: ubuntu-latest
