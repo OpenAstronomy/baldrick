@@ -1,4 +1,5 @@
 """Module to handle GitHub API."""
+
 import base64
 import os
 import re
@@ -13,12 +14,12 @@ from ttldict import TTLOrderedDict
 from baldrick.config import Config, loads
 from baldrick.github.github_auth import github_request_headers
 
-__all__ = ['GitHubHandler', 'IssueHandler', 'PullRequestHandler', 'RepoHandler']
+__all__ = ["GitHubHandler", "IssueHandler", "PullRequestHandler", "RepoHandler"]
 
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
 
-FILE_CACHE = TTLOrderedDict(default_ttl=os.environ.get('BALDRICK_FILE_CACHE_TTL', 60))
+FILE_CACHE = TTLOrderedDict(default_ttl=os.environ.get("BALDRICK_FILE_CACHE_TTL", 60))
 
 
 def paged_github_json_request(url, headers=None):
@@ -27,21 +28,20 @@ def paged_github_json_request(url, headers=None):
     assert response.ok, response.content
     results = response.json()
 
-    if 'Link' in response.headers:
-
-        links = response.headers['Link']
+    if "Link" in response.headers:
+        links = response.headers["Link"]
 
         # There are likely better ways to parse/extract the link information
         # but here we just find the last page number mentioned in the header
         # 'Link' section and then loop over all pages to get the comments
-        last_match = list(re.finditer('page=[0-9]+', links))[-1]
-        last_page = int(links[last_match.start():last_match.end()].split('=')[1])
+        last_match = list(re.finditer("page=[0-9]+", links))[-1]
+        last_page = int(links[last_match.start() : last_match.end()].split("=")[1])
 
         # If there are other pages, just loop over them and get all the
         # comments
         if last_page > 1:
             for page in range(2, last_page + 1):
-                response = requests.get(url + f'?page={page}', headers=headers)
+                response = requests.get(url + f"?page={page}", headers=headers)
                 assert response.ok, response.content
                 results += response.json()
 
@@ -52,6 +52,7 @@ class GitHubHandler:
     """
     A base class for things that represent things the github app can operate on.
     """
+
     def __init__(self, repo, installation=None):
         self.repo = repo
         self.installation = installation
@@ -82,7 +83,7 @@ class GitHubHandler:
 
     @property
     def _url_contents(self):
-        return f'{HOST}/repos/{self.repo}/contents/'
+        return f"{HOST}/repos/{self.repo}/contents/"
 
     def get_file_contents(self, path_to_file, branch=None):
         if branch is None:
@@ -97,18 +98,18 @@ class GitHubHandler:
             pass
 
         url_file = self._url_contents + path_to_file
-        data = {'ref': branch}
+        data = {"ref": branch}
         response = requests.get(url_file, params=data, headers=self._headers)
-        if not response.ok and response.json()['message'] == 'Not Found':
+        if not response.ok and response.json()["message"] == "Not Found":
             raise FileNotFoundError(url_file)
         assert response.ok, response.content
-        contents_base64 = response.json()['content']
+        contents_base64 = response.json()["content"]
         contents = base64.b64decode(contents_base64).decode()
 
         FILE_CACHE[cache_key] = contents
         return contents
 
-    def get_repo_config(self, branch=None, path_to_file='pyproject.toml'):
+    def get_repo_config(self, branch=None, path_to_file="pyproject.toml"):
         """
         Load configuration from the repository.
 
@@ -144,7 +145,8 @@ class GitHubHandler:
             logger.trace(f"Got the following config from {self.repo}@{branch}: {repo_config}")
             if len(repo_config) == 0:
                 logger.exception(
-                    f"Failed to load config in {self.repo} on branch {branch}, despite finding a pyproject.toml file.")
+                    f"Failed to load config in {self.repo} on branch {branch}, despite finding a pyproject.toml file."
+                )
 
             if getattr(current_app, "fall_back_config", None):
                 fallback_config = loads(file_content, tool=current_app.fall_back_config) or {}
@@ -199,16 +201,15 @@ class GitHubHandler:
         """
 
         data = {}
-        data['state'] = state
-        data['description'] = description
-        data['context'] = context
+        data["state"] = state
+        data["description"] = description
+        data["context"] = context
 
         if target_url is not None:
-            data['target_url'] = target_url
+            data["target_url"] = target_url
 
-        url = f'{HOST}/repos/{self.repo}/statuses/{commit_hash}'
-        response = requests.post(url, json=data,
-                                 headers=self._headers)
+        url = f"{HOST}/repos/{self.repo}/statuses/{commit_hash}"
+        response = requests.post(url, json=data, headers=self._headers)
         assert response.ok, response.content
 
     def list_statuses(self, commit_hash):
@@ -221,15 +222,17 @@ class GitHubHandler:
             The commit has to get the statuses for
         """
 
-        url = f'{HOST}/repos/{self.repo}/commits/{commit_hash}/statuses'
+        url = f"{HOST}/repos/{self.repo}/commits/{commit_hash}/statuses"
         results = paged_github_json_request(url, headers=self._headers)
 
         statuses = {}
         for result in results:
-            context = result['context']
-            statuses[context] = {'state': result['state'],
-                                 'description': result['description'],
-                                 'target_url': result.get('target_url')}
+            context = result["context"]
+            statuses[context] = {
+                "state": result["state"],
+                "description": result["description"],
+                "target_url": result.get("target_url"),
+            }
 
         return statuses
 
@@ -245,49 +248,47 @@ class GitHubHandler:
         only_ours : `bool`, optional
             Only return status that this app has posted.
         """
-        url = f'{HOST}/repos/{self.repo}/commits/{commit_hash}/check-runs'
+        url = f"{HOST}/repos/{self.repo}/commits/{commit_hash}/check-runs"
         headers = self._headers
-        headers['Accept'] = 'application/vnd.github.antiope-preview+json'
+        headers["Accept"] = "application/vnd.github.antiope-preview+json"
         results = paged_github_json_request(url, headers=headers)
 
         checks = {}
-        for result in results.get('check_runs', []):
-
+        for result in results.get("check_runs", []):
             # Skip checks from other apps if specified.
-            if only_ours and result['app']['id'] != current_app.integration_id:
+            if only_ours and result["app"]["id"] != current_app.integration_id:
                 continue
 
-            context = result['external_id']
+            context = result["external_id"]
             # These keys match the kwargs to set_check
             checks[context] = {
-                'external_id': result['external_id'],
-                'title': result['output']['title'],
-                'summary': result['output']['summary'],
-                'name': result['name'],
-                'text': result['output'].get('text'),
-                'commit_hash': result['head_sha'],
-                'details_url': result.get('details_url'),
-                'status': result['status'],
-                'conclusion': result['conclusion'],
-                'check_id': result['id'],
+                "external_id": result["external_id"],
+                "title": result["output"]["title"],
+                "summary": result["output"]["summary"],
+                "name": result["name"],
+                "text": result["output"].get("text"),
+                "commit_hash": result["head_sha"],
+                "details_url": result.get("details_url"),
+                "status": result["status"],
+                "conclusion": result["conclusion"],
+                "check_id": result["id"],
             }
 
         return checks
 
 
 class RepoHandler(GitHubHandler):
-
     def __init__(self, repo, branch=None, installation=None):
         self.branch = branch
         super().__init__(repo, installation=installation)
 
     @property
     def _url_pull_requests(self):
-        return f'{HOST}/repos/{self.repo}/pulls'
+        return f"{HOST}/repos/{self.repo}/pulls"
 
     def open_pull_requests(self):
         pull_requests = paged_github_json_request(self._url_pull_requests, headers=self._headers)
-        return [pr['number'] for pr in pull_requests]
+        return [pr["number"] for pr in pull_requests]
 
     def get_file_contents(self, path_to_file, branch=None):
         if branch is None:
@@ -315,57 +316,55 @@ class RepoHandler(GitHubHandler):
             A list of matching issue numbers.
 
         """
-        url = f'{HOST}/repos/{self.repo}/issues'
-        kwargs = {'state': state, 'labels': labels}
+        url = f"{HOST}/repos/{self.repo}/issues"
+        kwargs = {"state": state, "labels": labels}
         r = requests.get(url, kwargs, headers=self._headers)
         result = r.json()
         if exclude_pr:
-            issue_list = [d['number'] for d in result
-                          if 'pull_request' not in d]
+            issue_list = [d["number"] for d in result if "pull_request" not in d]
         else:
-            issue_list = [d['number'] for d in result]
+            issue_list = [d["number"] for d in result]
         return issue_list
 
     def get_all_labels(self):
         """Get all label options for this repo"""
-        url = f'{HOST}/repos/{self.repo}/labels'
+        url = f"{HOST}/repos/{self.repo}/labels"
         result = paged_github_json_request(url, headers=self._headers)
-        return [label['name'] for label in result]
+        return [label["name"] for label in result]
 
 
 class IssueHandler(GitHubHandler):
-
     def __init__(self, repo, number, installation=None):
         self.number = number
         super().__init__(repo, installation=installation)
 
     @property
     def _url_issue(self):
-        return f'{HOST}/repos/{self.repo}/issues/{self.number}'
+        return f"{HOST}/repos/{self.repo}/issues/{self.number}"
 
     @property
     def _url_issue_nonapi(self):
-        return f'{HOST_NONAPI}/{self.repo}/issues/{self.number}'
+        return f"{HOST_NONAPI}/{self.repo}/issues/{self.number}"
 
     @property
     def _url_labels(self):
-        return f'{self._url_issue}/labels'
+        return f"{self._url_issue}/labels"
 
     @property
     def _url_issue_comment(self):
-        return f'{self._url_issue}/comments'
+        return f"{self._url_issue}/comments"
 
     @property
     def _url_timeline(self):
-        return f'{self._url_issue}/timeline'
+        return f"{self._url_issue}/timeline"
 
     @property
     def json(self):
-        if 'json' not in self._cache:
+        if "json" not in self._cache:
             response = requests.get(self._url_issue, headers=self._headers)
             assert response.ok, response.content
-            self._cache['json'] = response.json()
-        return self._cache['json']
+            self._cache["json"] = response.json()
+        return self._cache["json"]
 
     def get_label_added_date(self, label):
         """
@@ -383,15 +382,15 @@ class IssueHandler(GitHubHandler):
             Unix timestamp, if available.
 
         """
-        headers = {'Accept': 'application/vnd.github.mockingbird-preview'}
+        headers = {"Accept": "application/vnd.github.mockingbird-preview"}
         result = paged_github_json_request(self._url_timeline, headers=headers)
         last_labeled = None
 
         for d in result:
-            if 'label' in d and d['label']['name'] == label:
-                if d['event'] == 'labeled':
-                    last_labeled = d['created_at']
-                elif d['event'] == 'unlabeled':
+            if "label" in d and d["label"]["name"] == label:
+                if d["event"] == "labeled":
+                    last_labeled = d["created_at"]
+                elif d["event"] == "unlabeled":
                     last_labeled = None
 
         if last_labeled is None:
@@ -421,41 +420,43 @@ class IssueHandler(GitHubHandler):
         """
 
         data = {}
-        data['body'] = body
+        data["body"] = body
 
         if comment_id is None:
             url = self._url_issue_comment
         else:
-            url = f'{HOST}/repos/{self.repo}/issues/comments/{comment_id}'
+            url = f"{HOST}/repos/{self.repo}/issues/comments/{comment_id}"
 
         response = requests.post(url, json=data, headers=self._headers)
         assert response.ok, response.content
 
         if return_url:
-            comment_id = response.json()['url'].split('/')[-1]
-            return f'{self._url_issue_nonapi}#issuecomment-{comment_id}'
+            comment_id = response.json()["url"].split("/")[-1]
+            return f"{self._url_issue_nonapi}#issuecomment-{comment_id}"
         return None
 
     def _find_comments(self, login, filter_keep=None):
         if filter_keep is None:
+
             def filter_keep(message):
                 return True
+
         comments = paged_github_json_request(self._url_issue_comment, headers=self._headers)
-        return [comment for comment in comments if filter_keep(comment['body'])]
+        return [comment for comment in comments if filter_keep(comment["body"])]
 
     def find_comments(self, login, filter_keep=None):
         """
         Find comments by a given user.
         """
         comments = self._find_comments(login, filter_keep=filter_keep)
-        return [comment['id'] for comment in comments if comment['user']['login'] == login]
+        return [comment["id"] for comment in comments if comment["user"]["login"] == login]
 
     def last_comment_date(self, login, filter_keep=None):
         """
         Find the last date on which a comment was made.
         """
         comments = self._find_comments(login, filter_keep=filter_keep)
-        dates = [comment['created_at'] for comment in comments if comment['user']['login'] == login]
+        dates = [comment["created_at"] for comment in comments if comment["user"]["login"] == login]
         if len(dates) > 0:
             return dateutil.parser.parse(sorted(dates)[-1]).timestamp()
         return None
@@ -465,7 +466,7 @@ class IssueHandler(GitHubHandler):
         """Get labels for this issue"""
         response = requests.get(self._url_labels, headers=self._headers)
         assert response.ok, response.content
-        return [label['name'] for label in response.json()]
+        return [label["name"] for label in response.json()]
 
     # We take this out of set_labels so we can test it without mock
     def _get_missing_labels(self, labels):
@@ -478,11 +479,11 @@ class IssueHandler(GitHubHandler):
             return None
 
         # Need repo handler (default branch)
-        if 'repohandler' not in self._cache:
+        if "repohandler" not in self._cache:
             repo = RepoHandler(self.repo, installation=self.installation)
-            self._cache['repohandler'] = repo
+            self._cache["repohandler"] = repo
         else:
-            repo = self._cache['repohandler']
+            repo = self._cache["repohandler"]
 
         # If label does not already exist in the repo, give a warning
         repo_labels = repo.get_all_labels()
@@ -503,13 +504,12 @@ class IssueHandler(GitHubHandler):
         if missing_labels is None:
             return
 
-        response = requests.post(self._url_labels, headers=self._headers,
-                                 json=missing_labels)
+        response = requests.post(self._url_labels, headers=self._headers, json=missing_labels)
         assert response.ok, response.content
 
     def close(self):
-        url = f'{HOST}/repos/{self.repo}/issues/{self.number}'
-        parameters = {'state': 'closed'}
+        url = f"{HOST}/repos/{self.repo}/issues/{self.number}"
+        parameters = {"state": "closed"}
         response = requests.patch(url, json=parameters, headers=self._headers)
         assert response.ok, response.content
 
@@ -517,17 +517,27 @@ class IssueHandler(GitHubHandler):
     def is_closed(self):
         """Is the issue closed?"""
         answer = False
-        if self.json['state'] == 'closed':
+        if self.json["state"] == "closed":
             answer = True
         return answer
 
 
 class PullRequestHandler(IssueHandler):
-
     # https://developer.github.com/v3/checks/runs/#create-a-check-run
-    def set_check(self, external_id, title, name=None, summary=None, text=None,
-                  commit_hash='head', details_url=None, status=None,
-                  conclusion='neutral', check_id=None, completed_at=None):
+    def set_check(
+        self,
+        external_id,
+        title,
+        name=None,
+        summary=None,
+        text=None,
+        commit_hash="head",
+        details_url=None,
+        status=None,
+        conclusion="neutral",
+        check_id=None,
+        completed_at=None,
+    ):
         """
         Set check status.
 
@@ -582,9 +592,9 @@ class PullRequestHandler(IssueHandler):
             it should be a `datetime.datetime.`
 
         """
-        url = f'{HOST}/repos/{self.repo}/check-runs'
+        url = f"{HOST}/repos/{self.repo}/check-runs"
         headers = self._headers
-        headers['Accept'] = 'application/vnd.github.antiope-preview+json'
+        headers["Accept"] = "application/vnd.github.antiope-preview+json"
 
         if commit_hash == "head":
             commit_hash = self.head_sha
@@ -594,40 +604,46 @@ class PullRequestHandler(IssueHandler):
         if completed_at is True:
             completed_at = datetime.now(UTC)
         if completed_at is not None:
-            completed_at = completed_at.isoformat(timespec='seconds') + 'Z'
+            completed_at = completed_at.isoformat(timespec="seconds") + "Z"
 
         # If name isn't specified revert to external_id
         name = name or f"{current_app.bot_username}:{external_id}"
 
-        output = {'title': title, 'summary': summary or ''}
+        output = {"title": title, "summary": summary or ""}
         if text is not None:
-            output['text'] = text
+            output["text"] = text
 
-        parameters = {'external_id': external_id, 'name': name, 'head_sha':
-                      commit_hash, 'status': status, 'output': output}
+        parameters = {
+            "external_id": external_id,
+            "name": name,
+            "head_sha": commit_hash,
+            "status": status,
+            "output": output,
+        }
 
         if details_url is not None:
-            parameters['details_url'] = details_url
+            parameters["details_url"] = details_url
 
         if status == "completed" and conclusion is None:
             logger.warning(
-                "When a GitHub check status is completed, conclusion must be specified, setting it to 'neutral'")
+                "When a GitHub check status is completed, conclusion must be specified, setting it to 'neutral'"
+            )
             conclusion = "neutral"
 
         if conclusion is not None:
-            parameters['conclusion'] = conclusion
+            parameters["conclusion"] = conclusion
             if completed_at is not None:
-                parameters['completed_at'] = completed_at
+                parameters["completed_at"] = completed_at
             # The GitHub API does this automatically, but we do it explicitly
             # here for consistency and for tests!
-            parameters['status'] = "completed"
+            parameters["status"] = "completed"
 
         logger.trace(f"Sending GitHub check with {parameters}")
 
         if not check_id:
             response = requests.post(url, headers=headers, json=parameters)
         else:
-            response = requests.patch(url + f'/{check_id}', headers=headers, json=parameters)
+            response = requests.patch(url + f"/{check_id}", headers=headers, json=parameters)
         assert response.ok, response.content
 
     def set_status(self, state, description, context, commit_hash="head", target_url=None):
@@ -693,72 +709,71 @@ class PullRequestHandler(IssueHandler):
 
     @property
     def _url_pull_request(self):
-        return f'{HOST}/repos/{self.repo}/pulls/{self.number}'
+        return f"{HOST}/repos/{self.repo}/pulls/{self.number}"
 
     @property
     def _url_review_comment(self):
-        return f'{self._url_pull_request}/reviews'
+        return f"{self._url_pull_request}/reviews"
 
     @property
     def _url_head_status(self):
-        return f'{HOST}/repos/{self.repo}/statuses/{self.head_sha}'
+        return f"{HOST}/repos/{self.repo}/statuses/{self.head_sha}"
 
     @property
     def _url_commits(self):
-        return f'{self._url_pull_request}/commits'
+        return f"{self._url_pull_request}/commits"
 
     @property
     def _url_files(self):
-        return f'{self._url_pull_request}/files'
+        return f"{self._url_pull_request}/files"
 
     @property
     def json(self):
-        if 'json' not in self._cache:
+        if "json" not in self._cache:
             response = requests.get(self._url_pull_request, headers=self._headers)
             assert response.ok, response.content
-            self._cache['json'] = response.json()
-        return self._cache['json']
+            self._cache["json"] = response.json()
+        return self._cache["json"]
 
     @property
     def user(self):
-        return self.json['user']['login']
+        return self.json["user"]["login"]
 
     @property
     def head_repo_name(self):
-        return self.json['head']['repo']['full_name']
+        return self.json["head"]["repo"]["full_name"]
 
     @property
     def head_sha(self):
-        return self.json['head']['sha']
+        return self.json["head"]["sha"]
 
     @property
     def head_branch(self):
-        return self.json['head']['ref']
+        return self.json["head"]["ref"]
 
     @property
     def base_branch(self):
-        return self.json['base']['ref']
+        return self.json["base"]["ref"]
 
     @property
     def base_sha(self):
-        return self.json['base']['sha']
+        return self.json["base"]["sha"]
 
     @property
     def milestone(self):
-        milestone = self.json['milestone']
+        milestone = self.json["milestone"]
         if milestone is None:
-            return ''
-        return milestone['title']
+            return ""
+        return milestone["title"]
 
     @property
     def draft(self):
-        return self.json['draft']
+        return self.json["draft"]
 
     def get_modified_files(self):
         """Get all the filenames of the files modified by this PR."""
-        files = paged_github_json_request(self._url_files,
-                                          headers=self._headers)
-        return [f['filename'] for f in files]
+        files = paged_github_json_request(self._url_files, headers=self._headers)
+        return [f["filename"] for f in files]
 
     def get_file_contents(self, path_to_file, branch=None):
         """
@@ -770,7 +785,7 @@ class PullRequestHandler(IssueHandler):
             branch = self.head_branch
         return super().get_file_contents(path_to_file, branch=branch)
 
-    def get_repo_config(self, branch=None, path_to_file='pyproject.toml'):
+    def get_repo_config(self, branch=None, path_to_file="pyproject.toml"):
         """
         Load user configuration for bot.
 
@@ -797,10 +812,9 @@ class PullRequestHandler(IssueHandler):
     def has_modified(self, filelist):
         """Check if PR has modified any of the given list of filename(s)."""
         found = False
-        files = paged_github_json_request(self._url_files,
-                                          headers=self._headers)
+        files = paged_github_json_request(self._url_files, headers=self._headers)
         for d in files:
-            if d['filename'] in filelist:
+            if d["filename"] in filelist:
                 found = True
                 break
 
@@ -819,9 +833,9 @@ class PullRequestHandler(IssueHandler):
         """
 
         data = {}
-        data['commit_id'] = self.head_sha
-        data['body'] = body
-        data['event'] = decision.upper()
+        data["commit_id"] = self.head_sha
+        data["body"] = body
+        data["event"] = decision.upper()
 
         response = requests.post(self._url_review_comment, json=data, headers=self._headers)
         assert response.ok, response.content
@@ -831,9 +845,9 @@ class PullRequestHandler(IssueHandler):
         commits = paged_github_json_request(self._url_commits, headers=self._headers)
         last_time = 0
         for commit in commits:
-            date = commit['commit']['committer']['date']
+            date = commit["commit"]["committer"]["date"]
             t = dateutil.parser.parse(date).timestamp()
             last_time = max(t, last_time)
         if last_time == 0:
-            raise Exception(f'No commit found in {self._url_commits}')
+            raise Exception(f"No commit found in {self._url_commits}")
         return last_time

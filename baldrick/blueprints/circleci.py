@@ -7,9 +7,9 @@ from loguru import logger
 from baldrick.github.github_api import RepoHandler
 from baldrick.github.github_auth import repo_to_installation_id_mapping
 
-__all__ = ['circleci_blueprint', 'circleci_webhook_handler']
+__all__ = ["circleci_blueprint", "circleci_webhook_handler"]
 
-circleci_blueprint = Blueprint('circleci', __name__)
+circleci_blueprint = Blueprint("circleci", __name__)
 
 
 CIRCLECI_WEBHOOK_HANDLERS = []
@@ -26,23 +26,19 @@ def circleci_webhook_handler(func):
     return func
 
 
-@circleci_blueprint.route('/circleci', methods=['POST'])
+@circleci_blueprint.route("/circleci", methods=["POST"])
 def circleci_handler():
 
     if not request.data:
         return "No payload received"
 
-    payload = json.loads(request.data)['payload']
+    payload = json.loads(request.data)["payload"]
 
     # Validate we have the keys we need, otherwise ignore the push
-    required_keys = {'vcs_revision',
-                     'username',
-                     'reponame',
-                     'status',
-                     'build_num'}
+    required_keys = {"vcs_revision", "username", "reponame", "status", "build_num"}
 
     if not required_keys.issubset(payload.keys()):
-        return 'Payload missing {}'.format(' '.join(required_keys - payload.keys()))
+        return "Payload missing {}".format(" ".join(required_keys - payload.keys()))
 
     # Get installation id
     repos = repo_to_installation_id_mapping()
@@ -54,12 +50,20 @@ def circleci_handler():
     repo_handler = RepoHandler(repo, branch="master", installation=repos[repo])
 
     for handler in CIRCLECI_WEBHOOK_HANDLERS:
-        handler(repo_handler, "v1", payload, request.headers, payload["status"], payload["vcs_revision"], payload["build_num"])
+        handler(
+            repo_handler,
+            "v1",
+            payload,
+            request.headers,
+            payload["status"],
+            payload["vcs_revision"],
+            payload["build_num"],
+        )
 
     return "CirleCI Webhook Finished"
 
 
-@circleci_blueprint.route('/circleci/v2', methods=['POST'])
+@circleci_blueprint.route("/circleci/v2", methods=["POST"])
 def circleci_new_handler():
     if not request.data:
         return "No payload received"
@@ -69,12 +73,12 @@ def circleci_new_handler():
     logger.debug(f"Got {pformat(payload)} on /circleci/v2")
     # Validate we have the keys we need, otherwise ignore the push
     required_keys = {
-        'job',
-        'pipeline',
+        "job",
+        "pipeline",
     }
 
     if not required_keys.issubset(payload.keys()):
-        msg = 'Payload missing {}'.format(' '.join(required_keys - payload.keys()))
+        msg = "Payload missing {}".format(" ".join(required_keys - payload.keys()))
         logger.error(msg)
         return msg
 
@@ -99,12 +103,14 @@ def circleci_new_handler():
     repo_handler = RepoHandler(repo, branch=vcs["branch"], installation=repos[repo])
 
     for handler in CIRCLECI_WEBHOOK_HANDLERS:
-        handler(repo_handler,
-                "v2",
-                payload,
-                request.headers,
-                payload["job"].get("status"),
-                vcs["revision"],
-                payload["job"]["number"])
+        handler(
+            repo_handler,
+            "v2",
+            payload,
+            request.headers,
+            payload["job"].get("status"),
+            vcs["revision"],
+            payload["job"]["number"],
+        )
 
     return "CirleCI Webhook Finished"

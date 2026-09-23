@@ -23,15 +23,15 @@ CONFIG_TEMPLATE_MISSING = """
 
 
 class TestMilestonePlugin:
-
     def setup_method(self, method):
 
-        self.get_file_contents_mock = patch('baldrick.github.github_api.PullRequestHandler.get_file_contents')
-        self.get_base_branch_mock = patch('baldrick.github.github_api.PullRequestHandler.base_branch')
+        self.get_file_contents_mock = patch("baldrick.github.github_api.PullRequestHandler.get_file_contents")
+        self.get_base_branch_mock = patch("baldrick.github.github_api.PullRequestHandler.base_branch")
         a = self.get_base_branch_mock.start()
         a.return_value = "master"
-        self.milestone_mock = patch('baldrick.github.github_api.PullRequestHandler.milestone',
-                                    new_callable=PropertyMock)
+        self.milestone_mock = patch(
+            "baldrick.github.github_api.PullRequestHandler.milestone", new_callable=PropertyMock
+        )
 
         self.repo_handler = RepoHandler("nota/repo", "1234")
         self.pr_handler = PullRequestHandler("nota/repo", "1234")
@@ -49,8 +49,9 @@ class TestMilestonePlugin:
 
     def test_milestone_present(self, app):
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(missing="missing milestone",
-                                                                     present="milestone present")
+        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(
+            missing="missing milestone", present="milestone present"
+        )
         self.milestone.return_value = "0.1"
 
         with app.app_context():
@@ -58,20 +59,21 @@ class TestMilestonePlugin:
 
         assert "milestone" in ret
         assert len(ret) == 1
-        assert ret['milestone']['conclusion'] == "success"
-        assert ret['milestone']['title'] == "milestone present"
+        assert ret["milestone"]["conclusion"] == "success"
+        assert ret["milestone"]["title"] == "milestone present"
 
     def test_milestone_absent(self, app):
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(missing="missing milestone",
-                                                                     present="milestone present")
+        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(
+            missing="missing milestone", present="milestone present"
+        )
         with app.app_context():
             ret = process_milestone(self.pr_handler, self.repo_handler)
 
         assert "milestone" in ret
         assert len(ret) == 1
-        assert ret['milestone']['conclusion'] == "failure"
-        assert ret['milestone']['title'] == "missing milestone"
+        assert ret["milestone"]["conclusion"] == "failure"
+        assert ret["milestone"]["title"] == "missing milestone"
 
     def test_milestone_present_default(self, app):
 
@@ -83,8 +85,8 @@ class TestMilestonePlugin:
 
         assert "milestone" in ret
         assert len(ret) == 1
-        assert ret['milestone']['conclusion'] == "success"
-        assert ret['milestone']['title'] == PRESENT_MESSAGE
+        assert ret["milestone"]["conclusion"] == "success"
+        assert ret["milestone"]["title"] == PRESENT_MESSAGE
 
     def test_milestone_absent_default(self, app):
 
@@ -94,8 +96,8 @@ class TestMilestonePlugin:
 
         assert "milestone" in ret
         assert len(ret) == 1
-        assert ret['milestone']['conclusion'] == "failure"
-        assert ret['milestone']['title'] == MISSING_MESSAGE
+        assert ret["milestone"]["conclusion"] == "failure"
+        assert ret["milestone"]["title"] == MISSING_MESSAGE
 
     def test_no_config(self, app):
         self.get_file_contents.return_value = CONFIG_TEMPLATE_MISSING

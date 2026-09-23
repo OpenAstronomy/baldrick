@@ -4,10 +4,10 @@ from flask import Blueprint, request
 
 from baldrick.github.github_api import RepoHandler
 
-__all__ = ['github_blueprint', 'github_webhook_handler']
+__all__ = ["github_blueprint", "github_webhook_handler"]
 
 
-github_blueprint = Blueprint('github', __name__)
+github_blueprint = Blueprint("github", __name__)
 
 
 GITHUB_WEBHOOK_HANDLERS = []
@@ -25,7 +25,7 @@ def github_webhook_handler(func):
     return func
 
 
-@github_blueprint.route('/github', methods=['POST'])
+@github_blueprint.route("/github", methods=["POST"])
 def github_webhook():
 
     if not request.data:
@@ -34,11 +34,11 @@ def github_webhook():
     # Parse the JSON sent by GitHub
     payload = json.loads(request.data)
 
-    if 'installation' not in payload:
+    if "installation" not in payload:
         return "No installation key found in payload"
-    installation = payload['installation']['id']
+    installation = payload["installation"]["id"]
 
-    repo_name = payload['repository']['full_name']
+    repo_name = payload["repository"]["full_name"]
     repo = RepoHandler(repo_name, installation=installation)
 
     for handler in GITHUB_WEBHOOK_HANDLERS:

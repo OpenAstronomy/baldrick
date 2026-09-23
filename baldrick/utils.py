@@ -3,7 +3,7 @@ import os
 import random
 from datetime import timedelta
 
-__all__ = ['insert_special_message', 'is_special_day_now', 'unwrap']
+__all__ = ["insert_special_message", "is_special_day_now", "unwrap"]
 
 # NOTE: This is not a file to avoid I/O penalty.
 QUOTES = [
@@ -28,7 +28,8 @@ QUOTES = [
     "Resistance is futile.",
     "I'm the one who knocks!",
     "Who are you who are so wise in the ways of science?",
-    "Not bad, for a human."]
+    "Not bad, for a human.",
+]
 
 
 def unwrap(text):
@@ -50,7 +51,7 @@ def unwrap(text):
     paragraphs = text.split(2 * os.linesep)
 
     # Join each paragraph using spaces instead of newlines
-    paragraphs = [paragraph.replace(os.linesep, ' ') for paragraph in paragraphs]
+    paragraphs = [paragraph.replace(os.linesep, " ") for paragraph in paragraphs]
 
     # Join paragraphs together
     return (2 * os.linesep).join(paragraphs)
@@ -117,12 +118,11 @@ def insert_special_message(body, **kwargs):
     """
     # Special day!
     if is_special_day_now(**kwargs):
-
         q = random.choice(QUOTES)
 
         if len(body) > 0:
-            return f'{body}\n*{q}*\n'
-        return f'*{q}*'
+            return f"{body}\n*{q}*\n"
+        return f"*{q}*"
 
     # Another non-special day; Boring!
     return body

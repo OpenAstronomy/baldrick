@@ -29,23 +29,20 @@ def get_json_web_token():
     # Include a one-minute buffer otherwise token might expire by the time we
     # make the request with the token.
     if json_web_token is None or json_web_token_expiry is None or now + ONE_MIN > json_web_token_expiry:
-
         json_web_token_expiry = now + TEN_MIN
 
         payload = {}
 
         # Issued at time
-        payload['iat'] = int(now.timestamp())
+        payload["iat"] = int(now.timestamp())
 
         # JWT expiration time (10 minute maximum)
-        payload['exp'] = int(json_web_token_expiry.timestamp())
+        payload["exp"] = int(json_web_token_expiry.timestamp())
 
         # Integration's GitHub identifier
-        payload['iss'] = os.environ['GITHUB_APP_INTEGRATION_ID']
+        payload["iss"] = os.environ["GITHUB_APP_INTEGRATION_ID"]
 
-        json_web_token = jwt.encode(payload,
-                                    os.environ['GITHUB_APP_PRIVATE_KEY'],
-                                    algorithm='RS256')
+        json_web_token = jwt.encode(payload, os.environ["GITHUB_APP_PRIVATE_KEY"], algorithm="RS256")
 
     return json_web_token
 
@@ -60,7 +57,7 @@ def netrc_exists():
     except FileNotFoundError:
         return False
     else:
-        return my_netrc.authenticators('api.github.com') is not None
+        return my_netrc.authenticators("api.github.com") is not None
 
 
 def get_installation_token(installation):
@@ -71,30 +68,31 @@ def get_installation_token(installation):
     now = datetime.datetime.now().timestamp()
 
     if installation_token_expiry[installation] is None or now + 60 > installation_token_expiry[installation]:
-
         # FIXME: if .netrc file is present, Authorization header will get
         # overwritten, so need to figure out how to ignore that file.
         if netrc_exists():
-            raise Exception("Authentication does not work properly if a ~/.netrc "
-                            "file exists. Rename that file temporarily and try again.")
+            raise Exception(
+                "Authentication does not work properly if a ~/.netrc "
+                "file exists. Rename that file temporarily and try again."
+            )
 
         headers = {}
-        headers['Authorization'] = f'Bearer {get_json_web_token()}'
-        headers['Accept'] = 'application/vnd.github+json'
-        headers['X-GitHub-Api-Version'] = "2022-11-28"
+        headers["Authorization"] = f"Bearer {get_json_web_token()}"
+        headers["Accept"] = "application/vnd.github+json"
+        headers["X-GitHub-Api-Version"] = "2022-11-28"
 
-        url = f'https://api.github.com/app/installations/{installation}/access_tokens'
+        url = f"https://api.github.com/app/installations/{installation}/access_tokens"
 
         req = requests.post(url, headers=headers)
         resp = req.json()
 
         if not req.ok:
-            if 'message' in resp:
+            if "message" in resp:
                 raise Exception(f"{req.status_code} {resp['message']}")
             raise Exception("An error occurred when requesting token")
 
-        installation_token[installation] = resp['token']
-        installation_token_expiry[installation] = dateutil.parser.parse(resp['expires_at']).timestamp()
+        installation_token[installation] = resp["token"]
+        installation_token_expiry[installation] = dateutil.parser.parse(resp["expires_at"]).timestamp()
 
     return installation_token[installation]
 
@@ -104,8 +102,8 @@ def github_request_headers(installation):
     token = get_installation_token(installation)
 
     headers = {}
-    headers['Authorization'] = f'token {token}'
-    headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
+    headers["Authorization"] = f"token {token}"
+    headers["Accept"] = "application/vnd.github.machine-man-preview+json"
 
     return headers
 
@@ -114,26 +112,26 @@ def repo_to_installation_id_mapping():
     """
     Returns a dictionary mapping full repository name to installation id.
     """
-    url = 'https://api.github.com/app/installations'
+    url = "https://api.github.com/app/installations"
     headers = {}
-    headers['Authorization'] = f'Bearer {get_json_web_token()}'
-    headers['Accept'] = 'application/vnd.github+json'
-    headers['X-GitHub-Api-Version'] = "2022-11-28"
+    headers["Authorization"] = f"Bearer {get_json_web_token()}"
+    headers["Accept"] = "application/vnd.github+json"
+    headers["X-GitHub-Api-Version"] = "2022-11-28"
     resp = requests.get(url, headers=headers)
     payload = resp.json()
 
     if resp.status_code != 200:
         raise ValueError(f"{resp.status_code} {payload} in response from GitHub while getting installations")
 
-    ids = [p['id'] for p in payload]
+    ids = [p["id"] for p in payload]
 
     repos = {}
     for iid in ids:
         headers = github_request_headers(iid)
-        resp = requests.get('https://api.github.com/installation/repositories', headers=headers)
+        resp = requests.get("https://api.github.com/installation/repositories", headers=headers)
         payload = resp.json()
-        for repo in payload['repositories']:
-            repos[repo['full_name']] = iid
+        for repo in payload["repositories"]:
+            repos[repo["full_name"]] = iid
 
     return repos
 
@@ -153,7 +151,7 @@ def get_app_name():
     Return the login name of the authenticated app.
     """
     headers = {}
-    headers['Authorization'] = f'Bearer {get_json_web_token()}'
-    headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
-    response = requests.get('https://api.github.com/app', headers=headers).json()
-    return response['name']
+    headers["Authorization"] = f"Bearer {get_json_web_token()}"
+    headers["Accept"] = "application/vnd.github.machine-man-preview+json"
+    response = requests.get("https://api.github.com/app", headers=headers).json()
+    return response["name"]

@@ -1,7 +1,7 @@
 from baldrick.blueprints.github import github_webhook_handler
 from baldrick.github.github_api import RepoHandler
 
-__all__ = ['push_handler']
+__all__ = ["push_handler"]
 
 PUSH_HANDLERS = []
 
@@ -24,19 +24,18 @@ def handle_pushes(repo_handler, payload, headers):
     Handle push events.
     """
 
-    event = headers['X-GitHub-Event']
+    event = headers["X-GitHub-Event"]
 
-    if event not in ('push'):
+    if event not in ("push"):
         return "Not a push event"
 
     # Get the ref for the push - could be e.g. a branch or a tag
-    git_ref = payload['ref']
+    git_ref = payload["ref"]
 
     # If we are on a branch, make a new repo handler with the correct branch
-    if git_ref.startswith('refs/heads/'):
-        branch = git_ref.replace('refs/heads/', '')
-        repo_handler = RepoHandler(repo_handler.repo, branch,
-                                   repo_handler.installation)
+    if git_ref.startswith("refs/heads/"):
+        branch = git_ref.replace("refs/heads/", "")
+        repo_handler = RepoHandler(repo_handler.repo, branch, repo_handler.installation)
 
     # Get configuration for this plugin
     push_config = repo_handler.get_config_value("pushes", {})
@@ -46,4 +45,4 @@ def handle_pushes(repo_handler, payload, headers):
     for function in PUSH_HANDLERS:
         function(repo_handler, git_ref)
 
-    return 'Finished handling push event'
+    return "Finished handling push event"

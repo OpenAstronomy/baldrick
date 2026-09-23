@@ -5,9 +5,9 @@ from baldrick import __version__
 
 # -- Project information -----------------------------------------------------
 
-project = 'baldrick'
-author = 'Stuart Mumford, Thomas Robitaille, Pey Lian Lim, and Brigitta Sipőcz'
-copyright = '2020, ' + author
+project = "baldrick"
+author = "Stuart Mumford, Thomas Robitaille, Pey Lian Lim, and Brigitta Sipőcz"
+copyright = "2020, " + author
 
 # The full version, including alpha/beta/rc tags
 release = __version__
@@ -17,29 +17,25 @@ release = __version__
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx_automodapi.automodapi'
-]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "sphinx_automodapi.automodapi"]
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 nitpick = True
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {"https://docs.python.org/": None}
 
 # -- Options for HTML output -------------------------------------------------
 

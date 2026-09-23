@@ -17,17 +17,17 @@ class TestBaseBranchChecker:
         self.repo_handler = MagicMock()
 
     def test_good_base(self, app):
-        self.pr_handler.base_branch = 'master'
+        self.pr_handler.base_branch = "master"
 
         with app.app_context():
             sta = check_base_branch(self.pr_handler, self.repo_handler)
 
-        assert sta['basebranch']['state'] == 'success'
+        assert sta["basebranch"]["state"] == "success"
 
     def test_bad_base(self, app):
-        self.pr_handler.base_branch = 'stable'
+        self.pr_handler.base_branch = "stable"
 
         with app.app_context():
             sta = check_base_branch(self.pr_handler, self.repo_handler)
 
-        assert sta['basebranch']['state'] == 'failure'
+        assert sta["basebranch"]["state"] == "failure"

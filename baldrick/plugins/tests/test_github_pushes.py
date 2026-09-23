@@ -25,23 +25,22 @@ def teardown_module(module):
 
 
 class TestPushHandler:
-
     def setup_method(self, method):
 
         mock_handler.reset_mock()
 
-        self.requests_get_mock = patch('requests.get')
+        self.requests_get_mock = patch("requests.get")
         self.requests_get = self.requests_get_mock.start()
         self.requests_get.return_value.ok = True
-        self.requests_get.return_value.json.return_value = {'default_branch': 'main'}
+        self.requests_get.return_value.json.return_value = {"default_branch": "main"}
 
-        self.get_file_contents_mock = patch('baldrick.github.github_api.GitHubHandler.get_file_contents')
-        self.get_installation_token_mock = patch('baldrick.github.github_auth.get_installation_token')
+        self.get_file_contents_mock = patch("baldrick.github.github_api.GitHubHandler.get_file_contents")
+        self.get_installation_token_mock = patch("baldrick.github.github_auth.get_installation_token")
 
         self.get_file_contents = self.get_file_contents_mock.start()
         self.get_installation_token = self.get_installation_token_mock.start()
 
-        self.get_installation_token.return_value = 'abcdefg'
+        self.get_installation_token.return_value = "abcdefg"
 
         FILE_CACHE.clear()
 
@@ -50,41 +49,37 @@ class TestPushHandler:
         self.get_installation_token_mock.stop()
         self.requests_get_mock.stop()
 
-    def send_event(self, client, git_ref='refs/heads/master'):
+    def send_event(self, client, git_ref="refs/heads/master"):
 
-        data = {'ref': git_ref,
-                'repository': {'full_name': 'test-repo'},
-                'installation': {'id': '123'}}
-        headers = {'X-GitHub-Event': 'push'}
+        data = {"ref": git_ref, "repository": {"full_name": "test-repo"}, "installation": {"id": "123"}}
+        headers = {"X-GitHub-Event": "push"}
 
-        client.post('/github', data=json.dumps(data), headers=headers,
-                    content_type='application/json')
+        client.post("/github", data=json.dumps(data), headers=headers, content_type="application/json")
 
     def test_branch(self, app, client):
         self.get_file_contents.return_value = CONFIG_TEMPLATE
-        self.send_event(client, git_ref='refs/heads/experimental')
+        self.send_event(client, git_ref="refs/heads/experimental")
         assert mock_handler.call_count == 1
         repo_handler, git_ref = mock_handler.call_args[0]
-        assert repo_handler.repo == 'test-repo'
-        assert repo_handler.branch == 'experimental'
-        assert git_ref == 'refs/heads/experimental'
+        assert repo_handler.repo == "test-repo"
+        assert repo_handler.branch == "experimental"
+        assert git_ref == "refs/heads/experimental"
 
     def test_tags(self, app, client):
         self.get_file_contents.return_value = CONFIG_TEMPLATE
-        self.send_event(client, git_ref='refs/tags/stable')
+        self.send_event(client, git_ref="refs/tags/stable")
         assert mock_handler.call_count == 1
         repo_handler, git_ref = mock_handler.call_args[0]
-        assert repo_handler.repo == 'test-repo'
+        assert repo_handler.repo == "test-repo"
         assert repo_handler.branch is None
-        assert git_ref == 'refs/tags/stable'
+        assert git_ref == "refs/tags/stable"
 
     def test_disabled(self, app, client):
-        self.get_file_contents.return_value = CONFIG_TEMPLATE.replace('enabled = true',
-                                                                      'enabled = false')
-        self.send_event(client, git_ref='refs/tags/stable')
+        self.get_file_contents.return_value = CONFIG_TEMPLATE.replace("enabled = true", "enabled = false")
+        self.send_event(client, git_ref="refs/tags/stable")
         assert mock_handler.call_count == 0
 
     def test_missing_config(self, app, client):
         self.get_file_contents.return_value = ""
-        self.send_event(client, git_ref='refs/tags/stable')
+        self.send_event(client, git_ref="refs/tags/stable")
         assert mock_handler.call_count == 0
