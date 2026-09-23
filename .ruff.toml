@@ -1,0 +1,98 @@
+target-version = "py313"
+line-length = 120
+exclude = [
+  ".git,",
+  "__pycache__",
+  "build",
+  "baldrick/version.py",
+  "template/",
+]
+
+[lint]
+select = [
+  "E",
+  "F",
+  "W",
+  "UP",
+  "PT",
+  "I",
+  "B",
+  "BLE",
+  "A",
+  "C4",
+  "INP",
+  "PIE",
+  "T20",
+  "RET",
+  "TID",
+  "PD",
+  "PLE",
+  "FLY",
+  "NPY",
+  "PERF",
+  "RUF",
+  "PTH",
+]
+ignore = [
+  # pycodestyle (E, W)
+  "E501", # ignore line length will use a formatter instead
+  # pytest (PT)
+  "PT001", # Always use pytest.fixture()
+  "PT023", # Always use () on pytest decorators
+  # flake8-pie (PIE)
+  "PIE808", # Disallow passing 0 as the first argument to range
+  # flake8-use-pathlib (PTH)
+  "PTH123", # open() should be replaced by Path.open()
+  # Ruff (RUF)
+  "RUF003", # Ignore ambiguous quote marks, doesn't allow ' in comments
+  "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+  "RUF013", # PEP 484 prohibits implicit `Optional`
+  "RUF015", # Prefer `next(iter(...))` over single element slice
+  # Bugbear (B)
+  "B9", # Very opinionated checks
+]
+
+[lint.per-file-ignores]
+"setup.py" = [
+  "INP001", # File is part of an implicit namespace package.
+]
+"conftest.py" = [
+  "INP001", # File is part of an implicit namespace package.
+]
+"docs/conf.py" = [
+  "A001", # Variable is shadowing a Python builtin
+  "E402", # Module imports not at top of file
+  "I", # isort
+]
+"docs/*.py" = [
+  "INP001", # File is part of an implicit namespace package.
+]
+"examples/**.py" = [
+  "T201", # allow use of print in examples
+  "INP001", # File is part of an implicit namespace package.
+  "B018", # Found useless expression.
+]
+"__init__.py" = [
+  "E402", # Module level import not at top of cell
+  "F401", # Unused import
+  "F403", # from {name} import * used; unable to detect undefined names
+  "F405", # {name} may be undefined, or defined from star imports
+  "I", # isort
+]
+"test_*.py" = [
+  "E402", # Module level import not at top of cell
+]
+
+[lint.pydocstyle]
+convention = "numpy"
+
+[lint.isort]
+default-section = "third-party"
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "first-party",
+  "local-folder",
+]
+no-lines-before = ["local-folder"]

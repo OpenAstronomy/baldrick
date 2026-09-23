@@ -2,7 +2,7 @@ import json
 from copy import copy
 from unittest.mock import MagicMock, patch
 
-from baldrick.blueprints.circleci import circleci_webhook_handler, CIRCLECI_WEBHOOK_HANDLERS
+from baldrick.blueprints.circleci import CIRCLECI_WEBHOOK_HANDLERS, circleci_webhook_handler
 
 mock_hook = MagicMock()
 
@@ -18,63 +18,59 @@ def teardown_module(module):
 
 
 class TestHook:
-
     def setup_method(self, method):
         mock_hook.reset_mock()
 
     def test_valid(self, app, client):
 
-        payload = {'vcs_revision': '2.0',
-                   'username': 'test',
-                   'reponame': 'testbot',
-                   'status': 'passed',
-                   'build_num': '12356'}
+        payload = {
+            "vcs_revision": "2.0",
+            "username": "test",
+            "reponame": "testbot",
+            "status": "passed",
+            "build_num": "12356",
+        }
 
-        data = {'payload': payload}
+        data = {"payload": payload}
 
-        with patch('baldrick.blueprints.circleci.repo_to_installation_id_mapping') as mapping:
-            mapping.return_value = {'test/testbot': 15554}
-            client.post('/circleci', data=json.dumps(data),
-                        content_type='application/json')
+        with patch("baldrick.blueprints.circleci.repo_to_installation_id_mapping") as mapping:
+            mapping.return_value = {"test/testbot": 15554}
+            client.post("/circleci", data=json.dumps(data), content_type="application/json")
 
-        assert mock_hook.call_args[0][2]['vcs_revision'] == '2.0'
+        assert mock_hook.call_args[0][2]["vcs_revision"] == "2.0"
 
     def test_incorrect_repo(self, app, client):
 
-        payload = {'vcs_revision': '2.0',
-                   'username': 'test',
-                   'reponame': 'testbot2',
-                   'status': 'passed',
-                   'build_num': '12356'}
+        payload = {
+            "vcs_revision": "2.0",
+            "username": "test",
+            "reponame": "testbot2",
+            "status": "passed",
+            "build_num": "12356",
+        }
 
-        data = {'payload': payload}
+        data = {"payload": payload}
 
-        with patch('baldrick.blueprints.circleci.repo_to_installation_id_mapping') as mapping:
-            mapping.return_value = {'test/testbot': 15554}
-            result = client.post('/circleci', data=json.dumps(data),
-                                 content_type='application/json')
+        with patch("baldrick.blueprints.circleci.repo_to_installation_id_mapping") as mapping:
+            mapping.return_value = {"test/testbot": 15554}
+            result = client.post("/circleci", data=json.dumps(data), content_type="application/json")
 
-        assert result.get_data() == b'circleci: Not installed for test/testbot2'
+        assert result.get_data() == b"circleci: Not installed for test/testbot2"
 
     def test_missing_payload_key(self, app, client):
 
-        payload = {'vcs_revision': '2.0',
-                   'username': 'test',
-                   'status': 'passed',
-                   'build_num': '12356'}
+        payload = {"vcs_revision": "2.0", "username": "test", "status": "passed", "build_num": "12356"}
 
-        data = {'payload': payload}
+        data = {"payload": payload}
 
-        result = client.post('/circleci', data=json.dumps(data),
-                             content_type='application/json')
+        result = client.post("/circleci", data=json.dumps(data), content_type="application/json")
 
-        assert result.get_data() == b'Payload missing reponame'
+        assert result.get_data() == b"Payload missing reponame"
 
     def test_missing_payload(self, app, client):
 
-        headers = {'X-GitHub-Event': 'pull_request'}
+        headers = {"X-GitHub-Event": "pull_request"}
 
-        result = client.post('/circleci', headers=headers,
-                             content_type='application/json')
+        result = client.post("/circleci", headers=headers, content_type="application/json")
 
-        assert result.get_data() == b'No payload received'
+        assert result.get_data() == b"No payload received"

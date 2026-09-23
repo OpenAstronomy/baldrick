@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm", "wheel"]
+requires = ["setuptools>=64", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -59,7 +59,10 @@ except Exception:
 
 [tool.pytest]
 minversion = "9.0"
+strict = true
 testpaths = ["baldrick", "docs"]
+log_level = "INFO"
+addopts = ["-ra", "-m not github_api"]
 filterwarnings = [
     "error",
     "ignore:Unknown config option:pytest.PytestConfigWarning",
@@ -67,7 +70,6 @@ filterwarnings = [
 ]
 xfail_strict = true
 markers = ["github_api"]
-addopts = ["-m not github_api"]
 
 [tool.coverage.run]
 omit = [
@@ -97,3 +99,13 @@ exclude_lines = [
     "pragma: py{ignore_python_version}",
     "def _ipython_key_completions_",
 ]
+
+[tool.repo-review.ignore]
+PY005 = "The template packages tests inside baldrick/"
+PP006 = "We are not currently using dependency-groups"
+PC140 = "No types"
+PC170 = "Not using pygrep"
+PC180 = "No markdown formatter required"
+PC901 = "Opt-out"
+PC902 = "Opt-out"
+MY = "No types"

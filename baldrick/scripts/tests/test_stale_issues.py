@@ -1,12 +1,15 @@
 import time
 from unittest.mock import patch
 
-from baldrick.github.github_api import RepoHandler, IssueHandler
-from baldrick.scripts.stale_issues import (process_issues, main,
-                                           ISSUE_CLOSE_EPILOGUE,
-                                           ISSUE_CLOSE_WARNING,
-                                           is_close_warning,
-                                           is_close_epilogue)
+from baldrick.github.github_api import IssueHandler, RepoHandler
+from baldrick.scripts.stale_issues import (
+    ISSUE_CLOSE_EPILOGUE,
+    ISSUE_CLOSE_WARNING,
+    is_close_epilogue,
+    is_close_warning,
+    main,
+    process_issues,
+)
 
 
 def test_is_close_warning():
@@ -23,25 +26,24 @@ def now():
 
 def test_main():
 
-    with patch('baldrick.scripts.stale_issues.process_issues') as process:
-        with patch('baldrick.scripts.stale_issues.repo_to_installation_id') as to_id:
-            to_id.return_value = '12431'
-            main('--repository testrepo --warn-seconds 10 --close-seconds 20'.split())
-        process.assert_called_with('testrepo', '12431', warn_seconds=10, close_seconds=20)
+    with patch("baldrick.scripts.stale_issues.process_issues") as process:
+        with patch("baldrick.scripts.stale_issues.repo_to_installation_id") as to_id:
+            to_id.return_value = "12431"
+            main("--repository testrepo --warn-seconds 10 --close-seconds 20".split())
+        process.assert_called_with("testrepo", "12431", warn_seconds=10, close_seconds=20)
 
 
 class TestProcessIssues:
-
     def setup_method(self, method):
 
-        self.patch_get_app_name = patch('baldrick.scripts.stale_issues.get_app_name')
-        self.patch_get_issues = patch.object(RepoHandler, 'get_issues')
-        self.patch_submit_comment = patch.object(IssueHandler, 'submit_comment')
-        self.patch_close = patch.object(IssueHandler, 'close')
-        self.patch_get_label_added_date = patch.object(IssueHandler, 'get_label_added_date')
-        self.patch_find_comments = patch.object(IssueHandler, 'find_comments')
-        self.patch_set_labels = patch.object(IssueHandler, 'set_labels')
-        self.patch_last_comment_date = patch.object(IssueHandler, 'last_comment_date')
+        self.patch_get_app_name = patch("baldrick.scripts.stale_issues.get_app_name")
+        self.patch_get_issues = patch.object(RepoHandler, "get_issues")
+        self.patch_submit_comment = patch.object(IssueHandler, "submit_comment")
+        self.patch_close = patch.object(IssueHandler, "close")
+        self.patch_get_label_added_date = patch.object(IssueHandler, "get_label_added_date")
+        self.patch_find_comments = patch.object(IssueHandler, "find_comments")
+        self.patch_set_labels = patch.object(IssueHandler, "set_labels")
+        self.patch_last_comment_date = patch.object(IssueHandler, "last_comment_date")
 
         self.get_app_name = self.patch_get_app_name.start()
         self.get_issues = self.patch_get_issues.start()
@@ -52,7 +54,7 @@ class TestProcessIssues:
         self.set_labels = self.patch_set_labels.start()
         self.last_comment_date = self.patch_last_comment_date.start()
 
-        self.get_app_name.return_value = 'testbot'
+        self.get_app_name.return_value = "testbot"
 
     def teardown_method(self, method):
 
@@ -71,15 +73,15 @@ class TestProcessIssues:
         # case no new comment should be posted and the issue should be kept open
         # since this likely indicates the issue was open again manually.
 
-        self.get_issues.return_value = ['123']
+        self.get_issues.return_value = ["123"]
         self.get_label_added_date.return_value = now() - 34443
         self.last_comment_date.return_value = now() - 20000
-        self.find_comments.return_value = ['1']
+        self.find_comments.return_value = ["1"]
 
-        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=14442)
+        process_issues("repo", "installation", warn_seconds=14122, close_seconds=14442)
 
-        self.get_issues.assert_called_with('open', 'Close?')
-        self.get_label_added_date.assert_called_with('Close?')
+        self.get_issues.assert_called_with("open", "Close?")
+        self.get_label_added_date.assert_called_with("Close?")
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
@@ -90,12 +92,12 @@ class TestProcessIssues:
         # Time is beyond close deadline, and there is no comment yet so the
         # closing comment can be posted and the issue closed.
 
-        self.get_issues.return_value = ['123']
+        self.get_issues.return_value = ["123"]
         self.get_label_added_date.return_value = now() - 34443
         self.last_comment_date.return_value = now() - 20000
         self.find_comments.return_value = []
 
-        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=14442)
+        process_issues("repo", "installation", warn_seconds=14122, close_seconds=14442)
 
         assert self.submit_comment.call_count == 1
         expected = ISSUE_CLOSE_EPILOGUE
@@ -108,12 +110,12 @@ class TestProcessIssues:
         # Time is beyond warn deadline but within close deadline. There is
         # already a warning, so don't do anything.
 
-        self.get_issues.return_value = ['123']
+        self.get_issues.return_value = ["123"]
         self.get_label_added_date.return_value = now() - 34400
         self.last_comment_date.return_value = now() - 20000
-        self.find_comments.return_value = ['1']
+        self.find_comments.return_value = ["1"]
 
-        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=14442)
+        process_issues("repo", "installation", warn_seconds=14122, close_seconds=14442)
 
         assert self.submit_comment.call_count == 0
         assert self.close.call_count == 0
@@ -124,15 +126,15 @@ class TestProcessIssues:
         # Time is beyond warn deadline but within close deadline. There isn't a
         # comment yet, so a comment should be posted.
 
-        self.get_issues.return_value = ['123']
+        self.get_issues.return_value = ["123"]
         self.get_label_added_date.return_value = now() - 32400  # 9 hours
         self.last_comment_date.return_value = None
         self.find_comments.return_value = []
 
-        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=18000)
+        process_issues("repo", "installation", warn_seconds=14122, close_seconds=18000)
 
         assert self.submit_comment.call_count == 1
-        expected = ISSUE_CLOSE_WARNING.format(pasttime='9 hours ago', futuretime='5 hours')
+        expected = ISSUE_CLOSE_WARNING.format(pasttime="9 hours ago", futuretime="5 hours")
         self.submit_comment.assert_called_with(expected)
         assert self.close.call_count == 0
         assert self.set_labels.call_count == 0
@@ -141,12 +143,12 @@ class TestProcessIssues:
 
         # Time is before warn deadline so don't do anything.
 
-        self.get_issues.return_value = ['123']
+        self.get_issues.return_value = ["123"]
         self.get_label_added_date.return_value = now() - 14000
         self.last_comment_date.return_value = None
         self.find_comments.return_value = []
 
-        process_issues('repo', 'installation', warn_seconds=14122, close_seconds=34442)
+        process_issues("repo", "installation", warn_seconds=14122, close_seconds=34442)
 
         assert self.find_comments.call_count == 0
         assert self.submit_comment.call_count == 0

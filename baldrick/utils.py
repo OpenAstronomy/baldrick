@@ -1,8 +1,9 @@
-import os
 import datetime
+import os
+import random
 from datetime import timedelta
 
-__all__ = ['unwrap', 'is_special_day_now', 'insert_special_message']
+__all__ = ["insert_special_message", "is_special_day_now", "unwrap"]
 
 # NOTE: This is not a file to avoid I/O penalty.
 QUOTES = [
@@ -27,7 +28,8 @@ QUOTES = [
     "Resistance is futile.",
     "I'm the one who knocks!",
     "Who are you who are so wise in the ways of science?",
-    "Not bad, for a human."]
+    "Not bad, for a human.",
+]
 
 
 def unwrap(text):
@@ -49,13 +51,13 @@ def unwrap(text):
     paragraphs = text.split(2 * os.linesep)
 
     # Join each paragraph using spaces instead of newlines
-    paragraphs = [paragraph.replace(os.linesep, ' ') for paragraph in paragraphs]
+    paragraphs = [paragraph.replace(os.linesep, " ") for paragraph in paragraphs]
 
     # Join paragraphs together
     return (2 * os.linesep).join(paragraphs)
 
 
-def is_special_day_now(timestamp=None, special_days=[(4, 1)]):
+def is_special_day_now(timestamp=None, special_days=None):
     """
     See if it is special day somewhere on Earth
 
@@ -76,8 +78,10 @@ def is_special_day_now(timestamp=None, special_days=[(4, 1)]):
         `True` if special, else `False`.
 
     """
+    if special_days is None:
+        special_days = [(4, 1)]
     if timestamp is None:
-        tt = datetime.datetime.now(datetime.timezone.utc)  # UTC because we're astronomers!
+        tt = datetime.datetime.now(datetime.UTC)  # UTC because we're astronomers!
         dt = timedelta(hours=12)  # This roughly covers both hemispheres
         tt_min = tt - dt
         tt_max = tt + dt
@@ -114,18 +118,11 @@ def insert_special_message(body, **kwargs):
     """
     # Special day!
     if is_special_day_now(**kwargs):
-        import random
-
-        try:
-            q = random.choice(QUOTES)
-        except Exception as e:  # pragma: no cover
-            q = str(e)  # Need a way to find out what went wrong
+        q = random.choice(QUOTES)
 
         if len(body) > 0:
-            return f'{body}\n*{q}*\n'
-        else:
-            return f'*{q}*'
+            return f"{body}\n*{q}*\n"
+        return f"*{q}*"
 
     # Another non-special day; Boring!
-    else:
-        return body
+    return body

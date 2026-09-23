@@ -1,30 +1,28 @@
-import tomllib
-import os
 import re
+import tomllib
 from pathlib import Path
 
 from loguru import logger
+from towncrier._settings.load import parse_toml
 
 from .github_pull_requests import pull_request_handler
-
-from towncrier._settings.load import parse_toml
 
 
 def calculate_fragment_paths(config):
 
     if config.directory:
-        base_directory = config.directory
+        base_directory = Path(config.directory)
         fragment_directory = None
     else:
-        base_directory = os.path.join(config.package_dir, config.package)
+        base_directory = Path(config.package_dir) / config.package
         fragment_directory = "newsfragments"
 
     section_dirs = []
-    for key, val in config.sections.items():
+    for val in config.sections.values():
         if fragment_directory is not None:
-            section_dirs.append(os.path.join(base_directory, val, fragment_directory))
+            section_dirs.append(str(base_directory / val / fragment_directory))
         else:
-            section_dirs.append(os.path.join(base_directory, val))
+            section_dirs.append(str(base_directory / val))
 
     return section_dirs
 
@@ -77,19 +75,19 @@ NUMBER_INCORRECT = "The number in the changelog file does not match this pull re
 @pull_request_handler
 def process_towncrier_changelog(pr_handler, repo_handler):
 
-    cl_config = pr_handler.get_config_value('towncrier_changelog', {})
+    cl_config = pr_handler.get_config_value("towncrier_changelog", {})
 
-    if not cl_config.get('enabled', False):
+    if not cl_config.get("enabled", False):
         logger.debug("Skipping towncrier changelog plugin as disabled in config")
         return None
 
     logger.debug(f"Checking towncrier changelog on {pr_handler.repo}#{pr_handler.number}")
-    skip_label = cl_config.get('changelog_skip_label', None)
+    skip_label = cl_config.get("changelog_skip_label", None)
 
     config = load_towncrier_config(pr_handler)
     if not config:
         logger.info("No towncrier config detected in pyproject.toml, skipping.")
-        return
+        return None
 
     section_dirs = calculate_fragment_paths(config)
     types = config.types.keys()
@@ -102,61 +100,64 @@ def process_towncrier_changelog(pr_handler, repo_handler):
 
     if skip_label and skip_label in pr_handler.labels:
         # Returning nothing marks all existing checks as neutral
-        return
+        return None
 
-    elif not matching_file:
-
-        messages['missing_file'] = {
-            'name': cl_config.get('changelog_missing_name', "changelog: absent"),
-            'title': cl_config.get('changelog_missing', CHANGELOG_MISSING),
-            'summary': cl_config.get('changelog_missing_long', ''),
-            'conclusion': 'failure'
+    if not matching_file:
+        messages["missing_file"] = {
+            "name": cl_config.get("changelog_missing_name", "changelog: absent"),
+            "title": cl_config.get("changelog_missing", CHANGELOG_MISSING),
+            "summary": cl_config.get("changelog_missing_long", ""),
+            "conclusion": "failure",
         }
 
     else:
         all_passes = True
         if check_changelog_type(types, matching_file):
-            messages['wrong_type'] = {'name': cl_config.get('type_correct_name',
-                                                            'changelog: type correct'),
-                                      'title': cl_config.get('type_correct', TYPE_CORRECT),
-                                      'summary': cl_config.get('type_correct_long', ''),
-                                      'conclusion': 'success',
-                                      'skip_if_missing': True}
+            messages["wrong_type"] = {
+                "name": cl_config.get("type_correct_name", "changelog: type correct"),
+                "title": cl_config.get("type_correct", TYPE_CORRECT),
+                "summary": cl_config.get("type_correct_long", ""),
+                "conclusion": "success",
+                "skip_if_missing": True,
+            }
         else:
             all_passes = False
-            messages['wrong_type'] = {'name': cl_config.get('type_incorrect_name',
-                                                            'changelog: type incorrect'),
-                                      'title': cl_config.get('type_incorrect', TYPE_INCORRECT),
-                                      'summary': cl_config.get('type_incorrect_long', ''),
-                                      'conclusion': 'failure'}
+            messages["wrong_type"] = {
+                "name": cl_config.get("type_incorrect_name", "changelog: type incorrect"),
+                "title": cl_config.get("type_incorrect", TYPE_INCORRECT),
+                "summary": cl_config.get("type_incorrect_long", ""),
+                "conclusion": "failure",
+            }
 
-        if cl_config.get('verify_pr_number', False):
+        if cl_config.get("verify_pr_number", False):
             if verify_pr_number(pr_handler.number, matching_file):
-                messages['wrong_number'] = {'name': cl_config.get('number_correct_name',
-                                                                  'changelog: number correct'),
-                                            'title': cl_config.get('number_correct', NUMBER_CORRECT),
-                                            'summary': cl_config.get('number_correct_long', ''),
-                                            'conclusion': 'success',
-                                            'skip_if_missing': True}
+                messages["wrong_number"] = {
+                    "name": cl_config.get("number_correct_name", "changelog: number correct"),
+                    "title": cl_config.get("number_correct", NUMBER_CORRECT),
+                    "summary": cl_config.get("number_correct_long", ""),
+                    "conclusion": "success",
+                    "skip_if_missing": True,
+                }
             else:
                 all_passes = False
-                messages['wrong_number'] = {'name': cl_config.get('number_incorrect_name',
-                                                                  'changelog: number not pull request number'),
-                                            'title': cl_config.get('number_incorrect', NUMBER_INCORRECT),
-                                            'summary': cl_config.get('number_incorrect_long', ''),
-                                            'conclusion': 'failure'}
+                messages["wrong_number"] = {
+                    "name": cl_config.get("number_incorrect_name", "changelog: number not pull request number"),
+                    "title": cl_config.get("number_incorrect", NUMBER_INCORRECT),
+                    "summary": cl_config.get("number_incorrect_long", ""),
+                    "conclusion": "failure",
+                }
 
-        messages['missing_file'] = {
-            'name': cl_config.get('changelog_exists_name', 'changelog: found'),
-            'title': cl_config.get('changelog_exists', CHANGELOG_EXISTS),
-            'summary': cl_config.get('changelog_exists_long', ''),
-            'conclusion': 'success',
+        messages["missing_file"] = {
+            "name": cl_config.get("changelog_exists_name", "changelog: found"),
+            "title": cl_config.get("changelog_exists", CHANGELOG_EXISTS),
+            "summary": cl_config.get("changelog_exists_long", ""),
+            "conclusion": "success",
             # Only show this status if all have passed or we already posted one.
-            'skip_if_missing': not all_passes
+            "skip_if_missing": not all_passes,
         }
 
     # Add help URL
     for message in messages.values():
-        message['details_url'] = cl_config.get('help_url', None)
+        message["details_url"] = cl_config.get("help_url", None)
 
     return messages

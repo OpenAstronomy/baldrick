@@ -1,21 +1,22 @@
 import tomllib
 
 
-def load(file, tool='baldrick'):
+def load(file, tool="baldrick"):
     with open(file, "rb") as f:
         conf = tomllib.load(f)
-    if 'tool' in conf and tool in conf['tool']:
-        return Config(conf['tool'][tool])
+    if "tool" in conf and tool in conf["tool"]:
+        return Config(conf["tool"][tool])
+    return None
 
 
-def loads(text, tool='baldrick'):
+def loads(text, tool="baldrick"):
     conf = tomllib.loads(text)
-    if 'tool' in conf and tool in conf['tool']:
-        return Config(conf['tool'][tool])
+    if "tool" in conf and tool in conf["tool"]:
+        return Config(conf["tool"][tool])
+    return None
 
 
 class Config(dict):
-
     def update_from_config(self, other_config):
         for section_name, section in other_config.items():
             if section_name not in self:

@@ -1,22 +1,22 @@
 import os
+from pathlib import Path
 
 from loguru import logger
 
 from baldrick import github
-from baldrick.github import github_auth  # noqa
+from baldrick.github import github_auth
 
-__all__ = ['create_app', '__version__']
+__all__ = ["__version__", "create_app"]
 
-__version__ = '0.3.dev0'
+__version__ = "0.3.dev0"
 
-GLOBAL_TOML = ''
+GLOBAL_TOML = ""
 
 
 def _init_global_toml():
-    import os
     global GLOBAL_TOML
 
-    GLOBAL_TOML = os.path.join('.', 'pyproject.toml')
+    GLOBAL_TOML = Path("pyproject.toml")
 
 
 def create_app(name, register_blueprints=True):
@@ -38,7 +38,7 @@ def create_app(name, register_blueprints=True):
 
     """
     # Setup loguru integration, must be run before import flask.
-    import baldrick.logging  # noqa
+    import baldrick.logging
 
     from flask import Flask
 
@@ -56,17 +56,17 @@ def create_app(name, register_blueprints=True):
 
     # Check if there is a global configuration
     app.conf = Config()
-    if os.path.exists(GLOBAL_TOML):
+    if Path(GLOBAL_TOML).exists():
         conf = load(GLOBAL_TOML, tool=name)
         if conf:
             app.conf = conf
 
-    app.integration_id = int(os.environ['GITHUB_APP_INTEGRATION_ID'])
-    app.private_key = os.environ['GITHUB_APP_PRIVATE_KEY']
+    app.integration_id = int(os.environ["GITHUB_APP_INTEGRATION_ID"])
+    app.private_key = os.environ["GITHUB_APP_PRIVATE_KEY"]
 
     try:
         repos = github_auth.repo_to_installation_id_mapping()
-    except Exception as e:
+    except Exception:  # noqa BLE001
         logger.exception("Failed to auth with GitHub")
     else:
         logger.info(f"Installed on the following repos {repos}")

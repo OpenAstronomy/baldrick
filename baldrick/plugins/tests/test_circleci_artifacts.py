@@ -1,8 +1,7 @@
 import logging
-from unittest.mock import patch, call
+from unittest.mock import call, patch
 
-from baldrick.github.github_api import FILE_CACHE
-from baldrick.github.github_api import RepoHandler
+from baldrick.github.github_api import FILE_CACHE, RepoHandler
 from baldrick.plugins.circleci_artifacts import set_commit_status_for_artifacts
 
 CONFIG_TEMPLATE = """
@@ -36,19 +35,17 @@ CONFIG_TEMPLATE_ARTIFACT_2 = """
 
 class TestArtifactPlugin:
     def setup_method(self, method):
-        self.requests_get_mock = patch('requests.get')
+        self.requests_get_mock = patch("requests.get")
         self.requests_get = self.requests_get_mock.start()
         self.requests_get.return_value.ok = True
-        self.requests_get.return_value.json.return_value = {'default_branch': 'main'}
+        self.requests_get.return_value.json.return_value = {"default_branch": "main"}
 
-        self.get_file_contents_mock = patch(
-            'baldrick.github.github_api.GitHubHandler.get_file_contents')
+        self.get_file_contents_mock = patch("baldrick.github.github_api.GitHubHandler.get_file_contents")
 
-        self.set_status_mock = patch('baldrick.github.github_api.RepoHandler.set_status')
+        self.set_status_mock = patch("baldrick.github.github_api.RepoHandler.set_status")
         self.set_status = self.set_status_mock.start()
 
-        self.get_artifacts_mock = patch(
-            'baldrick.plugins.circleci_artifacts.get_artifacts_from_build')
+        self.get_artifacts_mock = patch("baldrick.plugins.circleci_artifacts.get_artifacts_from_build")
         self.get_artifacts = self.get_artifacts_mock.start()
         self.get_artifacts.return_value = []
 
@@ -56,8 +53,7 @@ class TestArtifactPlugin:
         self.get_file_contents = self.get_file_contents_mock.start()
         FILE_CACHE.clear()
 
-        self.set_status_mock = patch(
-            'baldrick.github.github_api.RepoHandler.set_status')
+        self.set_status_mock = patch("baldrick.github.github_api.RepoHandler.set_status")
         self.set_status = self.set_status_mock.start()
 
     def teardown_method(self, method):
@@ -66,24 +62,28 @@ class TestArtifactPlugin:
 
     def basic_payload(self):
         return {
-            'vcs_revision': '2.0',
-            'username': 'test',
-            'reponame': 'testbot',
-            'status': 'success',
-            'build_num': '12356'
+            "vcs_revision": "2.0",
+            "username": "test",
+            "reponame": "testbot",
+            "status": "success",
+            "build_num": "12356",
         }
 
     def test_skip(self, app):
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(enabled="false")
         with app.app_context():
-            set_commit_status_for_artifacts(self.repo_handler, "v1", self.basic_payload(), {}, "success", "2.0", "12356")
+            set_commit_status_for_artifacts(
+                self.repo_handler, "v1", self.basic_payload(), {}, "success", "2.0", "12356"
+            )
 
         assert self.set_status.call_count == 0
 
     def test_no_artifact(self, app):
         self.get_file_contents.return_value = CONFIG_TEMPLATE.format(enabled="true")
         with app.app_context():
-            set_commit_status_for_artifacts(self.repo_handler, "v1", self.basic_payload(), {}, "success", "2.0", "12356")
+            set_commit_status_for_artifacts(
+                self.repo_handler, "v1", self.basic_payload(), {}, "success", "2.0", "12356"
+            )
 
         assert self.set_status.call_count == 0
         assert self.get_artifacts.call_count == 1
@@ -95,35 +95,46 @@ class TestArtifactPlugin:
                 "path": "raw-test-output/go-test-report.xml",
                 "pretty_path": "raw-test-output/go-test-report.xml",
                 "node_index": 0,
-                "url":
-                "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test-report.xml"
+                "url": "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test-report.xml",
             },
             {
                 "path": "raw-test-output/go-test.out",
                 "pretty_path": "raw-test-output/go-test.out",
                 "node_index": 0,
-                "url": "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out"
-            }
+                "url": "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out",
+            },
         ]
 
         with app.app_context():
             with caplog.at_level(logging.DEBUG):
-                set_commit_status_for_artifacts(self.repo_handler, "v1", self.basic_payload(), {}, "success", "2.0", "12356")
+                set_commit_status_for_artifacts(
+                    self.repo_handler, "v1", self.basic_payload(), {}, "success", "2.0", "12356"
+                )
 
-        circle_records = [r for r in caplog.records if r.name == 'baldrick.plugins.circleci_artifacts']
+        circle_records = [r for r in caplog.records if r.name == "baldrick.plugins.circleci_artifacts"]
         assert len(circle_records) >= 3
         assert "nota/repo" in caplog.text
         assert "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test-report.xml" in caplog.text
         assert "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out" in caplog.text
 
-        args = [call('success', 'Click details to preview the HTML documentation.',
-                     'docs', '2.0',
-                     'https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test-report.xml'),
-                call('success', 'Something else',
-                     'other', '2.0',
-                     'https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out')]
+        args = [
+            call(
+                "success",
+                "Click details to preview the HTML documentation.",
+                "docs",
+                "2.0",
+                "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test-report.xml",
+            ),
+            call(
+                "success",
+                "Something else",
+                "other",
+                "2.0",
+                "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out",
+            ),
+        ]
 
-        self.set_status.call_args_list == args
+        assert self.set_status.call_args_list == args
         assert self.get_artifacts.call_count == 1
 
     def test_report_on_fail(self, app, caplog):
@@ -133,26 +144,27 @@ class TestArtifactPlugin:
                 "path": "raw-test-output/go-test-report.xml",
                 "pretty_path": "raw-test-output/go-test-report.xml",
                 "node_index": 0,
-                "url":
-                "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test-report.xml"
+                "url": "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test-report.xml",
             },
             {
                 "path": "raw-test-output/go-test.out",
                 "pretty_path": "raw-test-output/go-test.out",
                 "node_index": 0,
-                "url": "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out"
-            }
+                "url": "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out",
+            },
         ]
 
         payload = self.basic_payload()
-        payload['status'] = "cancelled"
+        payload["status"] = "cancelled"
 
         with app.app_context():
             with caplog.at_level(logging.DEBUG):
                 set_commit_status_for_artifacts(self.repo_handler, "v1", payload, {}, "cancelled", "2.0", "12356")
 
-        self.set_status.assert_called_once_with('success',
-                                                'Something else',
-                                                'other',
-                                                '2.0',
-                                                'https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out')
+        self.set_status.assert_called_once_with(
+            "success",
+            "Something else",
+            "other",
+            "2.0",
+            "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out",
+        )
