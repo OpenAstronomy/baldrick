@@ -3,10 +3,8 @@ from unittest.mock import patch
 
 import pytest
 
-from baldrick.github.github_api import FILE_CACHE
-from baldrick.github.github_api import RepoHandler, PullRequestHandler
+from baldrick.github.github_api import FILE_CACHE, PullRequestHandler, RepoHandler
 from baldrick.plugins.github_towncrier_changelog import process_towncrier_changelog
-
 
 CONFIG_TEMPLATE = """
 [ tool.towncrier ]

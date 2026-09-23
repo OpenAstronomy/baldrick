@@ -1,9 +1,8 @@
-import os
 import logging
+import os
 
 import pytest
 from loguru import logger
-
 
 PRIVATE_KEY = """
 -----BEGIN RSA PRIVATE KEY-----
@@ -39,6 +38,7 @@ IJVMoU0lvK0zKm5VlXh3jbRXt/M5cTNu/1+xZxUbGJ0b+Go3FYc=
 @pytest.fixture
 def app():
     from unittest.mock import patch
+
     from baldrick import create_app
     os.environ['GITHUB_APP_INTEGRATION_ID'] = '1234'
     os.environ['GITHUB_APP_PRIVATE_KEY'] = PRIVATE_KEY

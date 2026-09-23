@@ -3,9 +3,9 @@ import os
 from loguru import logger
 
 from baldrick import github
-from baldrick.github import github_auth  # noqa
+from baldrick.github import github_auth
 
-__all__ = ['create_app', '__version__']
+__all__ = ['__version__', 'create_app']
 
 __version__ = '0.3.dev0'
 
@@ -38,7 +38,7 @@ def create_app(name, register_blueprints=True):
 
     """
     # Setup loguru integration, must be run before import flask.
-    import baldrick.logging  # noqa
+    import baldrick.logging
 
     from flask import Flask
 
@@ -66,7 +66,7 @@ def create_app(name, register_blueprints=True):
 
     try:
         repos = github_auth.repo_to_installation_id_mapping()
-    except Exception as e:
+    except Exception:  # noqa BLE001
         logger.exception("Failed to auth with GitHub")
     else:
         logger.info(f"Installed on the following repos {repos}")

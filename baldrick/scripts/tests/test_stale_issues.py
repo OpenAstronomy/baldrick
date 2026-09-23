@@ -1,12 +1,15 @@
 import time
 from unittest.mock import patch
 
-from baldrick.github.github_api import RepoHandler, IssueHandler
-from baldrick.scripts.stale_issues import (process_issues, main,
-                                           ISSUE_CLOSE_EPILOGUE,
-                                           ISSUE_CLOSE_WARNING,
-                                           is_close_warning,
-                                           is_close_epilogue)
+from baldrick.github.github_api import IssueHandler, RepoHandler
+from baldrick.scripts.stale_issues import (
+    ISSUE_CLOSE_EPILOGUE,
+    ISSUE_CLOSE_WARNING,
+    is_close_epilogue,
+    is_close_warning,
+    main,
+    process_issues,
+)
 
 
 def test_is_close_warning():

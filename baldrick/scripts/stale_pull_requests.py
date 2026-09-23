@@ -1,11 +1,12 @@
+import argparse
 import sys
 import time
-import argparse
+
 from humanize import naturaldelta
 
-from baldrick.utils import unwrap
-from baldrick.github.github_auth import repo_to_installation_id, get_app_name
 from baldrick.github.github_api import PullRequestHandler, RepoHandler
+from baldrick.github.github_auth import get_app_name, repo_to_installation_id
+from baldrick.utils import unwrap
 
 PULL_REQUESTS_CLOSE_WARNING = unwrap("""
 Hi humans :wave: - this pull request hasn't had any new commits for
@@ -60,11 +61,9 @@ def process_pull_requests(repository, installation,
 
     for n in pull_requests:
 
-        print(f'Checking {n}')
 
         pr = PullRequestHandler(repository, n, installation)
         if 'keep-open' in pr.labels:
-            print('-> PROTECTED by label, skipping')
             continue
 
         commit_time = pr.last_commit_date
@@ -86,24 +85,21 @@ def process_pull_requests(repository, installation,
         if time_since_last_warning > close_seconds:
             comment_ids = pr.find_comments(f'{bot_name}[bot]', filter_keep=is_close_epilogue)
             if len(comment_ids) == 0:
-                print(f'-> CLOSING pull request {n}')
                 pr.set_labels(['closed-by-bot'])
                 pr.submit_comment(PULL_REQUESTS_CLOSE_EPILOGUE)
                 pr.close()
             else:
-                print(f'-> Skipping pull request {n} (already closed)')
+                pass
         elif time_since_last_commit > warn_seconds:
             # A negative time_since_last_warning means no warning since last commit.
             if time_since_last_warning < 0.:
-                print(f'-> WARNING pull request {n}')
                 pr.submit_comment(PULL_REQUESTS_CLOSE_WARNING.format(pasttime=naturaldelta(time_since_last_commit),
                                                                      futuretime=naturaldelta(close_seconds)))
             else:
-                print(f'-> Skipping pull request {n} (already warned)')
+                pass
         else:
-            print(f'-> OK pull request {n}')
+            pass
 
-    print('Finished checking for stale pull requests')
 
 
 def main(argv=None):

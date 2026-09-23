@@ -6,12 +6,14 @@ def load(file, tool='baldrick'):
         conf = tomllib.load(f)
     if 'tool' in conf and tool in conf['tool']:
         return Config(conf['tool'][tool])
+    return None
 
 
 def loads(text, tool='baldrick'):
     conf = tomllib.loads(text)
     if 'tool' in conf and tool in conf['tool']:
         return Config(conf['tool'][tool])
+    return None
 
 
 class Config(dict):

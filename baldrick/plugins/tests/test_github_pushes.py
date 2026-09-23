@@ -3,7 +3,7 @@ from copy import copy
 from unittest.mock import MagicMock, patch
 
 from baldrick.github.github_api import FILE_CACHE
-from baldrick.plugins.github_pushes import push_handler, PUSH_HANDLERS
+from baldrick.plugins.github_pushes import PUSH_HANDLERS, push_handler
 
 mock_handler = MagicMock()
 

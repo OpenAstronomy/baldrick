@@ -1,5 +1,4 @@
 import logging
-
 from os import environ
 
 from loguru import logger

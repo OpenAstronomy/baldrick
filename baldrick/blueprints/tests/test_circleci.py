@@ -2,7 +2,7 @@ import json
 from copy import copy
 from unittest.mock import MagicMock, patch
 
-from baldrick.blueprints.circleci import circleci_webhook_handler, CIRCLECI_WEBHOOK_HANDLERS
+from baldrick.blueprints.circleci import CIRCLECI_WEBHOOK_HANDLERS, circleci_webhook_handler
 
 mock_hook = MagicMock()
 

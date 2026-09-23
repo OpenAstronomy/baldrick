@@ -1,5 +1,5 @@
-from baldrick.github.github_api import RepoHandler
 from baldrick.blueprints.github import github_webhook_handler
+from baldrick.github.github_api import RepoHandler
 
 __all__ = ['push_handler']
 

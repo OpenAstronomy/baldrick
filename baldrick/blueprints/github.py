@@ -36,8 +36,7 @@ def github_webhook():
 
     if 'installation' not in payload:
         return "No installation key found in payload"
-    else:
-        installation = payload['installation']['id']
+    installation = payload['installation']['id']
 
     repo_name = payload['repository']['full_name']
     repo = RepoHandler(repo_name, installation=installation)

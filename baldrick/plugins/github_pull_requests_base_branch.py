@@ -11,7 +11,7 @@ def check_base_branch(pr_handler, repo_handler):
 
     if not cl_config.get('enabled', False):
         logger.debug("Skipping base branch check plugin as disabled in config")
-        return
+        return None
 
     basebranch = cl_config.get('basebranch', 'master')
     pr_basebranch = pr_handler.base_branch

@@ -1,13 +1,10 @@
-import os
-import netrc
 import datetime
+import netrc
+import os
 from collections import defaultdict
 
 import dateutil.parser
-from loguru import logger
-
 import jwt
-
 import requests
 
 TEN_MIN = datetime.timedelta(minutes=9)
@@ -82,11 +79,11 @@ def get_installation_token(installation):
                             "file exists. Rename that file temporarily and try again.")
 
         headers = {}
-        headers['Authorization'] = 'Bearer {0}'.format(get_json_web_token())
+        headers['Authorization'] = f'Bearer {get_json_web_token()}'
         headers['Accept'] = 'application/vnd.github+json'
         headers['X-GitHub-Api-Version'] = "2022-11-28"
 
-        url = 'https://api.github.com/app/installations/{0}/access_tokens'.format(installation)
+        url = f'https://api.github.com/app/installations/{installation}/access_tokens'
 
         req = requests.post(url, headers=headers)
         resp = req.json()
@@ -94,8 +91,7 @@ def get_installation_token(installation):
         if not req.ok:
             if 'message' in resp:
                 raise Exception(f"{req.status_code} {resp['message']}")
-            else:
-                raise Exception("An error occurred when requesting token")
+            raise Exception("An error occurred when requesting token")
 
         installation_token[installation] = resp['token']
         installation_token_expiry[installation] = dateutil.parser.parse(resp['expires_at']).timestamp()
@@ -108,7 +104,7 @@ def github_request_headers(installation):
     token = get_installation_token(installation)
 
     headers = {}
-    headers['Authorization'] = 'token {0}'.format(token)
+    headers['Authorization'] = f'token {token}'
     headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
 
     return headers
@@ -120,7 +116,7 @@ def repo_to_installation_id_mapping():
     """
     url = 'https://api.github.com/app/installations'
     headers = {}
-    headers['Authorization'] = 'Bearer {0}'.format(get_json_web_token())
+    headers['Authorization'] = f'Bearer {get_json_web_token()}'
     headers['Accept'] = 'application/vnd.github+json'
     headers['X-GitHub-Api-Version'] = "2022-11-28"
     resp = requests.get(url, headers=headers)
@@ -149,8 +145,7 @@ def repo_to_installation_id(repository):
     mapping = repo_to_installation_id_mapping()
     if repository in mapping:
         return mapping[repository]
-    else:
-        raise ValueError("Repository not recognized - should be one of:\n\n  - " + "\n  - ".join(mapping))
+    raise ValueError("Repository not recognized - should be one of:\n\n  - " + "\n  - ".join(mapping))
 
 
 def get_app_name():
@@ -158,7 +153,7 @@ def get_app_name():
     Return the login name of the authenticated app.
     """
     headers = {}
-    headers['Authorization'] = 'Bearer {0}'.format(get_json_web_token())
+    headers['Authorization'] = f'Bearer {get_json_web_token()}'
     headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
     response = requests.get('https://api.github.com/app', headers=headers).json()
     return response['name']

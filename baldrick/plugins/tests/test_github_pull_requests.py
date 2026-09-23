@@ -1,10 +1,9 @@
 import json
 from copy import copy
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 from baldrick.github.github_api import FILE_CACHE
-from baldrick.plugins.github_pull_requests import (pull_request_handler,
-                                                   PULL_REQUEST_CHECKS)
+from baldrick.plugins.github_pull_requests import PULL_REQUEST_CHECKS, pull_request_handler
 
 mock_hook = MagicMock()
 
@@ -79,7 +78,7 @@ class TestPullRequestHandler:
         elif url == 'https://api.github.com/repos/test-repo/commits/abc464aa/check-runs':
             req.json.return_value = self.existing_checks
         else:
-            raise ValueError('Unexepected URL: {0}'.format(url))
+            raise ValueError(f'Unexepected URL: {url}')
         return req
 
     def send_event(self, client):
@@ -190,7 +189,6 @@ class TestPullRequestHandler:
                             'conclusion': 'failure',
                             'external_id': 'test1',
                             'head_sha': 'abc464aa',
-                            'external_id': 'test1',
                             'id': 1,
                             'app': {'id': app.integration_id},
                             'output': {'title': 'Problems here',

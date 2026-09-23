@@ -1,11 +1,12 @@
+import argparse
 import sys
 import time
-import argparse
-from humanize import naturaltime, naturaldelta
 
-from baldrick.utils import unwrap
-from baldrick.github.github_auth import repo_to_installation_id, get_app_name
+from humanize import naturaldelta, naturaltime
+
 from baldrick.github.github_api import IssueHandler, RepoHandler
+from baldrick.github.github_auth import get_app_name, repo_to_installation_id
+from baldrick.utils import unwrap
 
 ISSUE_CLOSE_WARNING = unwrap("""
 Hi humans :wave: - this issue was labeled as **Close?** approximately
@@ -52,7 +53,6 @@ def process_issues(repository, installation,
 
     for n in issuelist:
 
-        print(f'Checking {n}')
 
         issue = IssueHandler(repository, n, installation)
         labeled_time = issue.get_label_added_date('Close?')
@@ -77,24 +77,21 @@ def process_issues(repository, installation,
         if time_since_last_warning > close_seconds:
             comment_ids = issue.find_comments(f'{bot_name}[bot]', filter_keep=is_close_epilogue)
             if len(comment_ids) == 0:
-                print(f'-> CLOSING issue {n}')
                 issue.set_labels(['closed-by-bot'])
                 issue.submit_comment(ISSUE_CLOSE_EPILOGUE)
                 issue.close()
             else:
-                print(f'-> Skipping issue {n} (already closed)')
+                pass
         elif time_since_close_label > warn_seconds:
             comment_ids = issue.find_comments(f'{bot_name}[bot]', filter_keep=is_close_warning)
             if len(comment_ids) == 0:
-                print(f'-> WARNING issue {n}')
                 issue.submit_comment(ISSUE_CLOSE_WARNING.format(pasttime=naturaltime(time_since_close_label),
                                                                 futuretime=naturaldelta(close_seconds)))
             else:
-                print(f'-> Skipping issue {n} (already warned)')
+                pass
         else:
-            print(f'-> OK issue {n}')
+            pass
 
-    print('Finished checking for stale issues')
 
 
 def main(argv=None):

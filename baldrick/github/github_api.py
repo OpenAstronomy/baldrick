@@ -2,7 +2,7 @@
 import base64
 import os
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import dateutil.parser
 import requests
@@ -13,7 +13,7 @@ from ttldict import TTLOrderedDict
 from baldrick.config import Config, loads
 from baldrick.github.github_auth import github_request_headers
 
-__all__ = ['GitHubHandler', 'IssueHandler', 'RepoHandler', 'PullRequestHandler']
+__all__ = ['GitHubHandler', 'IssueHandler', 'PullRequestHandler', 'RepoHandler']
 
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
@@ -41,7 +41,7 @@ def paged_github_json_request(url, headers=None):
         # comments
         if last_page > 1:
             for page in range(2, last_page + 1):
-                response = requests.get(url + '?page={0}'.format(page), headers=headers)
+                response = requests.get(url + f'?page={page}', headers=headers)
                 assert response.ok, response.content
                 results += response.json()
 
@@ -78,8 +78,7 @@ class GitHubHandler:
     def _headers(self):
         if self.installation is None:
             return {}
-        else:
-            return github_request_headers(self.installation)
+        return github_request_headers(self.installation)
 
     @property
     def _url_contents(self):
@@ -175,8 +174,7 @@ class GitHubHandler:
 
         if len(config) > 0:
             return config
-        else:
-            return cfg_default
+        return cfg_default
 
     def set_status(self, state, description, context, commit_hash, target_url=None):
         """
@@ -436,6 +434,7 @@ class IssueHandler(GitHubHandler):
         if return_url:
             comment_id = response.json()['url'].split('/')[-1]
             return f'{self._url_issue_nonapi}#issuecomment-{comment_id}'
+        return None
 
     def _find_comments(self, login, filter_keep=None):
         if filter_keep is None:
@@ -459,6 +458,7 @@ class IssueHandler(GitHubHandler):
         dates = [comment['created_at'] for comment in comments if comment['user']['login'] == login]
         if len(dates) > 0:
             return dateutil.parser.parse(sorted(dates)[-1]).timestamp()
+        return None
 
     @property
     def labels(self):
@@ -475,7 +475,7 @@ class IssueHandler(GitHubHandler):
         # If label already set, do nothing
         missing_labels = set(labels).difference(self.labels)
         if len(missing_labels) == 0:
-            return
+            return None
 
         # Need repo handler (default branch)
         if 'repohandler' not in self._cache:
@@ -488,14 +488,13 @@ class IssueHandler(GitHubHandler):
         repo_labels = repo.get_all_labels()
         nonexistent_labels = missing_labels.difference(repo_labels)
         if len(nonexistent_labels) > 0:
-            print(f'-> WARNING: Label does not exist: {missing_labels}')
+            pass
 
         # Return labels to be set
         missing_labels = missing_labels.intersection(repo_labels)
         if len(missing_labels) > 0:
             return list(missing_labels)
-        else:
-            return None
+        return None
 
     def set_labels(self, labels):
         """Set label(s) to issue"""
@@ -593,7 +592,7 @@ class PullRequestHandler(IssueHandler):
             commit_hash = self.base_sha
 
         if completed_at is True:
-            completed_at = datetime.now(timezone.utc)
+            completed_at = datetime.now(UTC)
         if completed_at is not None:
             completed_at = completed_at.isoformat(timespec='seconds') + 'Z'
 
@@ -749,8 +748,7 @@ class PullRequestHandler(IssueHandler):
         milestone = self.json['milestone']
         if milestone is None:
             return ''
-        else:
-            return milestone['title']
+        return milestone['title']
 
     @property
     def draft(self):

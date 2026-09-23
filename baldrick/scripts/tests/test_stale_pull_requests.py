@@ -1,12 +1,15 @@
 import time
-from unittest.mock import patch, PropertyMock
+from unittest.mock import PropertyMock, patch
 
-from baldrick.github.github_api import RepoHandler, PullRequestHandler
-from baldrick.scripts.stale_pull_requests import (process_pull_requests, main,
-                                                  PULL_REQUESTS_CLOSE_EPILOGUE,
-                                                  PULL_REQUESTS_CLOSE_WARNING,
-                                                  is_close_warning,
-                                                  is_close_epilogue)
+from baldrick.github.github_api import PullRequestHandler, RepoHandler
+from baldrick.scripts.stale_pull_requests import (
+    PULL_REQUESTS_CLOSE_EPILOGUE,
+    PULL_REQUESTS_CLOSE_WARNING,
+    is_close_epilogue,
+    is_close_warning,
+    main,
+    process_pull_requests,
+)
 
 
 def test_is_close_warning():

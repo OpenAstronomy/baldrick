@@ -1,9 +1,15 @@
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from baldrick.github.github_auth import (get_json_web_token, get_installation_token,
-                                         github_request_headers, repo_to_installation_id_mapping,
-                                         repo_to_installation_id, get_app_name)
+import pytest
+
+from baldrick.github.github_auth import (
+    get_app_name,
+    get_installation_token,
+    get_json_web_token,
+    github_request_headers,
+    repo_to_installation_id,
+    repo_to_installation_id_mapping,
+)
 
 
 def test_get_json_web_token(app):
@@ -42,7 +48,7 @@ def test_get_installation_token_invalid_with_message():
         post.return_value.ok = False
         post.return_value.status_code = 400
         post.return_value.json.return_value = TOKEN_RESPONSE_INVALID_WITH_MESSAGE
-        with pytest.raises(Exception) as exc:
+        with pytest.raises(Exception, match="400 This is the error message") as exc:
             get_installation_token(12345)
         assert exc.value.args[0] == f"{post.return_value.status_code} {TOKEN_RESPONSE_INVALID_WITH_MESSAGE['message']}"
 
@@ -55,7 +61,7 @@ def test_get_installation_token_invalid_without_message():
     with patch('requests.post') as post:
         post.return_value.ok = False
         post.return_value.json.return_value = TOKEN_RESPONSE_INVALID_WITHOUT_MESSAGE
-        with pytest.raises(Exception) as exc:
+        with pytest.raises(Exception, match="An error occurred when requesting token") as exc:
             get_installation_token(12345)
         assert exc.value.args[0] == "An error occurred when requesting token"
 
@@ -103,7 +109,7 @@ def test_repo_to_installation_id(app):
 
                 assert repo_to_installation_id('test1') == 3331
 
-                with pytest.raises(ValueError) as exc:
+                with pytest.raises(ValueError, match="Repository not recognized") as exc:
                     repo_to_installation_id('test3')
                 assert exc.value.args[0] == 'Repository not recognized - should be one of:\n\n  - test1\n  - test2'
 

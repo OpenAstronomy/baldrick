@@ -1,9 +1,7 @@
-from unittest.mock import patch, PropertyMock
+from unittest.mock import PropertyMock, patch
 
-from baldrick.github.github_api import FILE_CACHE
-from baldrick.github.github_api import RepoHandler, PullRequestHandler
-from baldrick.plugins.github_milestones import process_milestone, MISSING_MESSAGE, PRESENT_MESSAGE
-
+from baldrick.github.github_api import FILE_CACHE, PullRequestHandler, RepoHandler
+from baldrick.plugins.github_milestones import MISSING_MESSAGE, PRESENT_MESSAGE, process_milestone
 
 CONFIG_TEMPLATE = """
 [ tool.testbot ]

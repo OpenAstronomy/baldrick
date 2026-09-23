@@ -3,13 +3,13 @@ import copy
 from flask import current_app
 from loguru import logger
 
-from baldrick.github.github_api import RepoHandler, PullRequestHandler
 from baldrick.blueprints.github import github_webhook_handler
+from baldrick.github.github_api import PullRequestHandler, RepoHandler
 from baldrick.utils import insert_special_message
 
 __all__ = ['pull_request_handler']
 
-PULL_REQUEST_CHECKS = dict()
+PULL_REQUEST_CHECKS = {}
 
 
 def pull_request_handler(actions=None):
@@ -55,13 +55,12 @@ def pull_request_handler(actions=None):
 
         return actions
 
-    else:
 
-        def wrapper(func):
-            PULL_REQUEST_CHECKS[func] = actions
-            return func
+    def wrapper(func):
+        PULL_REQUEST_CHECKS[func] = actions
+        return func
 
-        return wrapper
+    return wrapper
 
 
 @github_webhook_handler
@@ -130,10 +129,10 @@ def process_pull_request(repository, number, installation, action,
             if skip_fails:
                 pr_handler.set_check(
                     current_app.bot_username,
-                    title="Skipping checks due to {0} label".format(label),
+                    title=f"Skipping checks due to {label} label",
                     name=current_app.bot_username,
                     status='completed', conclusion='failure')
-            return
+            return None
 
     results = {}
     for function, actions in PULL_REQUEST_CHECKS.items():

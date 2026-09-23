@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from baldrick.utils import unwrap, is_special_day_now, insert_special_message
+from baldrick.utils import insert_special_message, is_special_day_now, unwrap
 
 WRAPPED = """First line.
 
@@ -40,7 +40,7 @@ def test_is_special_day_1(month, day, hour, answer):
 
 def test_is_special_day_2():
     """System timestamp with default special day."""
-    tt = datetime.datetime.now(datetime.timezone.utc)
+    tt = datetime.datetime.now(datetime.UTC)
     undeterministic = [(3, 31), (4, 1), (4, 2)]
 
     if (tt.month, tt.day) in undeterministic:

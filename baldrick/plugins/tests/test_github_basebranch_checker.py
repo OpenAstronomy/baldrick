@@ -22,7 +22,7 @@ class TestBaseBranchChecker:
         with app.app_context():
             sta = check_base_branch(self.pr_handler, self.repo_handler)
 
-        sta['basebranch']['state'] == 'success'
+        assert sta['basebranch']['state'] == 'success'
 
     def test_bad_base(self, app):
         self.pr_handler.base_branch = 'stable'
@@ -30,4 +30,4 @@ class TestBaseBranchChecker:
         with app.app_context():
             sta = check_base_branch(self.pr_handler, self.repo_handler)
 
-        sta['basebranch']['state'] == 'failure'
+        assert sta['basebranch']['state'] == 'failure'

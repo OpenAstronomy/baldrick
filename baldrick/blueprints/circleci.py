@@ -1,12 +1,11 @@
 import json
 from pprint import pformat
 
+from flask import Blueprint, request
 from loguru import logger
 
-from baldrick.github.github_auth import repo_to_installation_id_mapping
 from baldrick.github.github_api import RepoHandler
-
-from flask import Blueprint, request
+from baldrick.github.github_auth import repo_to_installation_id_mapping
 
 __all__ = ['circleci_blueprint', 'circleci_webhook_handler']
 

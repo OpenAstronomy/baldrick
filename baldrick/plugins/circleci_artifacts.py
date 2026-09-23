@@ -1,5 +1,4 @@
 import requests
-
 from loguru import logger
 
 from baldrick.blueprints.circleci import circleci_webhook_handler
@@ -10,7 +9,7 @@ def set_commit_status_for_artifacts(repo_handler, webhook_version, payload, head
     if webhook_version == "v2" and payload.get("type") != "job-completed":
         msg = "Ignoring not 'job-completed' webhook."
         logger.debug(msg)
-        return
+        return None
 
     ci_config = repo_handler.get_config_value("circleci_artifacts", {})
     if not ci_config.get("enabled", False):
@@ -60,3 +59,4 @@ def get_documentation_url_from_artifacts(artifacts, url):
     for artifact in artifacts:
         if url in artifact['path']:
             return artifact['url']
+    return None

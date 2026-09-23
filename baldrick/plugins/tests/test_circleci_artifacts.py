@@ -1,8 +1,7 @@
 import logging
-from unittest.mock import patch, call
+from unittest.mock import call, patch
 
-from baldrick.github.github_api import FILE_CACHE
-from baldrick.github.github_api import RepoHandler
+from baldrick.github.github_api import FILE_CACHE, RepoHandler
 from baldrick.plugins.circleci_artifacts import set_commit_status_for_artifacts
 
 CONFIG_TEMPLATE = """
@@ -123,7 +122,7 @@ class TestArtifactPlugin:
                      'other', '2.0',
                      'https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out')]
 
-        self.set_status.call_args_list == args
+        assert self.set_status.call_args_list == args
         assert self.get_artifacts.call_count == 1
 
     def test_report_on_fail(self, app, caplog):

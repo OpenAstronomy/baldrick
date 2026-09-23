@@ -2,8 +2,7 @@ import json
 from copy import copy
 from unittest.mock import MagicMock
 
-from baldrick.blueprints.github import github_webhook_handler, GITHUB_WEBHOOK_HANDLERS
-
+from baldrick.blueprints.github import GITHUB_WEBHOOK_HANDLERS, github_webhook_handler
 
 mock_hook = MagicMock()
 

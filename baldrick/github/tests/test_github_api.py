@@ -1,13 +1,10 @@
-import base64
 
-from unittest.mock import patch, Mock, PropertyMock, MagicMock
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 
 from baldrick.config import loads
-from baldrick.github.github_api import (FILE_CACHE, RepoHandler, IssueHandler,
-                                        PullRequestHandler)
-
+from baldrick.github.github_api import FILE_CACHE, IssueHandler, PullRequestHandler, RepoHandler
 
 # TODO: Add more tests to increase coverage.
 
@@ -87,7 +84,7 @@ class TestRealRepoHandler:
 
         with app.app_context():
 
-            with patch.object(self.repo, 'get_file_contents') as mock_get:  # noqa
+            with patch.object(self.repo, 'get_file_contents') as mock_get:
 
                 mock_get.return_value = TEST_CONFIG
 
@@ -99,7 +96,7 @@ class TestRealRepoHandler:
 
         with app.app_context():
             app.fall_back_config = "nottestbot"
-            with patch.object(self.repo, 'get_file_contents') as mock_get:  # noqa
+            with patch.object(self.repo, 'get_file_contents') as mock_get:
 
                 mock_get.return_value = TEST_FALLBACK_CONFIG
 
@@ -111,7 +108,7 @@ class TestRealRepoHandler:
 
         with app.app_context():
             app.fall_back_config = "nottestbot"
-            with patch.object(self.repo, 'get_file_contents') as mock_get:  # noqa
+            with patch.object(self.repo, 'get_file_contents') as mock_get:
 
                 mock_get.return_value = TEST_CONFIG + TEST_FALLBACK_CONFIG
 
@@ -124,7 +121,7 @@ class TestRealRepoHandler:
 
         with app.app_context():
 
-            with patch.object(self.repo, 'get_file_contents') as mock_get:  # noqa
+            with patch.object(self.repo, 'get_file_contents') as mock_get:
 
                 mock_get.return_value = TEST_CONFIG
 
@@ -161,14 +158,14 @@ class TestIssueHandler:
     @pytest.mark.parametrize(('state', 'answer'),
                              [('open', False), ('closed', True)])
     def test_is_closed(self, state, answer):
-        with patch('baldrick.github.github_api.IssueHandler.json', new_callable=PropertyMock) as mock_json:  # noqa
+        with patch('baldrick.github.github_api.IssueHandler.json', new_callable=PropertyMock) as mock_json:
             mock_json.return_value = {'state': state}
             assert self.issue.is_closed is answer
 
     def test_missing_labels(self):
-        with patch('baldrick.github.github_api.IssueHandler.labels', new_callable=PropertyMock) as mock_issue_labels:  # noqa
+        with patch('baldrick.github.github_api.IssueHandler.labels', new_callable=PropertyMock) as mock_issue_labels:
             mock_issue_labels.return_value = ['io.fits']
-            with patch('baldrick.github.github_api.RepoHandler.get_all_labels') as mock_repo_labels:  # noqa
+            with patch('baldrick.github.github_api.RepoHandler.get_all_labels') as mock_repo_labels:
                 mock_repo_labels.return_value = ['io.fits', 'closed-by-bot']
 
                 # closed-by-bot label will be added to issue in POST
@@ -213,7 +210,7 @@ class TestPullRequestHandler:
             "contents_url": "https://api.github.com/repos/blah/blah/contents/file1.txt?ref=hash",
             "patch": "@@ -132,7 +132,7 @@ module Test @@ -1000,7 +1000,7 @@ module Test"
         }])
-        with patch('baldrick.github.github_api.paged_github_json_request', mock):  # noqa
+        with patch('baldrick.github.github_api.paged_github_json_request', mock):
             assert self.pr.has_modified(['file1.txt'])
             assert self.pr.has_modified(['file1.txt', 'notthis.txt'])
             assert not self.pr.has_modified(['notthis.txt'])

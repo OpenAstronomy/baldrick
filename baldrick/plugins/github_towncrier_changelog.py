@@ -1,13 +1,12 @@
-import tomllib
 import os
 import re
+import tomllib
 from pathlib import Path
 
 from loguru import logger
+from towncrier._settings.load import parse_toml
 
 from .github_pull_requests import pull_request_handler
-
-from towncrier._settings.load import parse_toml
 
 
 def calculate_fragment_paths(config):
@@ -20,7 +19,7 @@ def calculate_fragment_paths(config):
         fragment_directory = "newsfragments"
 
     section_dirs = []
-    for key, val in config.sections.items():
+    for val in config.sections.values():
         if fragment_directory is not None:
             section_dirs.append(os.path.join(base_directory, val, fragment_directory))
         else:
@@ -89,7 +88,7 @@ def process_towncrier_changelog(pr_handler, repo_handler):
     config = load_towncrier_config(pr_handler)
     if not config:
         logger.info("No towncrier config detected in pyproject.toml, skipping.")
-        return
+        return None
 
     section_dirs = calculate_fragment_paths(config)
     types = config.types.keys()
@@ -102,9 +101,9 @@ def process_towncrier_changelog(pr_handler, repo_handler):
 
     if skip_label and skip_label in pr_handler.labels:
         # Returning nothing marks all existing checks as neutral
-        return
+        return None
 
-    elif not matching_file:
+    if not matching_file:
 
         messages['missing_file'] = {
             'name': cl_config.get('changelog_missing_name', "changelog: absent"),
