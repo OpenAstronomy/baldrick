@@ -1,3 +1,6 @@
+import hashlib
+import hmac
+import json
 import logging
 import os
 
@@ -34,6 +37,8 @@ IJVMoU0lvK0zKm5VlXh3jbRXt/M5cTNu/1+xZxUbGJ0b+Go3FYc=
 -----END RSA PRIVATE KEY-----
 """.strip()
 
+WEBHOOK_SECRET = "baldrick-test-webhook-secret"
+
 
 @pytest.fixture
 def app():
@@ -43,9 +48,34 @@ def app():
 
     os.environ["GITHUB_APP_INTEGRATION_ID"] = "1234"
     os.environ["GITHUB_APP_PRIVATE_KEY"] = PRIVATE_KEY
+    os.environ["GITHUB_APP_WEBHOOK_SECRET"] = WEBHOOK_SECRET
     with patch("baldrick.github.github_auth.repo_to_installation_id_mapping") as mock_mapping:
         mock_mapping.return_value = {"test/test-repo": 123}
         return create_app("testbot")
+
+
+@pytest.fixture
+def github_webhook_headers():
+    """
+    Build request headers containing a valid ``X-Hub-Signature-256``
+    signature for the given payload, matching the secret set by the ``app``
+    fixture.
+    """
+
+    def make_headers(payload, headers=None):
+        if isinstance(payload, str):
+            body = payload.encode("utf-8")
+        elif isinstance(payload, (bytes, bytearray)):
+            body = bytes(payload)
+        else:
+            body = json.dumps(payload).encode("utf-8")
+        signature = "sha256=" + hmac.new(WEBHOOK_SECRET.encode("utf-8"), body, hashlib.sha256).hexdigest()
+        all_headers = {"X-Hub-Signature-256": signature}
+        if headers:
+            all_headers.update(headers)
+        return all_headers
+
+    return make_headers
 
 
 @pytest.fixture
