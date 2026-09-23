@@ -18,7 +18,7 @@ class TestBaseBranchChecker:
         self.repo_handler.get_config_value.return_value = {"enabled": True}
 
     def test_good_base(self, app):
-        self.pr_handler.base_branch = "master"
+        self.pr_handler.base_branch = "main"
 
         with app.app_context():
             sta = check_base_branch(self.pr_handler, self.repo_handler)

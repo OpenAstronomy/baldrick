@@ -46,7 +46,7 @@ def process_issues(repository, installation, warn_seconds=None, close_seconds=No
     bot_name = get_app_name()
 
     # Get issues labeled as 'Close?'
-    repo = RepoHandler(repository, "master", installation)
+    repo = RepoHandler(repository, "main", installation)
     issuelist = repo.get_issues("open", "Close?")
 
     for n in issuelist:

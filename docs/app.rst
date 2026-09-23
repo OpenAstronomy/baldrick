@@ -2,7 +2,7 @@ Getting started with building your bot
 ======================================
 
 We provide a simple template for the files needed to set up your bot at
-https://github.com/OpenAstronomy/baldrick/tree/master/template. We take a look
+https://github.com/OpenAstronomy/baldrick/tree/main/template. We take a look
 here at the minimal set of files required:
 
 run.py

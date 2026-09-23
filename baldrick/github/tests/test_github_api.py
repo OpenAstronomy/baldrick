@@ -124,13 +124,13 @@ class TestRealRepoHandler:
                 assert self.repo.get_config_value("other") == {"setting4": 5}
 
     def test_get_file_contents(self):
-        result = self.repo.get_file_contents("README.rst", branch="master")
+        result = self.repo.get_file_contents("README.rst", branch="main")
         assert "Baldrick" in result
         assert "cunning plan" in result
 
     def test_missing_file_contents(self):
         with pytest.raises(FileNotFoundError):
-            self.repo.get_file_contents("this/file/does/not/exist.txt", branch="master")
+            self.repo.get_file_contents("this/file/does/not/exist.txt", branch="main")
 
 
 class TestIssueHandler:

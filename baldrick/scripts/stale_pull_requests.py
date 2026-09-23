@@ -54,7 +54,7 @@ def process_pull_requests(repository, installation, warn_seconds=None, close_sec
     bot_name = get_app_name()
 
     # Get issues labeled as 'Close?'
-    repo = RepoHandler(repository, "master", installation)
+    repo = RepoHandler(repository, "main", installation)
     pull_requests = repo.open_pull_requests()
 
     for n in pull_requests:

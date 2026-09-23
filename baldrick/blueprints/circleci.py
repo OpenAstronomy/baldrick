@@ -47,7 +47,7 @@ def circleci_handler():
     if repo not in repos:
         return f"circleci: Not installed for {repo}"
 
-    repo_handler = RepoHandler(repo, branch="master", installation=repos[repo])
+    repo_handler = RepoHandler(repo, branch="main", installation=repos[repo])
 
     for handler in CIRCLECI_WEBHOOK_HANDLERS:
         handler(

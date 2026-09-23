@@ -49,7 +49,7 @@ class TestPushHandler:
         self.get_installation_token_mock.stop()
         self.requests_get_mock.stop()
 
-    def send_event(self, client, git_ref="refs/heads/master"):
+    def send_event(self, client, git_ref="refs/heads/main"):
 
         data = {"ref": git_ref, "repository": {"full_name": "test-repo"}, "installation": {"id": "123"}}
         headers = {"X-GitHub-Event": "push"}

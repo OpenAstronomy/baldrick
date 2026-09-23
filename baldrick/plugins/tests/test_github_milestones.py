@@ -28,7 +28,7 @@ class TestMilestonePlugin:
         self.get_file_contents_mock = patch("baldrick.github.github_api.PullRequestHandler.get_file_contents")
         self.get_base_branch_mock = patch("baldrick.github.github_api.PullRequestHandler.base_branch")
         a = self.get_base_branch_mock.start()
-        a.return_value = "master"
+        a.return_value = "main"
         self.milestone_mock = patch(
             "baldrick.github.github_api.PullRequestHandler.milestone", new_callable=PropertyMock
         )

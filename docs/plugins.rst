@@ -61,7 +61,7 @@ This function will be called with ``repo_handler``, an instance of
 :class:`~baldrick.github.github_api.RepoHandler` (click on
 the class names to find out the available properties/methods), and ``git_ref``
 which will be a string containing the ref for the push (e.g.
-``refs/heads/master``). If the ``git_ref`` is a branch, ``repo_handler.branch``
+``refs/heads/main``). If the ``git_ref`` is a branch, ``repo_handler.branch``
 will be correctly set, but note that the ``git_ref`` could also point to a tag.
 
 Pull request handlers

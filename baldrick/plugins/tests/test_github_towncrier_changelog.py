@@ -43,7 +43,7 @@ class TestTowncrierPlugin:
         self.get_file_contents_mock = patch("baldrick.github.github_api.PullRequestHandler.get_file_contents")
         self.get_base_branch_mock = patch("baldrick.github.github_api.PullRequestHandler.base_branch")
         a = self.get_base_branch_mock.start()
-        a.return_value = "master"
+        a.return_value = "main"
         self.modified_files_mock = patch("baldrick.github.github_api.PullRequestHandler.get_modified_files")
 
         self.repo_handler = RepoHandler("nota/repo", "1234")
