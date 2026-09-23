@@ -63,7 +63,7 @@ jobs:
     with:
       python-version: '3.13'
       test_extras: 'test'
-      test_command: 'pytest -p no:warnings --pyargs baldrick -m not github_api'
+      test_command: 'pytest -p no:warnings --pyargs baldrick -m "not github_api"'
       submodules: false
       save_artifacts: true
       upload_to_pypi: false
