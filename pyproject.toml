@@ -72,7 +72,7 @@ xfail_strict = true
 markers = ["github_api"]
 
 [tool.coverage.run]
-source = ["baldrick"]
+source_pkgs = ["baldrick"]
 omit = [
     "baldrick/__init*",
     "baldrick/conftest.py",
@@ -88,6 +88,12 @@ omit = [
     "*/baldrick/*/tests/*",
     "*/baldrick/extern/*",
     "*/baldrick/version*",
+]
+
+[tool.coverage.paths]
+source = [
+    "baldrick/",
+    ".tox/**/baldrick/",
 ]
 
 [tool.coverage.report]
