@@ -1,5 +1,5 @@
-.. image:: https://dev.azure.com/OpenAstronomy/baldrick/_apis/build/status/OpenAstronomy.baldrick?branchName=master
-    :target: https://dev.azure.com/OpenAstronomy/baldrick/_build/latest?definitionId=1&branchName=master
+.. image:: https://github.com/OpenAstronomy/baldrick/actions/workflows/ci.yml/badge.svg?branch=main
+    :target: https://github.com/OpenAstronomy/baldrick/actions/workflows/ci.yml?query=branch%3Amain
 
 .. image:: https://codecov.io/gh/OpenAstronomy/baldrick/branch/main/graph/badge.svg
     :target: https://codecov.io/gh/OpenAstronomy/baldrick
