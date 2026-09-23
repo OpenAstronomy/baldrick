@@ -15,6 +15,7 @@ class TestBaseBranchChecker:
         self.pr_handler.number = 1234
 
         self.repo_handler = MagicMock()
+        self.repo_handler.get_config_value.return_value = {"enabled": True}
 
     def test_good_base(self, app):
         self.pr_handler.base_branch = "master"
