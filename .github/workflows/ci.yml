@@ -25,10 +25,13 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@22ddf09dfabb443adddfb9f861b7d41a787d6b1a # v3.0.3
     with:
       submodules: false
-      # coverage: github
+      coverage: github
       envs: |
         - linux: py313
         - linux: py314
+        - linux: py314
+          name: py314 (Github API)
+          posargs: -m github_api
 
   sdist_verify:
     runs-on: ubuntu-latest
@@ -60,7 +63,7 @@ jobs:
     with:
       python-version: '3.13'
       test_extras: 'test'
-      test_command: 'pytest -p no:warnings --pyargs baldrick'
+      test_command: 'pytest -p no:warnings --pyargs baldrick -m "not github_api"'
       submodules: false
       save_artifacts: true
       upload_to_pypi: false
