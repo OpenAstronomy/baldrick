@@ -75,7 +75,7 @@ def circleci_new_handler():
         logger.trace(f"Only installed for {repos.keys()}")
         return msg
 
-    repo_handler = RepoHandler(repo, branch=vcs["branch"], installation=repos[repo])
+    repo_handler = RepoHandler(repo, installation=repos[repo])
 
     for handler in CIRCLECI_WEBHOOK_HANDLERS:
         try:
