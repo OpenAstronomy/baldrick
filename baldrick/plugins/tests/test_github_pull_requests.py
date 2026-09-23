@@ -69,7 +69,9 @@ class TestPullRequestHandler:
                 "state": "open" if self.pr_open else "closed",
                 "head": {"ref": "custom", "sha": "abc464aa", "repo": {"full_name": "contributor/test"}},
             }
-        elif url == "https://api.github.com/repos/contributor/test":
+        elif url == "https://api.github.com/repos/test-repo/test":
+            req.json.return_value = {"default_branch": "main"}
+        elif url == "https://api.github.com/repos/test-repo":
             req.json.return_value = {"default_branch": "main"}
         elif url == "https://api.github.com/repos/test-repo/issues/1234/comments":
             req.json.return_value = self.pr_comments
