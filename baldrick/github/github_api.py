@@ -9,7 +9,7 @@ import dateutil.parser
 import requests
 from flask import current_app
 from loguru import logger
-from ttldict import TTLOrderedDict
+from cachetools import TTLCache
 
 from baldrick.config import Config, loads
 from baldrick.github.github_auth import github_request_headers
@@ -19,7 +19,7 @@ __all__ = ["GitHubHandler", "IssueHandler", "PullRequestHandler", "RepoHandler"]
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
 
-FILE_CACHE = TTLOrderedDict(default_ttl=os.environ.get("BALDRICK_FILE_CACHE_TTL", 60))
+FILE_CACHE = TTLCache(maxsize=512, ttl=float(os.environ.get("BALDRICK_FILE_CACHE_TTL", 60)))
 
 
 def paged_github_json_request(url, headers=None):
@@ -90,8 +90,8 @@ class GitHubHandler:
             branch = self.default_branch
         cache_key = f"{self.repo}:{path_to_file}@{branch}"
 
-        # It seems that this is the only safe way to do this with
-        # TTLOrderedDict
+        # TTLCache raises KeyError for expired as well as missing keys, so
+        # we access the cache via try/except
         try:
             return FILE_CACHE[cache_key]
         except KeyError:
