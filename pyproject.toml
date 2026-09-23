@@ -72,6 +72,7 @@ xfail_strict = true
 markers = ["github_api"]
 
 [tool.coverage.run]
+source = ["baldrick"]
 omit = [
     "baldrick/__init*",
     "baldrick/conftest.py",
