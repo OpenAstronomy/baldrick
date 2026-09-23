@@ -31,8 +31,7 @@ select = [
   "NPY",
   "PERF",
   "RUF",
-  # TODO
-  # "PTH",
+  "PTH",
 ]
 ignore = [
   # pycodestyle (E, W)
@@ -51,7 +50,6 @@ ignore = [
   "RUF015", # Prefer `next(iter(...))` over single element slice
   # Bugbear (B)
   "B9", # Very opinionated checks
-  "A001",
 ]
 
 [lint.per-file-ignores]
@@ -62,6 +60,7 @@ ignore = [
   "INP001", # File is part of an implicit namespace package.
 ]
 "docs/conf.py" = [
+  "A001", # Variable is shadowing a Python builtin
   "E402", # Module imports not at top of file
   "I", # isort
 ]

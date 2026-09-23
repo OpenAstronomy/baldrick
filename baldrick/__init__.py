@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from loguru import logger
 
@@ -13,10 +14,9 @@ GLOBAL_TOML = ''
 
 
 def _init_global_toml():
-    import os
     global GLOBAL_TOML
 
-    GLOBAL_TOML = os.path.join('.', 'pyproject.toml')
+    GLOBAL_TOML = Path('pyproject.toml')
 
 
 def create_app(name, register_blueprints=True):
@@ -56,7 +56,7 @@ def create_app(name, register_blueprints=True):
 
     # Check if there is a global configuration
     app.conf = Config()
-    if os.path.exists(GLOBAL_TOML):
+    if Path(GLOBAL_TOML).exists():
         conf = load(GLOBAL_TOML, tool=name)
         if conf:
             app.conf = conf

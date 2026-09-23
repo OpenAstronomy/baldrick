@@ -1,4 +1,3 @@
-import os
 import re
 import tomllib
 from pathlib import Path
@@ -12,18 +11,18 @@ from .github_pull_requests import pull_request_handler
 def calculate_fragment_paths(config):
 
     if config.directory:
-        base_directory = config.directory
+        base_directory = Path(config.directory)
         fragment_directory = None
     else:
-        base_directory = os.path.join(config.package_dir, config.package)
+        base_directory = Path(config.package_dir) / config.package
         fragment_directory = "newsfragments"
 
     section_dirs = []
     for val in config.sections.values():
         if fragment_directory is not None:
-            section_dirs.append(os.path.join(base_directory, val, fragment_directory))
+            section_dirs.append(str(base_directory / val / fragment_directory))
         else:
-            section_dirs.append(os.path.join(base_directory, val))
+            section_dirs.append(str(base_directory / val))
 
     return section_dirs
 

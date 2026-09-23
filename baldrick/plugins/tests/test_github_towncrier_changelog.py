@@ -66,7 +66,7 @@ class TestTowncrierPlugin:
     def test_changelog_present(self, app):
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE
-        self.modified_files.return_value = (['./testbot/newsfragments/1234.bugfix'])
+        self.modified_files.return_value = (['testbot/newsfragments/1234.bugfix'])
 
         with app.app_context():
             messages = process_towncrier_changelog(self.pr_handler, self.repo_handler)
