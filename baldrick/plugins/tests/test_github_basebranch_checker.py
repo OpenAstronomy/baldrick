@@ -2,9 +2,26 @@
 # than the requests to the server, as we assume the repo and pull request
 # handlers are tested inside baldrick.
 
+from copy import copy
 from unittest.mock import MagicMock
 
+from baldrick.plugins.github_pull_requests import PULL_REQUEST_CHECKS
 from baldrick.plugins.github_pull_requests_base_branch import check_base_branch
+
+
+def setup_module(module):
+    # Importing the plugin module above registers check_base_branch in the
+    # global PULL_REQUEST_CHECKS registry as an import side effect, so save
+    # and remove that registration here to stop it leaking into other test
+    # modules when the whole suite is run in a single session.
+    module.PULL_REQUEST_CHECKS_ORIG = copy(PULL_REQUEST_CHECKS)
+    module.PULL_REQUEST_CHECKS_ORIG.pop(check_base_branch, None)
+    PULL_REQUEST_CHECKS.pop(check_base_branch, None)
+
+
+def teardown_module(module):
+    PULL_REQUEST_CHECKS.clear()
+    PULL_REQUEST_CHECKS.update(module.PULL_REQUEST_CHECKS_ORIG)
 
 
 class TestBaseBranchChecker:
