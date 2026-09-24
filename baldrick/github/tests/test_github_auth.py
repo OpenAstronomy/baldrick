@@ -5,9 +5,6 @@ import pytest
 from baldrick.conftest import PRIVATE_KEY
 from baldrick.github.github_auth import GithubAppAuth
 
-INTEGRATION_ID = 1234
-
-TOKEN_RESPONSE_VALID = {"token": "v1.1f699f1069f60xxx", "expires_at": "2016-07-11T22:14:10Z"}
 
 TOKEN_RESPONSE_INVALID_WITH_MESSAGE = {
     "message": "This is the error message",
@@ -15,34 +12,6 @@ TOKEN_RESPONSE_INVALID_WITH_MESSAGE = {
 }
 
 TOKEN_RESPONSE_INVALID_WITHOUT_MESSAGE = {}
-
-
-def requests_patch(url, headers=None):
-    """
-    Mock ``requests.get`` for the URLs used while constructing and using a
-    ``GithubAppAuth`` instance.
-    """
-    req = MagicMock()
-    req.status_code = 200
-    req.ok = True
-    if url == "https://api.github.com/app":
-        req.json.return_value = {"name": "testbot", "installations_count": 2}
-    elif url == "https://api.github.com/app/installations":
-        req.json.return_value = [{"id": 3331}]
-    elif url == "https://api.github.com/installation/repositories":
-        req.json.return_value = {"repositories": [{"full_name": "test1"}, {"full_name": "test2"}]}
-    return req
-
-
-@pytest.fixture
-def auth():
-    """
-    A ``GithubAppAuth`` instance with all GitHub API interactions mocked out.
-    """
-    with patch("requests.get", requests_patch), patch("requests.post") as post:
-        post.return_value.ok = True
-        post.return_value.json.return_value = TOKEN_RESPONSE_VALID
-        yield GithubAppAuth(INTEGRATION_ID, PRIVATE_KEY)
 
 
 def test_json_web_token(auth):

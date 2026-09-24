@@ -1,6 +1,6 @@
 import json
-from copy import copy
-from unittest.mock import MagicMock, patch
+from copy import copy, deepcopy
+from unittest.mock import MagicMock
 
 from baldrick.blueprints.circleci import CIRCLECI_WEBHOOK_HANDLERS, circleci_webhook_handler
 
@@ -16,6 +16,7 @@ def setup_module(module):
 def teardown_module(module):
     CIRCLECI_WEBHOOK_HANDLERS[:] = module.CIRCLECI_WEBOOK_HANDLERS_ORIGINAL[:]
 
+
 V2_PAYLOAD = {
     "job": {"status": "passed", "number": 42},
     "pipeline": {
@@ -28,6 +29,9 @@ V2_PAYLOAD = {
     },
 }
 
+V2_PAYLOAD_NOT_INSTALLED = deepcopy(V2_PAYLOAD)
+V2_PAYLOAD_NOT_INSTALLED["pipeline"]["vcs"]["target_repository_url"] = "https://github.com/wibble/wobble"
+
 
 class TestHook:
     def setup_method(self, method):
@@ -38,9 +42,7 @@ class TestHook:
 
     def test_valid_v2(self, app, client):
 
-        with patch("baldrick.blueprints.circleci.repo_to_installation_id_mapping") as mapping:
-            mapping.return_value = {"test/testbot": 15554}
-            result = self.post_v2(client, V2_PAYLOAD)
+        result = self.post_v2(client, V2_PAYLOAD)
 
         assert result.status_code == 200
         repo_handler, version, _payload, _headers, status, revision, build_num = mock_hook.call_args[0]
@@ -78,22 +80,10 @@ class TestHook:
 
     def test_v2_not_installed(self, app, client):
 
-        with patch("baldrick.blueprints.circleci.repo_to_installation_id_mapping") as mapping:
-            mapping.return_value = {"other/repo": 15554}
-            result = self.post_v2(client, V2_PAYLOAD)
+        result = self.post_v2(client, V2_PAYLOAD_NOT_INSTALLED)
 
         assert result.status_code == 200
-        assert result.get_data() == b"Not installed for test/testbot"
-        assert mock_hook.call_count == 0
-
-    def test_v2_installation_fetch_failure(self, app, client):
-
-        with patch("baldrick.blueprints.circleci.repo_to_installation_id_mapping") as mapping:
-            mapping.side_effect = ValueError("GitHub is down")
-            result = self.post_v2(client, V2_PAYLOAD)
-
-        assert result.status_code == 502
-        assert result.get_data() == b"Failed to fetch installations from GitHub"
+        assert result.get_data() == b"Not installed for wibble/wobble"
         assert mock_hook.call_count == 0
 
     def test_v2_handler_isolation(self, app, client):
@@ -102,9 +92,7 @@ class TestHook:
         second_hook = MagicMock()
         CIRCLECI_WEBHOOK_HANDLERS.append(second_hook)
         try:
-            with patch("baldrick.blueprints.circleci.repo_to_installation_id_mapping") as mapping:
-                mapping.return_value = {"test/testbot": 15554}
-                result = self.post_v2(client, V2_PAYLOAD)
+            result = self.post_v2(client, V2_PAYLOAD)
         finally:
             CIRCLECI_WEBHOOK_HANDLERS.remove(second_hook)
             mock_hook.side_effect = None
