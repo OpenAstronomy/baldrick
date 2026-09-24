@@ -68,8 +68,8 @@ class GithubAppAuth:
             # JWT expiration time (10 minute maximum)
             payload["exp"] = int((now + NINE_MIN).timestamp())
 
-            # Integration's GitHub identifier
-            payload["iss"] = self.app_integration_id
+            # Integration's GitHub identifier (JWT requires this to be a string)
+            payload["iss"] = str(self.app_integration_id)
 
             json_web_token = jwt.encode(payload, self.app_private_key, algorithm="RS256")
             self._jwt_cache["jwt"] = json_web_token
