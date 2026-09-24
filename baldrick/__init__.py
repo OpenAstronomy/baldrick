@@ -118,7 +118,7 @@ def create_app(name, register_blueprints=True):
     app.allow_unverified_webhooks = _allow_unverified_webhooks()
 
     try:
-        app.gitub_auth = GithubAppAuth(integration_id, private_key)
+        app.github_auth = GithubAppAuth(integration_id, private_key)
     except Exception:
         logger.exception("Failed to auth with GitHub in App setup")
         raise

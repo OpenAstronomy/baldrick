@@ -5,7 +5,7 @@ import time
 import dateutil.parser
 import jwt
 import requests
-from cachetools import TTLCache, TTLUCache
+from cachetools import TTLCache, TLRUCache
 from loguru import logger
 
 NINE_MIN = datetime.timedelta(minutes=9)
@@ -34,7 +34,7 @@ class GithubAppAuth:
 
         # GitHub expires the token after 10 mins so cache for 9.
         self._jwt_cache = TTLCache(maxsize=1, ttl=jwt_cache_ttl)
-        self._installation_token_cache = TTLUCache(maxsize=512, ttu=self._token_ttu, timer=time.time)
+        self._installation_token_cache = TLRUCache(maxsize=512, ttu=self._token_ttu, timer=time.time)
 
         # Validate are a authenticated as a GitHub App
         app_info = self.app_info

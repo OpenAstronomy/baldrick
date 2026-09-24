@@ -2,14 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from baldrick.github.github_auth import (
-    get_app_name,
-    get_installation_token,
-    get_json_web_token,
-    github_request_headers,
-    repo_to_installation_id,
-    repo_to_installation_id_mapping,
-)
+from baldrick.github.github_auth import GithubAppAuth
 
 
 def test_get_json_web_token(app):
