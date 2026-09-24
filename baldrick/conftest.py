@@ -6,6 +6,9 @@ import os
 
 import pytest
 from loguru import logger
+from unittest.mock import patch, MagicMock
+
+from baldrick.github.github_auth import GithubAppAuth
 
 PRIVATE_KEY = """
 -----BEGIN RSA PRIVATE KEY-----
@@ -39,19 +42,55 @@ IJVMoU0lvK0zKm5VlXh3jbRXt/M5cTNu/1+xZxUbGJ0b+Go3FYc=
 
 WEBHOOK_SECRET = "baldrick-test-webhook-secret"
 
+INTEGRATION_ID = 1234
+
+TOKEN_RESPONSE_VALID = {"token": "v1.1f699f1069f60xxx", "expires_at": "2016-07-11T22:14:10Z"}
+
+
+def auth_requests_patch(url, headers=None):
+    """
+    Mock ``requests.get`` for the URLs used while constructing and using a
+    ``GithubAppAuth`` instance.
+    """
+    req = MagicMock()
+    req.status_code = 200
+    req.ok = True
+    if url == "https://api.github.com/app":
+        req.json.return_value = {"name": "testbot", "installations_count": 2}
+    elif url == "https://api.github.com/app/installations":
+        req.json.return_value = [{"id": 3331}]
+    elif url == "https://api.github.com/installation/repositories":
+        req.json.return_value = {
+            "repositories": [{"full_name": "test1"}, {"full_name": "test2"}, {"full_name": "test/testbot"}]
+        }
+    return req
+
 
 @pytest.fixture
-def app():
-    from unittest.mock import patch
+def create_app_mocks(mocker):
+    mocker.patch("requests.get", auth_requests_patch)
+    post = mocker.patch("requests.post")
+    post.return_value.ok = True
+    post.return_value.json.return_value = TOKEN_RESPONSE_VALID
 
+
+@pytest.fixture
+def auth(create_app_mocks):
+    """
+    A ``GithubAppAuth`` instance with all GitHub API interactions mocked out.
+    """
+    return GithubAppAuth(INTEGRATION_ID, PRIVATE_KEY)
+
+
+@pytest.fixture
+def app(create_app_mocks):
     from baldrick import create_app
 
     os.environ["GITHUB_APP_INTEGRATION_ID"] = "1234"
     os.environ["GITHUB_APP_PRIVATE_KEY"] = PRIVATE_KEY
     os.environ["GITHUB_APP_WEBHOOK_SECRET"] = WEBHOOK_SECRET
-    with patch("baldrick.github.github_auth.repo_to_installation_id_mapping") as mock_mapping:
-        mock_mapping.return_value = {"test/test-repo": 123}
-        return create_app("testbot")
+
+    return create_app("testbot")
 
 
 @pytest.fixture
