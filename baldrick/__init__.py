@@ -1,3 +1,4 @@
+from baldrick.github.github_auth import GithubAppAuth
 import os
 from pathlib import Path
 
@@ -111,18 +112,18 @@ def create_app(name, register_blueprints=True):
 
     _validate_startup_environment()
 
-    app.integration_id = int(os.environ["GITHUB_APP_INTEGRATION_ID"])
-    app.private_key = os.environ["GITHUB_APP_PRIVATE_KEY"]
+    integration_id = int(os.environ["GITHUB_APP_INTEGRATION_ID"])
+    private_key = os.environ["GITHUB_APP_PRIVATE_KEY"]
     app.webhook_secret = os.environ.get("GITHUB_APP_WEBHOOK_SECRET")
     app.allow_unverified_webhooks = _allow_unverified_webhooks()
 
     try:
-        repos = github_auth.repo_to_installation_id_mapping()
+        app.gitub_auth = GithubAppAuth(integration_id, private_key)
     except Exception:
-        logger.exception("Failed to auth with GitHub")
+        logger.exception("Failed to auth with GitHub in App setup")
         raise
     else:
-        logger.info(f"Installed on the following repos {repos}")
+        logger.info(f"Installed on the following repos {','.join(app.github_auth.repo_to_installation_id_mapping.keys())}")
 
     app.bot_username = name
 
