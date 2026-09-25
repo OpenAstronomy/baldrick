@@ -34,19 +34,22 @@ class TestPullRequestHandler:
         self.existing_checks = {}
         self.pr_open = True
 
-        self.requests_get_mock = patch("requests.get", self._requests_get)
-        self.requests_post_mock = patch("requests.post")
-        self.requests_patch_mock = patch("requests.patch")
+        # The ``app`` fixture (which runs after this method) patches the real
+        # ``requests`` module globally, so patch the module as seen by
+        # ``github_api`` only to avoid those patches shadowing these ones.
+        self.requests_mock = patch("baldrick.github.github_api.requests")
         self.get_file_contents_mock = patch("baldrick.github.github_api.GitHubHandler.get_file_contents")
-        self.get_installation_token_mock = patch("baldrick.github.github_auth.get_installation_token")
+        self.get_installation_token_mock = patch("baldrick.github.github_auth.GithubAppAuth.get_installation_token")
         self.labels_mock = patch("baldrick.github.github_api.PullRequestHandler.labels", new_callable=PropertyMock)
 
-        self.requests_get = self.requests_get_mock.start()
-        self.requests_post = self.requests_post_mock.start()
-        self.requests_patch = self.requests_patch_mock.start()
+        self.requests = self.requests_mock.start()
         self.get_file_contents = self.get_file_contents_mock.start()
         self.get_installation_token = self.get_installation_token_mock.start()
         self.labels = self.labels_mock.start()
+
+        self.requests.get.side_effect = self._requests_get
+        self.requests_post = self.requests.post
+        self.requests_patch = self.requests.patch
 
         self.get_installation_token.return_value = "abcdefg"
         self.labels.return_value = []
@@ -54,11 +57,10 @@ class TestPullRequestHandler:
         FILE_CACHE.clear()
 
     def teardown_method(self, method):
-        self.requests_get_mock.stop()
-        self.requests_post_mock.stop()
+        self.requests_mock.stop()
         self.get_file_contents_mock.stop()
         self.get_installation_token_mock.stop()
-        self.labels = self.labels_mock.stop()
+        self.labels_mock.stop()
 
     def _requests_get(self, url, headers=None):
         req = MagicMock()
@@ -198,7 +200,7 @@ class TestPullRequestHandler:
                     "external_id": "test1",
                     "head_sha": "abc464aa",
                     "id": 1,
-                    "app": {"id": app.integration_id},
+                    "app": {"id": app.github_auth.app_integration_id},
                     "output": {"title": "Problems here", "summary": ""},
                 }
             ],
@@ -256,7 +258,7 @@ class TestPullRequestHandler:
                     "head_sha": "abc464aa",
                     "external_id": "test1",
                     "id": 1,
-                    "app": {"id": app.integration_id},
+                    "app": {"id": app.github_auth.app_integration_id},
                 },
                 {
                     "name": "testbot:test2",
@@ -266,7 +268,7 @@ class TestPullRequestHandler:
                     "head_sha": "abc464aa",
                     "external_id": "test2",
                     "id": 2,
-                    "app": {"id": app.integration_id},
+                    "app": {"id": app.github_auth.app_integration_id},
                 },
                 {
                     "name": "travis",

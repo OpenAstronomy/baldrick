@@ -12,7 +12,6 @@ from flask import current_app
 from loguru import logger
 
 from baldrick.config import Config, loads
-from baldrick.github.github_auth import github_request_headers
 
 __all__ = ["GitHubHandler", "IssueHandler", "PullRequestHandler", "RepoHandler"]
 
@@ -79,7 +78,7 @@ class GitHubHandler:
     def _headers(self):
         if self.installation is None:
             return {}
-        return github_request_headers(self.installation)
+        return current_app.github_auth.get_github_request_headers(self.installation)
 
     @property
     def _url_contents(self):
@@ -256,7 +255,7 @@ class GitHubHandler:
         checks = {}
         for result in results.get("check_runs", []):
             # Skip checks from other apps if specified.
-            if only_ours and result["app"]["id"] != current_app.integration_id:
+            if only_ours and result["app"]["id"] != current_app.github_auth.app_integration_id:
                 continue
 
             context = result["external_id"]

@@ -6,6 +6,7 @@ from copy import copy
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from baldrick import create_app
 from baldrick.blueprints.github import GITHUB_WEBHOOK_HANDLERS, github_webhook_handler
@@ -151,7 +152,7 @@ class TestWebhookSignatureEnforcement:
         assert result.status_code == 200
         assert mock_second.call_count == 1
 
-    def test_unverified_webhooks_allowed_with_escape_hatch(self):
+    def test_unverified_webhooks_allowed_with_escape_hatch(self, create_app_mocks):
         env = {
             "GITHUB_APP_INTEGRATION_ID": "1234",
             "GITHUB_APP_PRIVATE_KEY": PRIVATE_KEY,
@@ -159,9 +160,7 @@ class TestWebhookSignatureEnforcement:
             "BALDRICK_ALLOW_UNVERIFIED_WEBHOOKS": "1",
         }
         with patch.dict(os.environ, env):
-            with patch("baldrick.github.github_auth.repo_to_installation_id_mapping") as mock_mapping:
-                mock_mapping.return_value = {"test/test-repo": 123}
-                app = create_app("testbot")
+            app = create_app("testbot")
         client = app.test_client()
 
         result = self.post(client, VALID_PAYLOAD, sign_payload=False)
@@ -202,17 +201,14 @@ class TestStartupValidation:
         with pytest.raises(RuntimeError, match="GITHUB_APP_PRIVATE_KEY is not set"):
             self.create_app_with_env(env)
 
-    def test_auth_failure_raises_at_startup(self):
-        with patch.dict(os.environ, self.BASE_ENV):
-            with patch("baldrick.github.github_auth.repo_to_installation_id_mapping") as mock_mapping:
-                mock_mapping.side_effect = ValueError("GitHub is down")
-                with pytest.raises(ValueError, match="GitHub is down"):
-                    create_app("testbot")
+    def test_auth_failure_raises_at_startup(self, create_app_mocks, mocker):
+        mocker.patch.dict(os.environ, self.BASE_ENV)
+        mocker.patch("requests.get", side_effect=requests.exceptions.ConnectionError("GitHub is down"))
+        with pytest.raises(requests.exceptions.ConnectionError, match="GitHub is down"):
+            create_app("testbot")
 
-    def test_valid_environment_starts(self):
+    def test_valid_environment_starts(self, create_app_mocks):
         with patch.dict(os.environ, self.BASE_ENV):
-            with patch("baldrick.github.github_auth.repo_to_installation_id_mapping") as mock_mapping:
-                mock_mapping.return_value = {"test/test-repo": 123}
-                app = create_app("testbot")
+            app = create_app("testbot")
         assert app.webhook_secret == WEBHOOK_SECRET
         assert app.allow_unverified_webhooks is False
