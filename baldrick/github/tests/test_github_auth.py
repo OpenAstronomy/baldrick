@@ -1,9 +1,8 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from baldrick.conftest import PRIVATE_KEY
-from baldrick.github.github_auth import GithubAppAuth
+from baldrick.conftest import TOKEN_RESPONSE_VALID
 
 
 TOKEN_RESPONSE_INVALID_WITH_MESSAGE = {
@@ -68,7 +67,7 @@ def test_get_github_request_headers(auth):
 
 def test_repo_to_installation_id_mapping(auth):
 
-    assert auth.repo_to_installation_id_mapping == {"test1": 3331, "test2": 3331}
+    assert auth.repo_to_installation_id_mapping == {"test1": 3331, "test2": 3331, "test/testbot": 3331}
 
 
 def test_repo_to_installation_id(auth):

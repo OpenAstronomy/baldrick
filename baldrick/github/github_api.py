@@ -255,7 +255,7 @@ class GitHubHandler:
         checks = {}
         for result in results.get("check_runs", []):
             # Skip checks from other apps if specified.
-            if only_ours and result["app"]["id"] != current_app.integration_id:
+            if only_ours and result["app"]["id"] != current_app.github_auth.app_integration_id:
                 continue
 
             context = result["external_id"]
