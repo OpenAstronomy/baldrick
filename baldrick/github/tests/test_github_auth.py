@@ -1,8 +1,9 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from baldrick.conftest import TOKEN_RESPONSE_VALID
+from baldrick.conftest import INTEGRATION_ID, PRIVATE_KEY, TOKEN_RESPONSE_VALID
+from baldrick.github.github_auth import GithubAppAuth
 
 
 TOKEN_RESPONSE_INVALID_WITH_MESSAGE = {
@@ -91,3 +92,71 @@ def test_add_and_remove_repo_to_installations(auth):
     auth.remove_repo_from_installations("test3")
     with pytest.raises(ValueError, match="Repository not recognized"):
         auth.repo_to_installation_id("test3")
+
+
+def test_add_installation(auth):
+
+    auth.add_installation(4442)
+
+    assert auth.repo_to_installation_id_mapping == {
+        "test1": 4442,
+        "test2": 4442,
+        "test/testbot": 4442,
+    }
+
+
+def test_remove_installation(auth):
+
+    assert 3331 in auth._installation_token_cache
+
+    auth.remove_installation(3331)
+
+    assert auth.repo_to_installation_id_mapping == {}
+    assert 3331 not in auth._installation_token_cache
+
+
+def test_add_repositories_to_installation(auth):
+
+    auth.add_repositories_to_installation(4442, ["new/repo", "other/repo"])
+
+    assert auth.repo_to_installation_id("new/repo") == 4442
+    assert auth.repo_to_installation_id("other/repo") == 4442
+    assert auth.repo_to_installation_id("test1") == 3331
+
+
+def test_remove_repositories_from_installation(auth):
+
+    auth.remove_repositories_from_installation(["test1", "not/installed"])
+
+    assert auth.repo_to_installation_id_mapping == {"test2": 3331, "test/testbot": 3331}
+
+
+def test_repo_listing_is_paginated(mocker):
+
+    def requests_get(url, headers=None, params=None):
+        req = MagicMock()
+        req.status_code = 200
+        req.ok = True
+        req.headers = {}
+        if url == "https://api.github.com/app":
+            req.json.return_value = {"name": "testbot", "installations_count": 1}
+        elif url == "https://api.github.com/app/installations":
+            req.json.return_value = [{"id": 3331}]
+        elif "page=2" in url or (params or {}).get("page") == 2:
+            req.json.return_value = {"repositories": [{"full_name": "test3"}]}
+        else:
+            req.json.return_value = {"repositories": [{"full_name": "test1"}]}
+            req.headers = {
+                "Link": '<https://api.github.com/installation/repositories?page=2>; rel="next", '
+                '<https://api.github.com/installation/repositories?page=2>; rel="last"'
+            }
+        return req
+
+    mocker.patch("requests.get", requests_get)
+    post = mocker.patch("requests.post")
+    post.return_value.ok = True
+    post.return_value.json.return_value = TOKEN_RESPONSE_VALID
+
+    auth = GithubAppAuth(INTEGRATION_ID, PRIVATE_KEY)
+
+    assert auth.repo_to_installation_id_mapping == {"test1": 3331, "test3": 3331}

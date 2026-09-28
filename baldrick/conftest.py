@@ -47,7 +47,7 @@ INTEGRATION_ID = 1234
 TOKEN_RESPONSE_VALID = {"token": "v1.1f699f1069f60xxx", "expires_at": "2016-07-11T22:14:10Z"}
 
 
-def auth_requests_patch(url, headers=None):
+def auth_requests_patch(url, headers=None, params=None):
     """
     Mock ``requests.get`` for the URLs used while constructing and using a
     ``GithubAppAuth`` instance.
