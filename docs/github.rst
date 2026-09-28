@@ -17,20 +17,25 @@ activities. Under "Homepage URL", enter the GitHub repository URL where
 the bot code resides (either here or your fork, as appropriate).
 
 For the **User authorization callback URL**, it should be in the format of
-``http://<heroku-bot-name>.herokuapp.com/installation_authorized``.
+``https://<heroku-bot-name>.herokuapp.com/installation_authorized``.
 
 For the **Webhook URL**, it should be in the format of
-``http://<heroku-bot-name>.herokuapp.com/github``.
+``https://<heroku-bot-name>.herokuapp.com/github``.
 
-You can ignore "Setup URL" and "Webhook secret". It would be useful to
-provide a description of what your bot intends to do but not required.
+In the **Webhook secret** field, enter a long random string. baldrick verifies
+the signature of every incoming webhook delivery against this secret and
+rejects deliveries with a missing or invalid signature, so this must be set.
+The same value needs to be set as the ``GITHUB_APP_WEBHOOK_SECRET`` environment
+variable on the server running the bot (see :ref:`heroku`). You can ignore
+"Setup URL". It would be useful to provide a description of what your bot
+intends to do but not required.
 
 The permissions of the app should be read/write access to **Commit statuses**,
 **Issues**, and **Pull requests**. Once you have checked these options,
 you will see extra "Subscribe to events" entries that you can check as well.
 For the events, it should be sufficient to only check **Status**,
 **Issue comment**, **Issues**, **Pull request**, **Pull request review**,
-and **Pull request review comment**.
+**Pull request review comment**, and **Pushes**.
 
 It is up to you to choose whether you want to allow your GitHub app here to
 be installed only on your account or by any user or organization.

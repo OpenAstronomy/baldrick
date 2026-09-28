@@ -21,7 +21,7 @@ class TestHook:
     def setup_method(self, method):
         mock_hook.reset_mock()
 
-    def test_valid(self, app, client):
+    def test_valid(self, app, client, github_webhook_headers):
 
         data = {
             "pull_request": {"number": "1234"},
@@ -30,27 +30,30 @@ class TestHook:
             "installation": {"id": "123"},
         }
 
-        headers = {"X-GitHub-Event": "pull_request"}
-
-        client.post("/github", data=json.dumps(data), headers=headers, content_type="application/json")
-
-        assert mock_hook.call_args[0][1]["pull_request"]["number"] == "1234"
-        assert mock_hook.call_args[0][1]["installation"]["id"] == "123"
-
-    def test_missing_installation(self, app, client):
-
-        data = {"pull_request": {"number": "1234"}, "repository": {"full_name": "test-repo"}, "action": "synchronize"}
-
-        headers = {"X-GitHub-Event": "pull_request"}
+        headers = github_webhook_headers(data, {"X-GitHub-Event": "pull_request"})
 
         result = client.post("/github", data=json.dumps(data), headers=headers, content_type="application/json")
 
-        assert result.get_data() == b"No installation key found in payload"
+        assert result.status_code == 200
+        assert mock_hook.call_args[0][1]["pull_request"]["number"] == "1234"
+        assert mock_hook.call_args[0][1]["installation"]["id"] == "123"
 
-    def test_missing_payload(self, app, client):
+    def test_missing_installation(self, app, client, github_webhook_headers):
 
-        headers = {"X-GitHub-Event": "pull_request"}
+        data = {"pull_request": {"number": "1234"}, "repository": {"full_name": "test-repo"}, "action": "synchronize"}
+
+        headers = github_webhook_headers(data, {"X-GitHub-Event": "pull_request"})
+
+        result = client.post("/github", data=json.dumps(data), headers=headers, content_type="application/json")
+
+        assert result.status_code == 400
+        assert result.get_data() == b"Payload missing installation or repository"
+
+    def test_missing_payload(self, app, client, github_webhook_headers):
+
+        headers = github_webhook_headers("", {"X-GitHub-Event": "pull_request"})
 
         result = client.post("/github", headers=headers, content_type="application/json")
 
+        assert result.status_code == 400
         assert result.get_data() == b"No payload received"

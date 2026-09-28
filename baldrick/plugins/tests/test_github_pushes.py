@@ -49,37 +49,37 @@ class TestPushHandler:
         self.get_installation_token_mock.stop()
         self.requests_get_mock.stop()
 
-    def send_event(self, client, git_ref="refs/heads/main"):
+    def send_event(self, client, github_webhook_headers, git_ref="refs/heads/main"):
 
         data = {"ref": git_ref, "repository": {"full_name": "test-repo"}, "installation": {"id": "123"}}
-        headers = {"X-GitHub-Event": "push"}
+        headers = github_webhook_headers(data, {"X-GitHub-Event": "push"})
 
         client.post("/github", data=json.dumps(data), headers=headers, content_type="application/json")
 
-    def test_branch(self, app, client):
+    def test_branch(self, app, client, github_webhook_headers):
         self.get_file_contents.return_value = CONFIG_TEMPLATE
-        self.send_event(client, git_ref="refs/heads/experimental")
+        self.send_event(client, github_webhook_headers, git_ref="refs/heads/experimental")
         assert mock_handler.call_count == 1
         repo_handler, git_ref = mock_handler.call_args[0]
         assert repo_handler.repo == "test-repo"
         assert repo_handler.branch == "experimental"
         assert git_ref == "refs/heads/experimental"
 
-    def test_tags(self, app, client):
+    def test_tags(self, app, client, github_webhook_headers):
         self.get_file_contents.return_value = CONFIG_TEMPLATE
-        self.send_event(client, git_ref="refs/tags/stable")
+        self.send_event(client, github_webhook_headers, git_ref="refs/tags/stable")
         assert mock_handler.call_count == 1
         repo_handler, git_ref = mock_handler.call_args[0]
         assert repo_handler.repo == "test-repo"
         assert repo_handler.branch is None
         assert git_ref == "refs/tags/stable"
 
-    def test_disabled(self, app, client):
+    def test_disabled(self, app, client, github_webhook_headers):
         self.get_file_contents.return_value = CONFIG_TEMPLATE.replace("enabled = true", "enabled = false")
-        self.send_event(client, git_ref="refs/tags/stable")
+        self.send_event(client, github_webhook_headers, git_ref="refs/tags/stable")
         assert mock_handler.call_count == 0
 
-    def test_missing_config(self, app, client):
+    def test_missing_config(self, app, client, github_webhook_headers):
         self.get_file_contents.return_value = ""
-        self.send_event(client, git_ref="refs/tags/stable")
+        self.send_event(client, github_webhook_headers, git_ref="refs/tags/stable")
         assert mock_handler.call_count == 0

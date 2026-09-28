@@ -79,7 +79,7 @@ class TestPullRequestHandler:
             raise ValueError(f"Unexpected URL: {url}")
         return req
 
-    def send_event(self, client):
+    def send_event(self, client, github_webhook_headers):
 
         data = {
             "pull_request": {"number": "1234"},
@@ -88,11 +88,11 @@ class TestPullRequestHandler:
             "installation": {"id": "123"},
         }
 
-        headers = {"X-GitHub-Event": "pull_request"}
+        headers = github_webhook_headers(data, {"X-GitHub-Event": "pull_request"})
 
         client.post("/github", data=json.dumps(data), headers=headers, content_type="application/json")
 
-    def test_empty_default(self, app, client):
+    def test_empty_default(self, app, client, github_webhook_headers):
 
         # Test case where the config doesn't give a default message, and the
         # registered handlers don't return any checks
@@ -100,11 +100,11 @@ class TestPullRequestHandler:
         mock_hook.return_value = None
         self.get_file_contents.return_value = CONFIG_TEMPLATE
 
-        self.send_event(client)
+        self.send_event(client, github_webhook_headers)
 
         assert self.requests_post.call_count == 0
 
-    def test_all_passed(self, app, client):
+    def test_all_passed(self, app, client, github_webhook_headers):
 
         # As above, but a default message is given
 
@@ -115,7 +115,7 @@ class TestPullRequestHandler:
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE
 
-        self.send_event(client)
+        self.send_event(client, github_webhook_headers)
 
         assert self.requests_post.call_count == 2
 
@@ -141,7 +141,7 @@ class TestPullRequestHandler:
             "output": {"title": "All good here", "summary": ""},
         }
 
-    def test_one_failure(self, app, client):
+    def test_one_failure(self, app, client, github_webhook_headers):
 
         # As above, but a default message is given
 
@@ -152,7 +152,7 @@ class TestPullRequestHandler:
 
         self.get_file_contents.return_value = CONFIG_TEMPLATE
 
-        self.send_event(client)
+        self.send_event(client, github_webhook_headers)
 
         assert self.requests_post.call_count == 2
 
@@ -178,7 +178,7 @@ class TestPullRequestHandler:
             "output": {"title": "All good here", "summary": ""},
         }
 
-    def test_skip_existing_checks(self, app, client):
+    def test_skip_existing_checks(self, app, client, github_webhook_headers):
 
         # If checks already exist, don't post them again
 
@@ -202,7 +202,7 @@ class TestPullRequestHandler:
             ],
         }
 
-        self.send_event(client)
+        self.send_event(client, github_webhook_headers)
 
         # We send one new check for test2
         assert self.requests_post.call_count == 1
@@ -232,7 +232,7 @@ class TestPullRequestHandler:
             "output": {"title": "This check has been skipped.", "summary": ""},
         }
 
-    def test_no_skip_existing_different_checks(self, app, client):
+    def test_no_skip_existing_different_checks(self, app, client, github_webhook_headers):
 
         # If checks already exist but has some differences, post again
 
@@ -279,7 +279,7 @@ class TestPullRequestHandler:
             ],
         }
 
-        self.send_event(client)
+        self.send_event(client, github_webhook_headers)
 
         assert self.requests_patch.call_count == 2
 
@@ -305,7 +305,7 @@ class TestPullRequestHandler:
             "output": {"title": "All good here", "summary": ""},
         }
 
-    def test_skip_on_labels(self, app, client):
+    def test_skip_on_labels(self, app, client, github_webhook_headers):
 
         # Test case where the config doesn't give a default message, and the
         # registered handlers don't return any checks
@@ -315,7 +315,7 @@ class TestPullRequestHandler:
 
         self.labels.return_value = ["Experimental"]
 
-        self.send_event(client)
+        self.send_event(client, github_webhook_headers)
 
         assert self.requests_post.call_count == 1
 
@@ -330,11 +330,11 @@ class TestPullRequestHandler:
             "output": {"title": "Skipping checks due to Experimental label", "summary": ""},
         }
 
-    def test_check_returns_none(self, app, client):
+    def test_check_returns_none(self, app, client, github_webhook_headers):
         """
         Test that a check can return None to skip itself.
         """
 
         mock_hook.return_value = None
-        self.send_event(client)
+        self.send_event(client, github_webhook_headers)
         assert self.requests_post.call_count == 0
