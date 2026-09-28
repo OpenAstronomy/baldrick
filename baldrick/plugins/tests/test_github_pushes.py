@@ -29,25 +29,28 @@ class TestPushHandler:
 
         mock_handler.reset_mock()
 
-        self.requests_get_mock = patch("requests.get")
-        self.requests_get = self.requests_get_mock.start()
-        self.requests_get.return_value.ok = True
-        self.requests_get.return_value.json.return_value = {"default_branch": "main"}
-
+        # The ``app`` fixture (which runs after this method) patches the real
+        # ``requests`` module globally, so patch the module as seen by
+        # ``github_api`` only to avoid those patches shadowing these ones.
+        self.requests_mock = patch("baldrick.github.github_api.requests")
         self.get_file_contents_mock = patch("baldrick.github.github_api.GitHubHandler.get_file_contents")
-        self.get_installation_token_mock = patch("baldrick.github.github_auth.get_installation_token")
+        self.get_installation_token_mock = patch("baldrick.github.github_auth.GithubAppAuth.get_installation_token")
 
+        self.requests = self.requests_mock.start()
         self.get_file_contents = self.get_file_contents_mock.start()
         self.get_installation_token = self.get_installation_token_mock.start()
+
+        self.requests.get.return_value.ok = True
+        self.requests.get.return_value.json.return_value = {"default_branch": "main"}
 
         self.get_installation_token.return_value = "abcdefg"
 
         FILE_CACHE.clear()
 
     def teardown_method(self, method):
+        self.requests_mock.stop()
         self.get_file_contents_mock.stop()
         self.get_installation_token_mock.stop()
-        self.requests_get_mock.stop()
 
     def send_event(self, client, github_webhook_headers, git_ref="refs/heads/main"):
 
