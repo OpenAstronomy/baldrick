@@ -47,7 +47,7 @@ def get_artifacts_from_build(repo, build_num):  # pragma: no cover
     query_url = f"{base_url}/project/github/{repo}/{build_num}/artifacts"
     logger.debug(f"Getting build {query_url}")
     response = requests.get(query_url)
-    assert response.ok, response.content
+    response.raise_for_status()
     return response.json()
 
 

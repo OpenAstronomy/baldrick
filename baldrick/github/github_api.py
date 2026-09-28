@@ -7,9 +7,9 @@ from datetime import UTC, datetime
 
 import dateutil.parser
 import requests
+from cachetools import TTLCache
 from flask import current_app
 from loguru import logger
-from ttldict import TTLOrderedDict
 
 from baldrick.config import Config, loads
 from baldrick.github.github_auth import github_request_headers
@@ -19,13 +19,13 @@ __all__ = ["GitHubHandler", "IssueHandler", "PullRequestHandler", "RepoHandler"]
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
 
-FILE_CACHE = TTLOrderedDict(default_ttl=os.environ.get("BALDRICK_FILE_CACHE_TTL", 60))
+FILE_CACHE = TTLCache(maxsize=512, ttl=float(os.environ.get("BALDRICK_FILE_CACHE_TTL", 60)))
 
 
 def paged_github_json_request(url, headers=None):
 
     response = requests.get(url, headers=headers)
-    assert response.ok, response.content
+    response.raise_for_status()
     results = response.json()
 
     if "Link" in response.headers:
@@ -42,7 +42,7 @@ def paged_github_json_request(url, headers=None):
         if last_page > 1:
             for page in range(2, last_page + 1):
                 response = requests.get(url + f"?page={page}", headers=headers)
-                assert response.ok, response.content
+                response.raise_for_status()
                 results += response.json()
 
     return results
@@ -90,8 +90,8 @@ class GitHubHandler:
             branch = self.default_branch
         cache_key = f"{self.repo}:{path_to_file}@{branch}"
 
-        # It seems that this is the only safe way to do this with
-        # TTLOrderedDict
+        # TTLCache raises KeyError for expired as well as missing keys, so
+        # we access the cache via try/except
         try:
             return FILE_CACHE[cache_key]
         except KeyError:
@@ -102,7 +102,7 @@ class GitHubHandler:
         response = requests.get(url_file, params=data, headers=self._headers)
         if not response.ok and response.json()["message"] == "Not Found":
             raise FileNotFoundError(url_file)
-        assert response.ok, response.content
+        response.raise_for_status()
         contents_base64 = response.json()["content"]
         contents = base64.b64decode(contents_base64).decode()
 
@@ -210,7 +210,7 @@ class GitHubHandler:
 
         url = f"{HOST}/repos/{self.repo}/statuses/{commit_hash}"
         response = requests.post(url, json=data, headers=self._headers)
-        assert response.ok, response.content
+        response.raise_for_status()
 
     def list_statuses(self, commit_hash):
         """
@@ -362,7 +362,7 @@ class IssueHandler(GitHubHandler):
     def json(self):
         if "json" not in self._cache:
             response = requests.get(self._url_issue, headers=self._headers)
-            assert response.ok, response.content
+            response.raise_for_status()
             self._cache["json"] = response.json()
         return self._cache["json"]
 
@@ -428,7 +428,7 @@ class IssueHandler(GitHubHandler):
             url = f"{HOST}/repos/{self.repo}/issues/comments/{comment_id}"
 
         response = requests.post(url, json=data, headers=self._headers)
-        assert response.ok, response.content
+        response.raise_for_status()
 
         if return_url:
             comment_id = response.json()["url"].split("/")[-1]
@@ -465,7 +465,7 @@ class IssueHandler(GitHubHandler):
     def labels(self):
         """Get labels for this issue"""
         response = requests.get(self._url_labels, headers=self._headers)
-        assert response.ok, response.content
+        response.raise_for_status()
         return [label["name"] for label in response.json()]
 
     # We take this out of set_labels so we can test it without mock
@@ -505,13 +505,13 @@ class IssueHandler(GitHubHandler):
             return
 
         response = requests.post(self._url_labels, headers=self._headers, json=missing_labels)
-        assert response.ok, response.content
+        response.raise_for_status()
 
     def close(self):
         url = f"{HOST}/repos/{self.repo}/issues/{self.number}"
         parameters = {"state": "closed"}
         response = requests.patch(url, json=parameters, headers=self._headers)
-        assert response.ok, response.content
+        response.raise_for_status()
 
     @property
     def is_closed(self):
@@ -644,7 +644,7 @@ class PullRequestHandler(IssueHandler):
             response = requests.post(url, headers=headers, json=parameters)
         else:
             response = requests.patch(url + f"/{check_id}", headers=headers, json=parameters)
-        assert response.ok, response.content
+        response.raise_for_status()
 
     def set_status(self, state, description, context, commit_hash="head", target_url=None):
         """
@@ -731,7 +731,7 @@ class PullRequestHandler(IssueHandler):
     def json(self):
         if "json" not in self._cache:
             response = requests.get(self._url_pull_request, headers=self._headers)
-            assert response.ok, response.content
+            response.raise_for_status()
             self._cache["json"] = response.json()
         return self._cache["json"]
 
@@ -838,7 +838,7 @@ class PullRequestHandler(IssueHandler):
         data["event"] = decision.upper()
 
         response = requests.post(self._url_review_comment, json=data, headers=self._headers)
-        assert response.ok, response.content
+        response.raise_for_status()
 
     @property
     def last_commit_date(self):

@@ -112,7 +112,7 @@ def process_pull_request(repository, number, installation, action, is_new=False)
     if pr_handler.is_closed:
         return "Pull request already closed, no need to check"
 
-    repo_handler = RepoHandler(pr_handler.head_repo_name, pr_handler.head_branch, installation)
+    repo_handler = RepoHandler(repository, installation)
 
     # First check whether there are labels that indicate the checks should be
     # skipped
