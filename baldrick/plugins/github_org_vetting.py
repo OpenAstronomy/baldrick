@@ -8,6 +8,10 @@ def close_if_not_in_org(pr_handler, repo_handler):
     # organization, and if not, we close the pull request and post a friendly
     # message encouraging contributors to re-open
 
+    vet_config = pr_handler.get_config_value("org_vetting", {})
+    if not vet_config.get("enabled", False):
+        return
+
     if repo_handler.org_handler.is_member(pr_handler.user):
         return
 
