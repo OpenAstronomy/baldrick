@@ -35,7 +35,7 @@ def handle_pushes(repo_handler, payload, headers):
     # If we are on a branch, make a new repo handler with the correct branch
     if git_ref.startswith("refs/heads/"):
         branch = git_ref.replace("refs/heads/", "")
-        repo_handler = RepoHandler(repo_handler.repo, branch, repo_handler.installation)
+        repo_handler = RepoHandler(repo_handler.repo, repo_handler.installation)
 
     # Get configuration for this plugin
     push_config = repo_handler.get_config_value("pushes", {})

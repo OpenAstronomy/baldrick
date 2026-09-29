@@ -40,7 +40,7 @@ class TestArtifactPlugin:
         self.requests_get.return_value.ok = True
         self.requests_get.return_value.json.return_value = {"default_branch": "main"}
 
-        self.get_file_contents_mock = patch("baldrick.github.github_api.GitHubHandler.get_file_contents")
+        self.get_file_contents_mock = patch("baldrick.github.github_api.RepoHandler.get_file_contents")
 
         self.set_status_mock = patch("baldrick.github.github_api.RepoHandler.set_status")
         self.set_status = self.set_status_mock.start()

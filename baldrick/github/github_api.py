@@ -14,7 +14,7 @@ from loguru import logger
 from baldrick.config import Config, loads
 from baldrick.github.github_auth import github_request_headers
 
-__all__ = ["GitHubHandler", "IssueHandler", "PullRequestHandler", "RepoHandler"]
+__all__ = ["GitHubHandler", "OrgHandler", "IssueHandler", "PullRequestHandler", "RepoHandler"]
 
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
@@ -53,13 +53,55 @@ class GitHubHandler:
     A base class for things that represent things the github app can operate on.
     """
 
-    def __init__(self, repo, installation=None):
-        self.repo = repo
+    def __init__(self, installation=None):
         self.installation = installation
         self._cache = {}
 
     def invalidate_cache(self):
         self._cache.clear()
+
+    @property
+    def _headers(self):
+        if self.installation is None:
+            return {}
+        return github_request_headers(self.installation)
+
+
+class OrgHandler(GitHubHandler):
+
+    def __init__(self, org_name, installation=None):
+        self.org_name = org_name
+        super().__init__(installation=installation)
+
+    def is_member(self, user):
+        response = requests.get(f"{HOST}/orgs/{self.org_name}/members/{user}", headers=self._headers)
+        if response.status_code == 204:
+            return True
+        elif response.status_code == 404:
+            return False
+        else:
+            raise Exception(f"An error occured when trying to determine "
+                            f"organization membership (status code "
+                            f"{response.status_code})")
+
+
+class RepoHandler(GitHubHandler):
+
+    def __init__(self, repo, installation=None):
+        self.repo = repo
+        self.installation = installation
+        self._cache = {}
+        super().__init__(installation=installation)
+
+    @property
+    def org_handler(self):
+        if hasattr(self, '_org_handler'):
+            return self._org_handler
+        if self.repo_info['owner']['type'] == "Organization":
+            self._org_handler = OrgHandler(self.repo.split('/')[0], installation=self.installation)
+            return self._org_handler
+        else:
+            raise Exception("Repository does not belong to an organization")
 
     @property
     def repo_info(self):
@@ -74,12 +116,6 @@ class GitHubHandler:
     @property
     def default_branch(self):
         return self.repo_info["default_branch"]
-
-    @property
-    def _headers(self):
-        if self.installation is None:
-            return {}
-        return github_request_headers(self.installation)
 
     @property
     def _url_contents(self):
@@ -276,12 +312,6 @@ class GitHubHandler:
 
         return checks
 
-
-class RepoHandler(GitHubHandler):
-    def __init__(self, repo, branch=None, installation=None):
-        self.branch = branch
-        super().__init__(repo, installation=installation)
-
     @property
     def _url_pull_requests(self):
         return f"{HOST}/repos/{self.repo}/pulls"
@@ -291,8 +321,6 @@ class RepoHandler(GitHubHandler):
         return [pr["number"] for pr in pull_requests]
 
     def get_file_contents(self, path_to_file, branch=None):
-        if branch is None:
-            branch = self.branch
         return super().get_file_contents(path_to_file, branch=branch)
 
     def get_issues(self, state, labels, exclude_pr=True):
@@ -333,7 +361,7 @@ class RepoHandler(GitHubHandler):
         return [label["name"] for label in result]
 
 
-class IssueHandler(GitHubHandler):
+class IssueHandler(RepoHandler):
     def __init__(self, repo, number, installation=None):
         self.number = number
         super().__init__(repo, installation=installation)
