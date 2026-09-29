@@ -1,5 +1,4 @@
 from baldrick.blueprints.github import github_webhook_handler
-from baldrick.github.github_api import RepoHandler
 
 __all__ = ["push_handler"]
 
@@ -31,11 +30,6 @@ def handle_pushes(repo_handler, payload, headers):
 
     # Get the ref for the push - could be e.g. a branch or a tag
     git_ref = payload["ref"]
-
-    # If we are on a branch, make a new repo handler with the correct branch
-    if git_ref.startswith("refs/heads/"):
-        branch = git_ref.replace("refs/heads/", "")
-        repo_handler = RepoHandler(repo_handler.repo, repo_handler.installation)
 
     # Get configuration for this plugin
     push_config = repo_handler.get_config_value("pushes", {})

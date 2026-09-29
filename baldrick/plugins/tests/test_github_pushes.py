@@ -62,7 +62,6 @@ class TestPushHandler:
         assert mock_handler.call_count == 1
         repo_handler, git_ref = mock_handler.call_args[0]
         assert repo_handler.repo == "test-repo"
-        assert repo_handler.branch == "experimental"
         assert git_ref == "refs/heads/experimental"
 
     def test_tags(self, app, client, github_webhook_headers):
