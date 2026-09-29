@@ -86,18 +86,15 @@ class OrgHandler(GitHubHandler):
 class RepoHandler(GitHubHandler):
     def __init__(self, repo, installation=None):
         self.repo = repo
-        self.installation = installation
-        self._cache = {}
         super().__init__(installation=installation)
 
     @property
     def org_handler(self):
-        if hasattr(self, "_org_handler"):
-            return self._org_handler
-        if self.repo_info["owner"]["type"] == "Organization":
-            self._org_handler = OrgHandler(self.repo.split("/")[0], installation=self.installation)
-            return self._org_handler
-        raise Exception("Repository does not belong to an organization")
+        if "org_handler" not in self._cache:
+            if self.repo_info["owner"]["type"] != "Organization":
+                raise Exception("Repository does not belong to an organization")
+            self._cache["org_handler"] = OrgHandler(self.repo.split("/")[0], installation=self.installation)
+        return self._cache["org_handler"]
 
     @property
     def repo_info(self):
@@ -499,15 +496,8 @@ class IssueHandler(RepoHandler):
         if len(missing_labels) == 0:
             return None
 
-        # Need repo handler (default branch)
-        if "repohandler" not in self._cache:
-            repo = RepoHandler(self.repo, installation=self.installation)
-            self._cache["repohandler"] = repo
-        else:
-            repo = self._cache["repohandler"]
-
         # If label does not already exist in the repo, give a warning
-        repo_labels = repo.get_all_labels()
+        repo_labels = self.get_all_labels()
         nonexistent_labels = missing_labels.difference(repo_labels)
         if len(nonexistent_labels) > 0:
             pass
