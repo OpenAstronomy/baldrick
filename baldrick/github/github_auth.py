@@ -1,16 +1,14 @@
-import datetime
 import netrc
 import os
 
 from github import Auth, GithubIntegration
 
-# These are cached at the module level so that tokens and clients are reused
-# between webhook deliveries. PyGithub refreshes the installation tokens
-# used by the clients automatically when they are close to expiring.
+# These are cached at the module level so that clients are reused between
+# webhook deliveries. PyGithub refreshes the installation tokens used by the
+# clients automatically when they are close to expiring.
 # TODO: need to change global variable to use redis
 integration = None
 github_clients = {}
-installation_tokens = {}
 
 
 def netrc_exists():
@@ -58,35 +56,6 @@ def get_github(installation):
     return github_clients[installation]
 
 
-def get_installation_token(installation):
-    """
-    Get access token for installation
-    """
-    installation = int(installation)
-
-    now = datetime.datetime.now(datetime.UTC)
-    token = installation_tokens.get(installation)
-
-    # Include a one-minute buffer otherwise the token might expire by the
-    # time we make a request with it.
-    if token is None or token.expires_at < now + datetime.timedelta(minutes=1):
-        token = get_integration().get_access_token(installation)
-        installation_tokens[installation] = token
-
-    return token.token
-
-
-def github_request_headers(installation):
-
-    token = get_installation_token(installation)
-
-    headers = {}
-    headers["Authorization"] = f"token {token}"
-    headers["Accept"] = "application/vnd.github+json"
-
-    return headers
-
-
 def repo_to_installation_id_mapping():
     """
     Returns a dictionary mapping full repository name to installation id.
@@ -97,20 +66,3 @@ def repo_to_installation_id_mapping():
             repos[repo.full_name] = installation.id
 
     return repos
-
-
-def repo_to_installation_id(repository):
-    """
-    Return the installation ID for a repository.
-    """
-    mapping = repo_to_installation_id_mapping()
-    if repository in mapping:
-        return mapping[repository]
-    raise ValueError("Repository not recognized - should be one of:\n\n  - " + "\n  - ".join(mapping))
-
-
-def get_app_name():
-    """
-    Return the login name of the authenticated app.
-    """
-    return get_integration().get_app().name
