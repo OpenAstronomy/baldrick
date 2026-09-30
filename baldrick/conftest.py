@@ -3,6 +3,7 @@ import hmac
 import json
 import logging
 import os
+from unittest.mock import patch
 
 import pytest
 from loguru import logger
@@ -40,10 +41,56 @@ IJVMoU0lvK0zKm5VlXh3jbRXt/M5cTNu/1+xZxUbGJ0b+Go3FYc=
 WEBHOOK_SECRET = "baldrick-test-webhook-secret"
 
 
+class FakeGitHubAPI:
+    """
+    A fake for PyGithub's Requester which dispatches GET requests by URL and
+    records all requests so that tests can make assertions about them.
+    """
+
+    def __init__(self):
+        self.responses = {}
+        self.calls = []
+
+    def add(self, verb, url, data):
+        """
+        Register the data to return for a given request; this can be a
+        callable in order to defer evaluation to request time.
+        """
+        self.responses[(verb, url)] = data
+
+    def __call__(self, verb, url, parameters=None, headers=None, input=None, **kwargs):  # noqa: A002
+        # PyGithub passes URLs relative to the API host in most cases
+        if url.startswith("/"):
+            url = "https://api.github.com" + url
+        self.calls.append({"verb": verb, "url": url, "parameters": parameters, "input": input})
+        if (verb, url) in self.responses:
+            data = self.responses[(verb, url)]
+            if isinstance(data, Exception):
+                raise data
+            if callable(data):
+                data = data()
+        elif verb == "GET":
+            raise ValueError(f"Unexpected URL: {url}")
+        else:
+            data = {}
+        return {}, data
+
+    def calls_for(self, verb, url=None):
+        return [call for call in self.calls if call["verb"] == verb and url in (None, call["url"])]
+
+
+@pytest.fixture
+def github_api():
+    """
+    Intercept all PyGithub requests at the Requester level.
+    """
+    fake = FakeGitHubAPI()
+    with patch("github.Requester.Requester.requestJsonAndCheck", fake):
+        yield fake
+
+
 @pytest.fixture
 def app():
-    from unittest.mock import patch
-
     from baldrick import create_app
 
     os.environ["GITHUB_APP_INTEGRATION_ID"] = "1234"

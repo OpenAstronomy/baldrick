@@ -1,6 +1,8 @@
 import logging
 from unittest.mock import call, patch
 
+import pytest
+
 from baldrick.github.github_api import FILE_CACHE, RepoHandler
 from baldrick.plugins.circleci_artifacts import set_commit_status_for_artifacts
 
@@ -34,31 +36,25 @@ CONFIG_TEMPLATE_ARTIFACT_2 = """
 
 
 class TestArtifactPlugin:
-    def setup_method(self, method):
-        self.requests_get_mock = patch("requests.get")
-        self.requests_get = self.requests_get_mock.start()
-        self.requests_get.return_value.ok = True
-        self.requests_get.return_value.json.return_value = {"default_branch": "main"}
+    @pytest.fixture(autouse=True)
+    def setup(self, github_api):
 
-        self.get_file_contents_mock = patch("baldrick.github.github_api.GitHubHandler.get_file_contents")
+        github_api.add("GET", "https://api.github.com/repos/nota/repo", {"default_branch": "main"})
 
-        self.set_status_mock = patch("baldrick.github.github_api.RepoHandler.set_status")
-        self.set_status = self.set_status_mock.start()
+        with (
+            patch("baldrick.github.github_api.GitHubHandler.get_file_contents") as get_file_contents,
+            patch("baldrick.github.github_api.RepoHandler.set_status") as set_status,
+            patch("baldrick.plugins.circleci_artifacts.get_artifacts_from_build") as get_artifacts,
+        ):
+            self.get_file_contents = get_file_contents
+            self.set_status = set_status
+            self.get_artifacts = get_artifacts
+            self.get_artifacts.return_value = []
 
-        self.get_artifacts_mock = patch("baldrick.plugins.circleci_artifacts.get_artifacts_from_build")
-        self.get_artifacts = self.get_artifacts_mock.start()
-        self.get_artifacts.return_value = []
+            self.repo_handler = RepoHandler("nota/repo", "1234")
+            FILE_CACHE.clear()
 
-        self.repo_handler = RepoHandler("nota/repo", "1234")
-        self.get_file_contents = self.get_file_contents_mock.start()
-        FILE_CACHE.clear()
-
-        self.set_status_mock = patch("baldrick.github.github_api.RepoHandler.set_status")
-        self.set_status = self.set_status_mock.start()
-
-    def teardown_method(self, method):
-        self.get_file_contents_mock.stop()
-        self.requests_get_mock.stop()
+            yield
 
     def basic_payload(self):
         return {

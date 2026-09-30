@@ -1,157 +1,50 @@
-import datetime
-import netrc
 import os
-from collections import defaultdict
 
-import dateutil.parser
-import jwt
-import requests
+from cachetools import LRUCache
+from github import Auth, GithubIntegration
 
-TEN_MIN = datetime.timedelta(minutes=9)
-ONE_MIN = datetime.timedelta(minutes=1)
-
-# TODO: need to change global variable to use redis
-
-json_web_token = None
-json_web_token_expiry = None
+# These are cached at the module level so that clients are reused between
+# webhook deliveries. PyGithub refreshes the installation tokens used by the
+# clients automatically when they are close to expiring.
+integration = None
+github_clients = LRUCache(maxsize=128)
 
 
-def get_json_web_token():
+def get_integration():
     """
-    Prepares the JSON Web Token (JWT) based on the private key.
+    Get a GithubIntegration authenticated as the GitHub App.
     """
+    global integration
 
-    global json_web_token
-    global json_web_token_expiry
+    if integration is None:
+        auth = Auth.AppAuth(os.environ["GITHUB_APP_INTEGRATION_ID"], os.environ["GITHUB_APP_PRIVATE_KEY"])
 
-    now = datetime.datetime.now()
+        # Use lazy clients so that constructing e.g. a Repository object does
+        # not make an API call until actual data is needed from it.
+        integration = GithubIntegration(auth=auth, lazy=True)
 
-    # Include a one-minute buffer otherwise token might expire by the time we
-    # make the request with the token.
-    if json_web_token is None or json_web_token_expiry is None or now + ONE_MIN > json_web_token_expiry:
-        json_web_token_expiry = now + TEN_MIN
-
-        payload = {}
-
-        # Issued at time
-        payload["iat"] = int(now.timestamp())
-
-        # JWT expiration time (10 minute maximum)
-        payload["exp"] = int(json_web_token_expiry.timestamp())
-
-        # Integration's GitHub identifier
-        payload["iss"] = os.environ["GITHUB_APP_INTEGRATION_ID"]
-
-        json_web_token = jwt.encode(payload, os.environ["GITHUB_APP_PRIVATE_KEY"], algorithm="RS256")
-
-    return json_web_token
+    return integration
 
 
-installation_token = defaultdict(lambda: None)
-installation_token_expiry = defaultdict(lambda: None)
-
-
-def netrc_exists():
-    try:
-        my_netrc = netrc.netrc()
-    except FileNotFoundError:
-        return False
-    else:
-        return my_netrc.authenticators("api.github.com") is not None
-
-
-def get_installation_token(installation):
+def get_github(installation):
     """
-    Get access token for installation
+    Get a Github client authenticated as the given installation.
     """
+    installation = int(installation)
 
-    now = datetime.datetime.now().timestamp()
+    if installation not in github_clients:
+        github_clients[installation] = get_integration().get_github_for_installation(installation)
 
-    if installation_token_expiry[installation] is None or now + 60 > installation_token_expiry[installation]:
-        # FIXME: if .netrc file is present, Authorization header will get
-        # overwritten, so need to figure out how to ignore that file.
-        if netrc_exists():
-            raise Exception(
-                "Authentication does not work properly if a ~/.netrc "
-                "file exists. Rename that file temporarily and try again."
-            )
-
-        headers = {}
-        headers["Authorization"] = f"Bearer {get_json_web_token()}"
-        headers["Accept"] = "application/vnd.github+json"
-        headers["X-GitHub-Api-Version"] = "2022-11-28"
-
-        url = f"https://api.github.com/app/installations/{installation}/access_tokens"
-
-        req = requests.post(url, headers=headers)
-        resp = req.json()
-
-        if not req.ok:
-            if "message" in resp:
-                raise Exception(f"{req.status_code} {resp['message']}")
-            raise Exception("An error occurred when requesting token")
-
-        installation_token[installation] = resp["token"]
-        installation_token_expiry[installation] = dateutil.parser.parse(resp["expires_at"]).timestamp()
-
-    return installation_token[installation]
-
-
-def github_request_headers(installation):
-
-    token = get_installation_token(installation)
-
-    headers = {}
-    headers["Authorization"] = f"token {token}"
-    headers["Accept"] = "application/vnd.github.machine-man-preview+json"
-
-    return headers
+    return github_clients[installation]
 
 
 def repo_to_installation_id_mapping():
     """
     Returns a dictionary mapping full repository name to installation id.
     """
-    url = "https://api.github.com/app/installations"
-    headers = {}
-    headers["Authorization"] = f"Bearer {get_json_web_token()}"
-    headers["Accept"] = "application/vnd.github+json"
-    headers["X-GitHub-Api-Version"] = "2022-11-28"
-    resp = requests.get(url, headers=headers)
-    payload = resp.json()
-
-    if resp.status_code != 200:
-        raise ValueError(f"{resp.status_code} {payload} in response from GitHub while getting installations")
-
-    ids = [p["id"] for p in payload]
-
     repos = {}
-    for iid in ids:
-        headers = github_request_headers(iid)
-        resp = requests.get("https://api.github.com/installation/repositories", headers=headers)
-        payload = resp.json()
-        for repo in payload["repositories"]:
-            repos[repo["full_name"]] = iid
+    for installation in get_integration().get_installations():
+        for repo in installation.get_repos():
+            repos[repo.full_name] = installation.id
 
     return repos
-
-
-def repo_to_installation_id(repository):
-    """
-    Return the installation ID for a repository.
-    """
-    mapping = repo_to_installation_id_mapping()
-    if repository in mapping:
-        return mapping[repository]
-    raise ValueError("Repository not recognized - should be one of:\n\n  - " + "\n  - ".join(mapping))
-
-
-def get_app_name():
-    """
-    Return the login name of the authenticated app.
-    """
-    headers = {}
-    headers["Authorization"] = f"Bearer {get_json_web_token()}"
-    headers["Accept"] = "application/vnd.github.machine-man-preview+json"
-    response = requests.get("https://api.github.com/app", headers=headers).json()
-    return response["name"]
