@@ -1,4 +1,3 @@
-import netrc
 import os
 
 from github import Auth, GithubIntegration
@@ -11,15 +10,6 @@ integration = None
 github_clients = {}
 
 
-def netrc_exists():
-    try:
-        my_netrc = netrc.netrc()
-    except FileNotFoundError:
-        return False
-    else:
-        return my_netrc.authenticators("api.github.com") is not None
-
-
 def get_integration():
     """
     Get a GithubIntegration authenticated as the GitHub App.
@@ -27,14 +17,6 @@ def get_integration():
     global integration
 
     if integration is None:
-        # FIXME: if a .netrc file is present, the Authorization header will get
-        # overwritten, so need to figure out how to ignore that file.
-        if netrc_exists():
-            raise Exception(
-                "Authentication does not work properly if a ~/.netrc "
-                "file exists. Rename that file temporarily and try again."
-            )
-
         auth = Auth.AppAuth(os.environ["GITHUB_APP_INTEGRATION_ID"], os.environ["GITHUB_APP_PRIVATE_KEY"])
 
         # Use lazy clients so that constructing e.g. a Repository object does
