@@ -19,7 +19,6 @@ dependencies = [
     "flask",
     "pygithub",
     "requests",
-    "python-dateutil",
     "humanize",
     "towncrier==25.8.0",  # We hard-pin towncrier because we use hidden functions to parse the config
     "loguru",

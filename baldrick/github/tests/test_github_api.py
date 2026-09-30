@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, Mock, PropertyMock, patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
 
@@ -12,32 +12,28 @@ class TestRepoHandler:
     def setup_class(self):
         self.repo = RepoHandler("fakerepo/doesnotexist", branch="awesomebot")
 
-    @patch("requests.get")
-    def test_get_issues(self, mock_get):
-        # http://engineroom.trackmaven.com/blog/real-life-mocking/
-        mock_response = Mock()
-        mock_response.json.return_value = [
-            {"number": 42, "state": "open"},
-            {"number": 55, "state": "open", "pull_request": {"diff_url": "blah"}},
-        ]
-        mock_get.return_value = mock_response
+    def test_get_issues(self, github_api):
+        github_api.add(
+            "GET",
+            "https://api.github.com/repos/fakerepo/doesnotexist/issues",
+            [
+                {"number": 42, "state": "open"},
+                {"number": 55, "state": "open", "pull_request": {"diff_url": "blah"}},
+            ],
+        )
 
         assert self.repo.get_issues("open", "Close?") == [42]
         assert self.repo.get_issues("open", "Close?", exclude_pr=False) == [42, 55]
+        assert github_api.calls[-1]["parameters"]["labels"] == "Close?"
 
-    @patch("requests.get")
-    def test_get_all_labels(self, mock_get):
-        mock_response = Mock()
-        mock_response.json.return_value = [{"name": "io.fits"}, {"name": "Documentation"}]
-        mock_response.headers = {}
-        mock_get.return_value = mock_response
+    def test_get_all_labels(self, github_api):
+        github_api.add(
+            "GET",
+            "https://api.github.com/repos/fakerepo/doesnotexist/labels",
+            [{"name": "io.fits"}, {"name": "Documentation"}],
+        )
 
         assert self.repo.get_all_labels() == ["io.fits", "Documentation"]
-
-    def test_urls(self):
-        assert self.repo._url_contents == "https://api.github.com/repos/fakerepo/doesnotexist/contents/"
-        assert self.repo._url_pull_requests == "https://api.github.com/repos/fakerepo/doesnotexist/pulls"
-        assert self.repo._headers == {}
 
 
 TEST_CONFIG = """
@@ -137,15 +133,6 @@ class TestIssueHandler:
     def setup_class(self):
         self.issue = IssueHandler("fakerepo/doesnotexist", 1234)
 
-    def test_urls(self):
-        assert self.issue._url_issue == "https://api.github.com/repos/fakerepo/doesnotexist/issues/1234"
-        assert self.issue._url_issue_nonapi == "https://github.com/fakerepo/doesnotexist/issues/1234"
-        assert self.issue._url_labels == "https://api.github.com/repos/fakerepo/doesnotexist/issues/1234/labels"
-        assert (
-            self.issue._url_issue_comment == "https://api.github.com/repos/fakerepo/doesnotexist/issues/1234/comments"
-        )
-        assert self.issue._url_timeline == "https://api.github.com/repos/fakerepo/doesnotexist/issues/1234/timeline"
-
     @pytest.mark.parametrize(("state", "answer"), [("open", False), ("closed", True)])
     def test_is_closed(self, state, answer):
         with patch("baldrick.github.github_api.IssueHandler.json", new_callable=PropertyMock) as mock_json:
@@ -179,15 +166,16 @@ class TestPullRequestHandler:
     def setup_class(self):
         self.pr = PullRequestHandler("fakerepo/doesnotexist", 1234)
 
-    def test_urls(self):
-        assert self.pr._url_pull_request == "https://api.github.com/repos/fakerepo/doesnotexist/pulls/1234"
-        assert self.pr._url_review_comment == "https://api.github.com/repos/fakerepo/doesnotexist/pulls/1234/reviews"
-        assert self.pr._url_commits == "https://api.github.com/repos/fakerepo/doesnotexist/pulls/1234/commits"
-        assert self.pr._url_files == "https://api.github.com/repos/fakerepo/doesnotexist/pulls/1234/files"
-
-    def test_has_modified(self):
-        mock = MagicMock(
-            return_value=[
+    def test_has_modified(self, github_api):
+        github_api.add(
+            "GET",
+            "https://api.github.com/repos/fakerepo/doesnotexist/pulls/1234",
+            {"url": "https://api.github.com/repos/fakerepo/doesnotexist/pulls/1234", "number": 1234},
+        )
+        github_api.add(
+            "GET",
+            "https://api.github.com/repos/fakerepo/doesnotexist/pulls/1234/files",
+            [
                 {
                     "sha": "bbcd538c8e72b8c175046e27cc8f907076331401",
                     "filename": "file1.txt",
@@ -200,82 +188,100 @@ class TestPullRequestHandler:
                     "contents_url": "https://api.github.com/repos/blah/blah/contents/file1.txt?ref=hash",
                     "patch": "@@ -132,7 +132,7 @@ module Test @@ -1000,7 +1000,7 @@ module Test",
                 }
-            ]
+            ],
         )
-        with patch("baldrick.github.github_api.paged_github_json_request", mock):
-            assert self.pr.has_modified(["file1.txt"])
-            assert self.pr.has_modified(["file1.txt", "notthis.txt"])
-            assert not self.pr.has_modified(["notthis.txt"])
 
-    def test_set_check(self, app):
+        assert self.pr.has_modified(["file1.txt"])
+        assert self.pr.has_modified(["file1.txt", "notthis.txt"])
+        assert not self.pr.has_modified(["notthis.txt"])
+
+    def test_set_check(self, app, github_api):
         with patch("baldrick.github.github_api.PullRequestHandler.json", new_callable=PropertyMock) as json:
-            json.return_value = {"head": {"sha": 987654321}, "base": {"sha": 123456789}}
-            with patch("requests.post") as post:
-                self.pr.set_check("baldrick-1", "hello", name="test")
-                expected_json = {
-                    "external_id": "baldrick-1",
-                    "name": "test",
-                    "head_sha": 987654321,
-                    "status": "completed",
-                    "output": {"title": "hello", "summary": ""},
-                    "conclusion": "neutral",
-                }
-                post.assert_called_once_with(
-                    "https://api.github.com/repos/fakerepo/doesnotexist/check-runs",
-                    headers={"Accept": "application/vnd.github.antiope-preview+json"},
-                    json=expected_json,
-                )
+            json.return_value = {"head": {"sha": "987654321"}, "base": {"sha": "123456789"}}
 
-                post.reset_mock()
+            self.pr.set_check("baldrick-1", "hello", name="test")
+            expected_json = {
+                "external_id": "baldrick-1",
+                "name": "test",
+                "head_sha": "987654321",
+                "status": "completed",
+                "output": {"title": "hello", "summary": ""},
+                "conclusion": "neutral",
+            }
+            assert github_api.calls[-1] == {
+                "verb": "POST",
+                "url": "https://api.github.com/repos/fakerepo/doesnotexist/check-runs",
+                "parameters": None,
+                "input": expected_json,
+            }
 
-                self.pr.set_check(
-                    "baldrick-1", "hello", name="test", commit_hash="base", text="hello world", summary="why hello"
-                )
-                expected_json = {
-                    "external_id": "baldrick-1",
-                    "name": "test",
-                    "head_sha": 123456789,
-                    "status": "completed",
-                    "output": {"title": "hello", "summary": "why hello", "text": "hello world"},
-                    "conclusion": "neutral",
-                }
-                post.assert_called_once_with(
-                    "https://api.github.com/repos/fakerepo/doesnotexist/check-runs",
-                    headers={"Accept": "application/vnd.github.antiope-preview+json"},
-                    json=expected_json,
-                )
+            self.pr.set_check(
+                "baldrick-1", "hello", name="test", commit_hash="base", text="hello world", summary="why hello"
+            )
+            expected_json = {
+                "external_id": "baldrick-1",
+                "name": "test",
+                "head_sha": "123456789",
+                "status": "completed",
+                "output": {"title": "hello", "summary": "why hello", "text": "hello world"},
+                "conclusion": "neutral",
+            }
+            assert github_api.calls[-1] == {
+                "verb": "POST",
+                "url": "https://api.github.com/repos/fakerepo/doesnotexist/check-runs",
+                "parameters": None,
+                "input": expected_json,
+            }
 
-                post.reset_mock()
+            self.pr.set_check("baldrick-1", "hello", name="test", commit_hash="hello", details_url="this_is_a_url")
+            expected_json = {
+                "external_id": "baldrick-1",
+                "name": "test",
+                "head_sha": "hello",
+                "details_url": "this_is_a_url",
+                "status": "completed",
+                "output": {"title": "hello", "summary": ""},
+                "conclusion": "neutral",
+            }
+            assert github_api.calls[-1] == {
+                "verb": "POST",
+                "url": "https://api.github.com/repos/fakerepo/doesnotexist/check-runs",
+                "parameters": None,
+                "input": expected_json,
+            }
 
-                self.pr.set_check("baldrick-1", "hello", name="test", commit_hash="hello", details_url="this_is_a_url")
-                expected_json = {
-                    "external_id": "baldrick-1",
-                    "name": "test",
-                    "head_sha": "hello",
-                    "details_url": "this_is_a_url",
-                    "status": "completed",
-                    "output": {"title": "hello", "summary": ""},
-                    "conclusion": "neutral",
-                }
-                post.assert_called_once_with(
-                    "https://api.github.com/repos/fakerepo/doesnotexist/check-runs",
-                    headers={"Accept": "application/vnd.github.antiope-preview+json"},
-                    json=expected_json,
-                )
+            self.pr.set_check("baldrick-1", "hello", name="test", status="completed", conclusion=None)
+            expected_json = {
+                "external_id": "baldrick-1",
+                "name": "test",
+                "head_sha": "987654321",
+                "status": "completed",
+                "output": {"title": "hello", "summary": ""},
+                "conclusion": "neutral",
+            }
+            assert github_api.calls[-1] == {
+                "verb": "POST",
+                "url": "https://api.github.com/repos/fakerepo/doesnotexist/check-runs",
+                "parameters": None,
+                "input": expected_json,
+            }
 
-                post.reset_mock()
+    def test_update_check(self, app, github_api):
+        with patch("baldrick.github.github_api.PullRequestHandler.json", new_callable=PropertyMock) as json:
+            json.return_value = {"head": {"sha": "987654321"}, "base": {"sha": "123456789"}}
 
-                self.pr.set_check("baldrick-1", "hello", name="test", status="completed", conclusion=None)
-                expected_json = {
-                    "external_id": "baldrick-1",
-                    "name": "test",
-                    "head_sha": 987654321,
-                    "status": "completed",
-                    "output": {"title": "hello", "summary": ""},
-                    "conclusion": "neutral",
-                }
-                post.assert_called_once_with(
-                    "https://api.github.com/repos/fakerepo/doesnotexist/check-runs",
-                    headers={"Accept": "application/vnd.github.antiope-preview+json"},
-                    json=expected_json,
-                )
+            self.pr.set_check("baldrick-1", "hello", name="test", check_id=42)
+            expected_json = {
+                "external_id": "baldrick-1",
+                "name": "test",
+                "head_sha": "987654321",
+                "status": "completed",
+                "output": {"title": "hello", "summary": ""},
+                "conclusion": "neutral",
+            }
+            assert github_api.calls[-1] == {
+                "verb": "PATCH",
+                "url": "https://api.github.com/repos/fakerepo/doesnotexist/check-runs/42",
+                "parameters": None,
+                "input": expected_json,
+            }

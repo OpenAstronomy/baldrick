@@ -2,6 +2,9 @@ import json
 from copy import copy
 from unittest.mock import MagicMock, patch
 
+import pytest
+from github import Github
+
 from baldrick.github.github_api import FILE_CACHE
 from baldrick.plugins.github_pushes import PUSH_HANDLERS, push_handler
 
@@ -25,29 +28,22 @@ def teardown_module(module):
 
 
 class TestPushHandler:
-    def setup_method(self, method):
+    @pytest.fixture(autouse=True)
+    def setup(self, github_api):
 
         mock_handler.reset_mock()
 
-        self.requests_get_mock = patch("requests.get")
-        self.requests_get = self.requests_get_mock.start()
-        self.requests_get.return_value.ok = True
-        self.requests_get.return_value.json.return_value = {"default_branch": "main"}
+        github_api.add("GET", "https://api.github.com/repos/test-repo", {"default_branch": "main"})
 
-        self.get_file_contents_mock = patch("baldrick.github.github_api.GitHubHandler.get_file_contents")
-        self.get_installation_token_mock = patch("baldrick.github.github_auth.get_installation_token")
+        with (
+            patch("baldrick.github.github_api.get_github", lambda installation: Github(lazy=True)),
+            patch("baldrick.github.github_api.GitHubHandler.get_file_contents") as get_file_contents,
+        ):
+            self.get_file_contents = get_file_contents
 
-        self.get_file_contents = self.get_file_contents_mock.start()
-        self.get_installation_token = self.get_installation_token_mock.start()
+            FILE_CACHE.clear()
 
-        self.get_installation_token.return_value = "abcdefg"
-
-        FILE_CACHE.clear()
-
-    def teardown_method(self, method):
-        self.get_file_contents_mock.stop()
-        self.get_installation_token_mock.stop()
-        self.requests_get_mock.stop()
+            yield
 
     def send_event(self, client, github_webhook_headers, git_ref="refs/heads/main"):
 
