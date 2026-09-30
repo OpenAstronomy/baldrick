@@ -22,7 +22,14 @@ def close_if_not_in_org(pr_handler, repo_handler):
 
     logger.debug(f"No they are not, posting comment")
 
-    pr_handler.submit_comment("Your PR has been closed. But fear not, there is a way out!")
+    message = "Your PR has been closed. But fear not, there is a way out!"
+
+    previous_prs = [n for n in repo_handler.get_pull_requests_by(pr_handler.user) if n != int(pr_handler.number)]
+    if previous_prs:
+        pr_list = "\n".join(f"* #{n}" for n in previous_prs)
+        message += f"\n\nFor reference, here are your previous pull requests to this repository:\n\n{pr_list}"
+
+    pr_handler.submit_comment(message)
     pr_handler.close()
 
 

@@ -26,6 +26,18 @@ class TestRepoHandler:
         assert self.repo.get_issues("open", "Close?", exclude_pr=False) == [42, 55]
 
     @patch("requests.get")
+    def test_get_pull_requests_by(self, mock_get):
+        mock_response = Mock()
+        mock_response.json.return_value = {"items": [{"number": 3}, {"number": 17}]}
+        mock_get.return_value = mock_response
+
+        assert self.repo.get_pull_requests_by("contributor") == [3, 17]
+
+        args = mock_get.call_args[0]
+        assert args[1]["q"] == "repo:fakerepo/doesnotexist type:pr author:contributor"
+        assert args[1]["order"] == "asc"
+
+    @patch("requests.get")
     def test_get_all_labels(self, mock_get):
         mock_response = Mock()
         mock_response.json.return_value = [{"name": "io.fits"}, {"name": "Documentation"}]

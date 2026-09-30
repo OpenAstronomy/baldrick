@@ -38,3 +38,36 @@ def test_close_if_not_in_org(is_member):
     repo_handler.org_handler.is_member.assert_called_once_with("contributor")
     assert pr_handler.submit_comment.called is not is_member
     assert pr_handler.close.called is not is_member
+
+
+def test_close_message_lists_previous_pull_requests():
+    pr_handler = MagicMock()
+    pr_handler.user = "contributor"
+    pr_handler.number = 42
+
+    repo_handler = MagicMock()
+    repo_handler.org_handler.is_member.return_value = False
+    repo_handler.get_pull_requests_by.return_value = [3, 17, 42]
+
+    close_if_not_in_org(pr_handler, repo_handler)
+
+    repo_handler.get_pull_requests_by.assert_called_once_with("contributor")
+
+    message = pr_handler.submit_comment.call_args[0][0]
+    assert message.endswith("previous pull requests to this repository:\n\n* #3\n* #17")
+    assert "* #42" not in message
+
+
+def test_close_message_without_previous_pull_requests():
+    pr_handler = MagicMock()
+    pr_handler.user = "contributor"
+    pr_handler.number = 42
+
+    repo_handler = MagicMock()
+    repo_handler.org_handler.is_member.return_value = False
+    repo_handler.get_pull_requests_by.return_value = [42]
+
+    close_if_not_in_org(pr_handler, repo_handler)
+
+    message = pr_handler.submit_comment.call_args[0][0]
+    assert message == "Your PR has been closed. But fear not, there is a way out!"
