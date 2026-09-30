@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from cachetools import TTLCache
 from flask import current_app
 from github import Github, GithubException, UnknownObjectException
+from github.Commit import Commit
 from loguru import logger
 
 from baldrick.config import Config, loads
@@ -46,6 +47,12 @@ class GitHubHandler:
             self._cache["repo"] = self._github.get_repo(self.repo)
         return self._cache["repo"]
 
+    def _commit(self, commit_hash):
+        # Construct a lazy commit seeded with the sha, so that PyGithub
+        # methods that need the sha do not have to fetch the commit first.
+        url = f"{self._repo.url}/commits/{commit_hash}"
+        return Commit(self._github.requester, attributes={"url": url, "sha": commit_hash}, completed=False)
+
     @property
     def repo_info(self):
         """
@@ -74,7 +81,11 @@ class GitHubHandler:
 
         try:
             contents = self._repo.get_contents(path_to_file, ref=branch).decoded_content.decode()
-        except UnknownObjectException:
+        except UnknownObjectException as exc:
+            # A missing branch or ref also results in a 404, and should not
+            # be treated in the same way as a missing file
+            if exc.data.get("message") != "Not Found":
+                raise
             raise FileNotFoundError(f"{self.repo}:{path_to_file}@{branch}") from None
 
         FILE_CACHE[cache_key] = contents
@@ -171,12 +182,18 @@ class GitHubHandler:
             Link to bot comment that is relevant to this status, if given.
         """
 
-        kwargs = {"description": description, "context": context}
+        kwargs = {}
+
+        if description is not None:
+            kwargs["description"] = description
+
+        if context is not None:
+            kwargs["context"] = context
 
         if target_url is not None:
             kwargs["target_url"] = target_url
 
-        self._repo.get_commit(commit_hash).create_status(state, **kwargs)
+        self._commit(commit_hash).create_status(state, **kwargs)
 
     def list_statuses(self, commit_hash):
         """
@@ -348,7 +365,7 @@ class IssueHandler(GitHubHandler):
         if comment_id is None:
             comment = self._issue.create_comment(body)
         else:
-            comment = self._issue.get_comment(comment_id)
+            comment = self._issue.get_comment(int(comment_id))
             comment.edit(body)
 
         if return_url:
@@ -712,7 +729,7 @@ class PullRequestHandler(IssueHandler):
             The body of the review comment
         """
 
-        self._pull.create_review(body=body, event=decision.upper())
+        self._pull.create_review(commit=self._commit(self.head_sha), body=body, event=decision.upper())
 
     @property
     def last_commit_date(self):

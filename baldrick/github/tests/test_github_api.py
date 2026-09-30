@@ -1,6 +1,7 @@
 from unittest.mock import PropertyMock, patch
 
 import pytest
+from github import GithubException, UnknownObjectException
 
 from baldrick.config import loads
 from baldrick.github.github_api import FILE_CACHE, IssueHandler, PullRequestHandler, RepoHandler
@@ -34,6 +35,30 @@ class TestRepoHandler:
         )
 
         assert self.repo.get_all_labels() == ["io.fits", "Documentation"]
+
+    def test_missing_ref_not_treated_as_missing_file(self, github_api):
+        FILE_CACHE.clear()
+        url = "https://api.github.com/repos/fakerepo/doesnotexist/contents/pyproject.toml"
+
+        github_api.add("GET", url, UnknownObjectException(404, {"message": "No commit found for the ref nope"}, None))
+        with pytest.raises(GithubException):
+            self.repo.get_file_contents("pyproject.toml", branch="nope")
+
+        github_api.add("GET", url, UnknownObjectException(404, {"message": "Not Found"}, None))
+        with pytest.raises(FileNotFoundError):
+            self.repo.get_file_contents("pyproject.toml", branch="nope")
+
+    def test_set_status_without_description(self, github_api):
+        self.repo.set_status("pending", None, None, "abc123", target_url="https://example.com")
+
+        assert github_api.calls == [
+            {
+                "verb": "POST",
+                "url": "https://api.github.com/repos/fakerepo/doesnotexist/statuses/abc123",
+                "parameters": None,
+                "input": {"state": "pending", "target_url": "https://example.com"},
+            }
+        ]
 
 
 TEST_CONFIG = """
@@ -161,6 +186,22 @@ class TestIssueHandler:
                 missing_labels = self.issue._get_missing_labels(["io.fits", "closed-by-bot", "foo"])
                 assert missing_labels == ["closed-by-bot"]
 
+    def test_submit_comment_replace_with_string_id(self, github_api):
+        github_api.add(
+            "GET",
+            "https://api.github.com/repos/fakerepo/doesnotexist/issues/1234",
+            {"url": "https://api.github.com/repos/fakerepo/doesnotexist/issues/1234", "number": 1234},
+        )
+
+        self.issue.submit_comment("hello", comment_id="42")
+
+        assert github_api.calls[-1] == {
+            "verb": "PATCH",
+            "url": "https://api.github.com/repos/fakerepo/doesnotexist/issues/comments/42",
+            "parameters": None,
+            "input": {"body": "hello"},
+        }
+
 
 class TestPullRequestHandler:
     def setup_class(self):
@@ -265,6 +306,24 @@ class TestPullRequestHandler:
                 "parameters": None,
                 "input": expected_json,
             }
+
+    def test_submit_review_pins_commit(self, github_api):
+        github_api.add(
+            "GET",
+            "https://api.github.com/repos/fakerepo/doesnotexist/pulls/1234",
+            {"url": "https://api.github.com/repos/fakerepo/doesnotexist/pulls/1234", "number": 1234},
+        )
+
+        with patch("baldrick.github.github_api.PullRequestHandler.json", new_callable=PropertyMock) as json:
+            json.return_value = {"head": {"sha": "987654321"}}
+            self.pr.submit_review("approve", "Looks good")
+
+        assert github_api.calls[-1] == {
+            "verb": "POST",
+            "url": "https://api.github.com/repos/fakerepo/doesnotexist/pulls/1234/reviews",
+            "parameters": None,
+            "input": {"body": "Looks good", "event": "APPROVE", "commit_id": "987654321", "comments": []},
+        }
 
     def test_update_check(self, app, github_api):
         with patch("baldrick.github.github_api.PullRequestHandler.json", new_callable=PropertyMock) as json:

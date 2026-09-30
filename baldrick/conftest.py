@@ -65,6 +65,8 @@ class FakeGitHubAPI:
         self.calls.append({"verb": verb, "url": url, "parameters": parameters, "input": input})
         if (verb, url) in self.responses:
             data = self.responses[(verb, url)]
+            if isinstance(data, Exception):
+                raise data
             if callable(data):
                 data = data()
         elif verb == "GET":
