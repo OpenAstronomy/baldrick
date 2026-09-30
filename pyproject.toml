@@ -17,10 +17,9 @@ readme = "README.rst"
 requires-python = ">=3.13"
 dependencies = [
     "flask",
-    "pyjwt",
+    "pygithub",
     "requests",
     "python-dateutil",
-    "cryptography",
     "humanize",
     "towncrier==25.8.0",  # We hard-pin towncrier because we use hidden functions to parse the config
     "loguru",
