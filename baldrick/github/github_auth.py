@@ -38,7 +38,10 @@ def get_integration():
             )
 
         auth = Auth.AppAuth(os.environ["GITHUB_APP_INTEGRATION_ID"], os.environ["GITHUB_APP_PRIVATE_KEY"])
-        integration = GithubIntegration(auth=auth)
+
+        # Use lazy clients so that constructing e.g. a Repository object does
+        # not make an API call until actual data is needed from it.
+        integration = GithubIntegration(auth=auth, lazy=True)
 
     return integration
 
