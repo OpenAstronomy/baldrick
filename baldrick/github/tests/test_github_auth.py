@@ -1,124 +1,118 @@
+import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from baldrick.github import github_auth
 from baldrick.github.github_auth import (
     get_app_name,
     get_installation_token,
-    get_json_web_token,
+    get_integration,
     github_request_headers,
     repo_to_installation_id,
     repo_to_installation_id_mapping,
 )
 
 
-def test_get_json_web_token(app):
+@pytest.fixture(autouse=True)
+def clear_auth_caches():
+    github_auth.integration = None
+    github_auth.github_clients.clear()
+    github_auth.installation_tokens.clear()
+
+
+def make_token(token, minutes=10):
+    access_token = MagicMock()
+    access_token.token = token
+    access_token.expires_at = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=minutes)
+    return access_token
+
+
+def test_get_integration(app):
 
     with app.app_context():
-        # The first time we run this we should get a token
-        token1 = get_json_web_token()
+        # The integration should be able to mint an app JWT from the private
+        # key, and the same integration should be returned on the second call.
+        integration = get_integration()
 
-        # If we run it again immediately we should get the same token back
-        token2 = get_json_web_token()
-
-    assert token1 == token2
-
-
-TOKEN_RESPONSE_VALID = {"token": "v1.1f699f1069f60xxx", "expires_at": "2016-07-11T22:14:10Z"}
+    assert isinstance(integration.auth.create_jwt(), str)
+    assert get_integration() is integration
 
 
-def test_get_installation_token_valid():
+def test_get_installation_token():
 
-    with patch("requests.post") as post:
-        post.return_value.ok = True
-        post.return_value.json.return_value = TOKEN_RESPONSE_VALID
+    with patch("baldrick.github.github_auth.get_integration") as integration:
+        integration.return_value.get_access_token.return_value = make_token("v1.1f699f1069f60xxx")
         token = get_installation_token(12345)
 
     assert token == "v1.1f699f1069f60xxx"
 
 
-TOKEN_RESPONSE_INVALID_WITH_MESSAGE = {
-    "message": "This is the error message",
-    "documentation_url": "https://developer.github.com/v3",
-}
+def test_get_installation_token_cached():
+
+    with patch("baldrick.github.github_auth.get_integration") as integration:
+        integration.return_value.get_access_token.return_value = make_token("token1")
+        assert get_installation_token(12345) == "token1"
+
+        # The first token is still valid, so it should be reused
+        integration.return_value.get_access_token.return_value = make_token("token2")
+        assert get_installation_token(12345) == "token1"
 
 
-def test_get_installation_token_invalid_with_message():
+def test_get_installation_token_expired():
 
-    with patch("requests.post") as post:
-        post.return_value.ok = False
-        post.return_value.status_code = 400
-        post.return_value.json.return_value = TOKEN_RESPONSE_INVALID_WITH_MESSAGE
-        with pytest.raises(Exception, match="400 This is the error message") as exc:
-            get_installation_token(12345)
-        assert exc.value.args[0] == f"{post.return_value.status_code} {TOKEN_RESPONSE_INVALID_WITH_MESSAGE['message']}"
+    with patch("baldrick.github.github_auth.get_integration") as integration:
+        integration.return_value.get_access_token.return_value = make_token("token1", minutes=0)
+        assert get_installation_token(12345) == "token1"
 
-
-TOKEN_RESPONSE_INVALID_WITHOUT_MESSAGE = {}
-
-
-def test_get_installation_token_invalid_without_message():
-
-    with patch("requests.post") as post:
-        post.return_value.ok = False
-        post.return_value.json.return_value = TOKEN_RESPONSE_INVALID_WITHOUT_MESSAGE
-        with pytest.raises(Exception, match="An error occurred when requesting token") as exc:
-            get_installation_token(12345)
-        assert exc.value.args[0] == "An error occurred when requesting token"
+        # The first token is about to expire, so a new one should be requested
+        integration.return_value.get_access_token.return_value = make_token("token2")
+        assert get_installation_token(12345) == "token2"
 
 
 def test_github_request_headers():
 
-    with patch("requests.post") as post:
-        post.return_value.ok = True
-        post.return_value.json.return_value = TOKEN_RESPONSE_VALID
+    with patch("baldrick.github.github_auth.get_integration") as integration:
+        integration.return_value.get_access_token.return_value = make_token("v1.1f699f1069f60xxx")
         headers = github_request_headers(12345)
 
     assert headers["Authorization"] == "token v1.1f699f1069f60xxx"
 
 
-def requests_patch(url, headers=None):
-    req = MagicMock()
-    req.status_code = 200
-    if url == "https://api.github.com/app/installations":
-        req.json.return_value = [{"id": 3331}]
-    elif url == "https://api.github.com/installation/repositories":
-        req.json.return_value = {"repositories": [{"full_name": "test1"}, {"full_name": "test2"}]}
-    return req
+def make_installation(installation_id, repositories):
+    installation = MagicMock()
+    installation.id = installation_id
+    installation.get_repos.return_value = []
+    for full_name in repositories:
+        repo = MagicMock()
+        repo.full_name = full_name
+        installation.get_repos.return_value.append(repo)
+    return installation
 
 
-def test_repo_to_installation_id_mapping(app):
+def test_repo_to_installation_id_mapping():
 
-    with app.app_context():
-        with patch("requests.post") as post:
-            post.return_value.ok = True
-            post.return_value.json.return_value = TOKEN_RESPONSE_VALID
-            with patch("requests.get", requests_patch):
-                mapping = repo_to_installation_id_mapping()
+    with patch("baldrick.github.github_auth.get_integration") as integration:
+        integration.return_value.get_installations.return_value = [make_installation(3331, ["test1", "test2"])]
+        mapping = repo_to_installation_id_mapping()
 
     assert mapping == {"test1": 3331, "test2": 3331}
 
 
-def test_repo_to_installation_id(app):
+def test_repo_to_installation_id():
 
-    with app.app_context():
-        with patch("requests.post") as post:
-            post.return_value.ok = True
-            post.return_value.json.return_value = TOKEN_RESPONSE_VALID
-            with patch("requests.get", requests_patch):
-                assert repo_to_installation_id("test1") == 3331
+    with patch("baldrick.github.github_auth.get_integration") as integration:
+        integration.return_value.get_installations.return_value = [make_installation(3331, ["test1", "test2"])]
 
-                with pytest.raises(ValueError, match="Repository not recognized") as exc:
-                    repo_to_installation_id("test3")
-                assert exc.value.args[0] == "Repository not recognized - should be one of:\n\n  - test1\n  - test2"
+        assert repo_to_installation_id("test1") == 3331
+
+        with pytest.raises(ValueError, match="Repository not recognized") as exc:
+            repo_to_installation_id("test3")
+        assert exc.value.args[0] == "Repository not recognized - should be one of:\n\n  - test1\n  - test2"
 
 
-def test_get_app_name(app):
+def test_get_app_name():
 
-    with app.app_context():
-        with patch("requests.get") as post:
-            post.return_value.ok = True
-            post.return_value.json.return_value = {"name": "testbot"}
-            name = get_app_name()
-
-    assert name == "testbot"
+    with patch("baldrick.github.github_auth.get_integration") as integration:
+        integration.return_value.get_app.return_value.name = "testbot"
+        assert get_app_name() == "testbot"
