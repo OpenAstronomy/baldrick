@@ -1,13 +1,13 @@
 import os
 
+from cachetools import LRUCache
 from github import Auth, GithubIntegration
 
 # These are cached at the module level so that clients are reused between
 # webhook deliveries. PyGithub refreshes the installation tokens used by the
 # clients automatically when they are close to expiring.
-# TODO: need to change global variable to use redis
 integration = None
-github_clients = {}
+github_clients = LRUCache(maxsize=128)
 
 
 def get_integration():

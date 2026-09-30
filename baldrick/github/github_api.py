@@ -2,6 +2,7 @@
 
 import os
 from datetime import UTC, datetime
+from functools import cached_property
 
 from cachetools import TTLCache
 from flask import current_app
@@ -17,6 +18,12 @@ __all__ = ["GitHubHandler", "IssueHandler", "PullRequestHandler", "RepoHandler"]
 FILE_CACHE = TTLCache(maxsize=512, ttl=float(os.environ.get("BALDRICK_FILE_CACHE_TTL", 60)))
 
 
+def _raw_data_no_fetch(github_object):
+    # Accessing .raw_data on an object from a paginated listing triggers a
+    # separate API call per item, so read the raw payload directly.
+    return github_object._rawData
+
+
 class GitHubHandler:
     """
     A base class for things that represent things the github app can operate on.
@@ -25,27 +32,18 @@ class GitHubHandler:
     def __init__(self, repo, installation=None):
         self.repo = repo
         self.installation = installation
-        self._cache = {}
 
-    def invalidate_cache(self):
-        self._cache.clear()
-
-    @property
+    @cached_property
     def _github(self):
-        if "github" not in self._cache:
-            if self.installation is None:
-                self._cache["github"] = Github(lazy=True)
-            else:
-                self._cache["github"] = get_github(self.installation)
-        return self._cache["github"]
+        if self.installation is None:
+            return Github(lazy=True)
+        return get_github(self.installation)
 
-    @property
+    @cached_property
     def _repo(self):
         # This is a lazy object, so no API call is made until an actual
         # request is needed.
-        if "repo" not in self._cache:
-            self._cache["repo"] = self._github.get_repo(self.repo)
-        return self._cache["repo"]
+        return self._github.get_repo(self.repo)
 
     def _commit(self, commit_hash):
         # Construct a lazy commit seeded with the sha, so that PyGithub
@@ -287,9 +285,7 @@ class RepoHandler(GitHubHandler):
         """
         issues = self._repo.get_issues(state=state, labels=labels.split(","))
         if exclude_pr:
-            # Use ._rawData to check for the key, as .raw_data would trigger
-            # a separate API call for each issue in the list
-            issue_list = [issue.number for issue in issues if "pull_request" not in issue._rawData]
+            issue_list = [issue.number for issue in issues if "pull_request" not in _raw_data_no_fetch(issue)]
         else:
             issue_list = [issue.number for issue in issues]
         return issue_list
@@ -304,11 +300,9 @@ class IssueHandler(GitHubHandler):
         self.number = number
         super().__init__(repo, installation=installation)
 
-    @property
+    @cached_property
     def _issue(self):
-        if "issue" not in self._cache:
-            self._cache["issue"] = self._repo.get_issue(int(self.number))
-        return self._cache["issue"]
+        return self._repo.get_issue(int(self.number))
 
     @property
     def json(self):
@@ -333,7 +327,7 @@ class IssueHandler(GitHubHandler):
         last_labeled = None
 
         for event in self._issue.get_timeline():
-            if event.event in ("labeled", "unlabeled") and event._rawData["label"]["name"] == label:
+            if event.event in ("labeled", "unlabeled") and event.raw_data["label"]["name"] == label:
                 if event.event == "labeled":
                     last_labeled = event.created_at
                 else:
@@ -378,21 +372,23 @@ class IssueHandler(GitHubHandler):
             def filter_keep(message):
                 return True
 
-        return [comment for comment in self._issue.get_comments() if filter_keep(comment.body)]
+        return [
+            comment
+            for comment in self._issue.get_comments()
+            if comment.user.login == login and filter_keep(comment.body)
+        ]
 
     def find_comments(self, login, filter_keep=None):
         """
         Find comments by a given user.
         """
-        comments = self._find_comments(login, filter_keep=filter_keep)
-        return [comment.id for comment in comments if comment.user.login == login]
+        return [comment.id for comment in self._find_comments(login, filter_keep=filter_keep)]
 
     def last_comment_date(self, login, filter_keep=None):
         """
         Find the last date on which a comment was made.
         """
-        comments = self._find_comments(login, filter_keep=filter_keep)
-        dates = [comment.created_at for comment in comments if comment.user.login == login]
+        dates = [comment.created_at for comment in self._find_comments(login, filter_keep=filter_keep)]
         if len(dates) > 0:
             return max(dates).timestamp()
         return None
@@ -412,21 +408,8 @@ class IssueHandler(GitHubHandler):
         if len(missing_labels) == 0:
             return None
 
-        # Need repo handler (default branch)
-        if "repohandler" not in self._cache:
-            repo = RepoHandler(self.repo, installation=self.installation)
-            self._cache["repohandler"] = repo
-        else:
-            repo = self._cache["repohandler"]
-
-        # If label does not already exist in the repo, give a warning
-        repo_labels = repo.get_all_labels()
-        nonexistent_labels = missing_labels.difference(repo_labels)
-        if len(nonexistent_labels) > 0:
-            pass
-
-        # Return labels to be set
-        missing_labels = missing_labels.intersection(repo_labels)
+        # Only return labels that actually exist in the repo
+        missing_labels = missing_labels.intersection(label.name for label in self._repo.get_labels())
         if len(missing_labels) > 0:
             return list(missing_labels)
         return None
@@ -453,15 +436,20 @@ class IssueHandler(GitHubHandler):
 
 
 class PullRequestHandler(IssueHandler):
-    @property
+    @cached_property
     def _pull(self):
-        if "pull" not in self._cache:
-            self._cache["pull"] = self._repo.get_pull(int(self.number))
-        return self._cache["pull"]
+        return self._repo.get_pull(int(self.number))
 
     @property
     def json(self):
         return self._pull.raw_data
+
+    def _resolve_commit_hash(self, commit_hash):
+        if commit_hash == "head":
+            return self.head_sha
+        if commit_hash == "base":
+            return self.base_sha
+        return commit_hash
 
     # https://developer.github.com/v3/checks/runs/#create-a-check-run
     def set_check(
@@ -532,10 +520,7 @@ class PullRequestHandler(IssueHandler):
             it should be a `datetime.datetime.`
 
         """
-        if commit_hash == "head":
-            commit_hash = self.head_sha
-        elif commit_hash == "base":
-            commit_hash = self.base_sha
+        commit_hash = self._resolve_commit_hash(commit_hash)
 
         if completed_at is True:
             completed_at = datetime.now(UTC)
@@ -599,11 +584,7 @@ class PullRequestHandler(IssueHandler):
             Link to bot comment that is relevant to this status, if given.
 
         """
-        if commit_hash == "head":
-            commit_hash = self.head_sha
-        elif commit_hash == "base":
-            commit_hash = self.base_sha
-        super().set_status(state, description, context, commit_hash, target_url)
+        super().set_status(state, description, context, self._resolve_commit_hash(commit_hash), target_url)
 
     def list_statuses(self, commit_hash="head"):
         """
@@ -614,11 +595,7 @@ class PullRequestHandler(IssueHandler):
         commit_hash : str, optional
             The commit hash to set the status on. Defaults to "head" can also be "base".
         """
-        if commit_hash == "head":
-            commit_hash = self.head_sha
-        elif commit_hash == "base":
-            commit_hash = self.base_sha
-        return super().list_statuses(commit_hash)
+        return super().list_statuses(self._resolve_commit_hash(commit_hash))
 
     def list_checks(self, commit_hash="head", only_ours=True):
         """
@@ -631,11 +608,7 @@ class PullRequestHandler(IssueHandler):
         only_ours : `bool`, optional
             Only return checks which were posted by this GitHub app.
         """
-        if commit_hash == "head":
-            commit_hash = self.head_sha
-        elif commit_hash == "base":
-            commit_hash = self.base_sha
-        return super().list_checks(commit_hash, only_ours=only_ours)
+        return super().list_checks(self._resolve_commit_hash(commit_hash), only_ours=only_ours)
 
     @property
     def user(self):

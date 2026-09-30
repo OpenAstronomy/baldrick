@@ -181,27 +181,31 @@ class TestIssueHandler:
             mock_json.return_value = {"state": state}
             assert self.issue.is_closed is answer
 
-    def test_missing_labels(self):
+    def test_missing_labels(self, github_api):
+        github_api.add(
+            "GET",
+            "https://api.github.com/repos/fakerepo/doesnotexist/labels",
+            [{"name": "io.fits"}, {"name": "closed-by-bot"}],
+        )
+
         with patch("baldrick.github.github_api.IssueHandler.labels", new_callable=PropertyMock) as mock_issue_labels:
             mock_issue_labels.return_value = ["io.fits"]
-            with patch("baldrick.github.github_api.RepoHandler.get_all_labels") as mock_repo_labels:
-                mock_repo_labels.return_value = ["io.fits", "closed-by-bot"]
 
-                # closed-by-bot label will be added to issue in POST
-                missing_labels = self.issue._get_missing_labels("closed-by-bot")
-                assert missing_labels == ["closed-by-bot"]
+            # closed-by-bot label will be added to issue in POST
+            missing_labels = self.issue._get_missing_labels("closed-by-bot")
+            assert missing_labels == ["closed-by-bot"]
 
-                # Desired labels do not exist in repo
-                missing_labels = self.issue._get_missing_labels(["dummy", "foo"])
-                assert missing_labels is None
+            # Desired labels do not exist in repo
+            missing_labels = self.issue._get_missing_labels(["dummy", "foo"])
+            assert missing_labels is None
 
-                # Desired label already set on issue
-                missing_labels = self.issue._get_missing_labels(["io.fits"])
-                assert missing_labels is None
+            # Desired label already set on issue
+            missing_labels = self.issue._get_missing_labels(["io.fits"])
+            assert missing_labels is None
 
-                # A mix
-                missing_labels = self.issue._get_missing_labels(["io.fits", "closed-by-bot", "foo"])
-                assert missing_labels == ["closed-by-bot"]
+            # A mix
+            missing_labels = self.issue._get_missing_labels(["io.fits", "closed-by-bot", "foo"])
+            assert missing_labels == ["closed-by-bot"]
 
     def test_submit_comment_replace_with_string_id(self, github_api):
         github_api.add(
