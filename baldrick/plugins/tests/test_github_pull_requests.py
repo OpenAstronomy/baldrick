@@ -37,7 +37,7 @@ class TestPullRequestHandler:
         self.requests_get_mock = patch("requests.get", self._requests_get)
         self.requests_post_mock = patch("requests.post")
         self.requests_patch_mock = patch("requests.patch")
-        self.get_file_contents_mock = patch("baldrick.github.github_api.GitHubHandler.get_file_contents")
+        self.get_file_contents_mock = patch("baldrick.github.github_api.RepoHandler.get_file_contents")
         self.get_installation_token_mock = patch("baldrick.github.github_auth.get_installation_token")
         self.labels_mock = patch("baldrick.github.github_api.PullRequestHandler.labels", new_callable=PropertyMock)
 
