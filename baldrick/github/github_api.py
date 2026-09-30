@@ -350,6 +350,17 @@ class RepoHandler(GitHubHandler):
         result = paged_github_json_request(url, headers=self._headers)
         return [label["name"] for label in result]
 
+    def is_maintainer(self, user):
+        """
+        Whether the user has write access or higher on the repository.
+        """
+        url = f"{HOST}/repos/{self.repo}/collaborators/{user}/permission"
+        response = requests.get(url, headers=self._headers)
+        if response.status_code == 404:
+            return False
+        response.raise_for_status()
+        return response.json()["permission"] in ("admin", "write")
+
 
 class IssueHandler(RepoHandler):
     def __init__(self, repo, number, installation=None):
@@ -531,6 +542,22 @@ class IssueHandler(RepoHandler):
         if self.json["state"] == "closed":
             answer = True
         return answer
+
+    @property
+    def _url_issue_events(self):
+        return f"{self._url_issue}/events"
+
+    @property
+    def last_opened_by(self):
+        """
+        Login of the user who most recently opened or reopened this
+        issue/PR. Falls back to the original author if never reopened.
+        """
+        events = paged_github_json_request(self._url_issue_events, headers=self._headers)
+        reopens = [e for e in events if e["event"] == "reopened" and e.get("actor")]
+        if reopens:
+            return reopens[-1]["actor"]["login"]
+        return self.json["user"]["login"]
 
 
 class PullRequestHandler(IssueHandler):
