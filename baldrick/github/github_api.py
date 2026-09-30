@@ -59,7 +59,7 @@ class GitHubHandler:
         The return of GET /repos/{org}/{repo}
         """
         try:
-            return self._github.get_repo(self.repo).raw_data
+            return self._repo.raw_data
         except GithubException as exc:
             raise ValueError(f"Unable to fetch repo information {exc.data}") from exc
 
@@ -206,7 +206,7 @@ class GitHubHandler:
         """
 
         statuses = {}
-        for status in self._repo.get_commit(commit_hash).get_statuses():
+        for status in self._commit(commit_hash).get_combined_status().statuses:
             statuses[status.context] = {
                 "state": status.state,
                 "description": status.description,
@@ -229,7 +229,7 @@ class GitHubHandler:
         """
 
         checks = {}
-        for check in self._repo.get_commit(commit_hash).get_check_runs():
+        for check in self._commit(commit_hash).get_check_runs():
             # Skip checks from other apps if specified.
             if only_ours and check.app.id != current_app.integration_id:
                 continue

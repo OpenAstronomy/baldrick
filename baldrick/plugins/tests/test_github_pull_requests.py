@@ -59,11 +59,6 @@ class TestPullRequestHandler:
         )
         github_api.add("GET", "https://api.github.com/repos/test-repo/issues/1234/comments", lambda: self.pr_comments)
         github_api.add(
-            "GET",
-            "https://api.github.com/repos/test-repo/commits/abc464aa",
-            {"sha": "abc464aa", "url": "https://api.github.com/repos/test-repo/commits/abc464aa"},
-        )
-        github_api.add(
             "GET", "https://api.github.com/repos/test-repo/commits/abc464aa/check-runs", lambda: self.existing_checks
         )
 

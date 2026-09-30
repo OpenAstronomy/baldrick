@@ -48,6 +48,23 @@ class TestRepoHandler:
         with pytest.raises(FileNotFoundError):
             self.repo.get_file_contents("pyproject.toml", branch="nope")
 
+    def test_list_statuses(self, github_api):
+        github_api.add(
+            "GET",
+            "https://api.github.com/repos/fakerepo/doesnotexist/commits/abc123/status",
+            {
+                "statuses": [
+                    {"context": "ci/docs", "state": "success", "description": "Done", "target_url": "https://x"},
+                    {"context": "ci/tests", "state": "pending", "description": None, "target_url": None},
+                ]
+            },
+        )
+
+        assert self.repo.list_statuses("abc123") == {
+            "ci/docs": {"state": "success", "description": "Done", "target_url": "https://x"},
+            "ci/tests": {"state": "pending", "description": None, "target_url": None},
+        }
+
     def test_set_status_without_description(self, github_api):
         self.repo.set_status("pending", None, None, "abc123", target_url="https://example.com")
 
