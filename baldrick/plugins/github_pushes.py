@@ -1,3 +1,5 @@
+from loguru import logger
+
 from baldrick.blueprints.github import github_webhook_handler
 
 __all__ = ["push_handler"]
@@ -26,7 +28,8 @@ def handle_pushes(repo_handler, payload, headers):
     event = headers["X-GitHub-Event"]
 
     if event not in ("push"):
-        return "Not a push event"
+        logger.debug("Not a push event")
+        return
 
     # Get the ref for the push - could be e.g. a branch or a tag
     git_ref = payload["ref"]
@@ -34,9 +37,10 @@ def handle_pushes(repo_handler, payload, headers):
     # Get configuration for this plugin
     push_config = repo_handler.get_config_value("pushes", {})
     if not push_config.get("enabled", False):
-        return "Skipping commit handlers, disabled in configuration file"
+        logger.debug("Skipping commit handlers, disabled in configuration file")
+        return
 
     for function in PUSH_HANDLERS:
         function(repo_handler, git_ref)
 
-    return "Finished handling push event"
+    logger.debug("Finished handling push event")
