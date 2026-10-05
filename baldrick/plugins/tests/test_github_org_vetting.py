@@ -40,34 +40,62 @@ def test_close_if_not_in_org(is_member):
     assert pr_handler.close.called is not is_member
 
 
-def test_close_message_lists_previous_pull_requests():
+def make_handlers(previous_prs, counts=(0, 0, 0, 0)):
     pr_handler = MagicMock()
     pr_handler.user = "contributor"
     pr_handler.number = 42
 
     repo_handler = MagicMock()
     repo_handler.org_handler.is_member.return_value = False
-    repo_handler.get_pull_requests_by.return_value = [3, 17, 42]
+    repo_handler.get_pull_requests_by.return_value = previous_prs
+    repo_handler.count_opened_by.side_effect = list(counts)
+
+    return pr_handler, repo_handler
+
+
+def test_close_message_lists_previous_pull_requests():
+    pr_handler, repo_handler = make_handlers([3, 17, 42])
 
     close_if_not_in_org(pr_handler, repo_handler)
 
     repo_handler.get_pull_requests_by.assert_called_once_with("contributor")
 
     message = pr_handler.submit_comment.call_args[0][0]
-    assert message.endswith("previous pull requests to this repository:\n\n* #3\n* #17")
+    assert (
+        "This user has made other pull requests to this repository prior to this one, here is a full list:\n\n* #3\n* #17\n"
+        in message
+    )
     assert "* #42" not in message
 
 
 def test_close_message_without_previous_pull_requests():
-    pr_handler = MagicMock()
-    pr_handler.user = "contributor"
-    pr_handler.number = 42
-
-    repo_handler = MagicMock()
-    repo_handler.org_handler.is_member.return_value = False
-    repo_handler.get_pull_requests_by.return_value = [42]
+    pr_handler, repo_handler = make_handlers([42])
 
     close_if_not_in_org(pr_handler, repo_handler)
 
     message = pr_handler.submit_comment.call_args[0][0]
-    assert message == "Your PR has been closed. But fear not, there is a way out!"
+    assert "This user has not made any other pull requests to this repository prior to this one." in message
+    assert "here is a full list" not in message
+
+
+def test_close_message_activity_table():
+    # count_opened_by is called for (pr, day), (issue, day), (pr, week), (issue, week)
+    pr_handler, repo_handler = make_handlers([42], counts=(3, 1, 12, 5))
+
+    close_if_not_in_org(pr_handler, repo_handler)
+
+    kinds = [call.args[1] for call in repo_handler.count_opened_by.call_args_list]
+    assert kinds == ["pr", "issue", "pr", "issue"]
+    for call in repo_handler.count_opened_by.call_args_list:
+        assert call.args[0] == "contributor"
+    day_since, week_since = (
+        repo_handler.count_opened_by.call_args_list[0].args[2],
+        repo_handler.count_opened_by.call_args_list[2].args[2],
+    )
+    assert (week_since - day_since).days == -6
+
+    message = pr_handler.submit_comment.call_args[0][0]
+    assert "| Pull requests opened | 3 | 12 |" in message
+    assert "| Issues opened        | 1 | 5 |" in message
+    assert message.startswith("Hi 👋 and thank you for your contribution!")
+    assert pr_handler.close.called
