@@ -23,6 +23,10 @@
 
 * Updated the Circle CI plugin to v2 webhooks. [#119]
 
+* Configuration is now also read from the ``pyproject.toml`` file in the
+  owner's ``.github`` repository, with settings in individual repositories
+  overriding it. [#130]
+
 * Always use GitHub default branch not hard coded ``master`` [#116]
 
 * Refresh package for Python 3.14 and fix some bugs with GitHub auth [#120]
