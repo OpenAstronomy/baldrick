@@ -138,10 +138,49 @@ class RepoHandler(GitHubHandler):
         FILE_CACHE[cache_key] = contents
         return contents
 
+    def get_org_config(self, path_to_file="pyproject.toml"):
+        """
+        Load configuration shared by all repositories of the owner.
+
+        This is read from the ``.github`` repository of the organization (or
+        user) that owns this repository, following the same ``[tool.<bot>]``
+        layout as the per-repository configuration. The bot needs to be
+        installed on the ``.github`` repository for this to work; if it is not,
+        or the repository or file does not exist, an empty configuration is
+        returned.
+
+        Parameters
+        ----------
+        path_to_file : `str`
+            Path to the ``pyproject.toml`` file in the ``.github`` repository.
+
+        Returns
+        -------
+        cfg : `baldrick.config.Config`
+            Configuration parameters.
+        """
+        owner = self.repo.split("/")[0]
+        org_repo = RepoHandler(f"{owner}/.github", installation=self.installation)
+
+        try:
+            file_content = org_repo.get_file_contents(path_to_file)
+        except (FileNotFoundError, ValueError):
+            logger.debug(f"No {path_to_file} found in {org_repo.repo}.")
+            return Config()
+
+        org_config = loads(file_content, tool=current_app.bot_username) or Config()
+        logger.trace(f"Got the following config from {org_repo.repo}: {org_config}")
+        return org_config
+
     def get_repo_config(self, branch=None, path_to_file="pyproject.toml"):
         """
         Load configuration from the repository.
 
+        The configuration is built up in layers, each overriding individual
+        settings from the previous one: the global app configuration, the
+        owner's ``.github`` repository configuration (see `get_org_config`),
+        the fallback configuration in the repository, and finally the
+        repository's own configuration.
 
         Parameters
         ----------
@@ -160,6 +199,7 @@ class RepoHandler(GitHubHandler):
         """
         branch = branch or self.default_branch
         app_config = current_app.conf.copy()
+        org_config = self.get_org_config(path_to_file=path_to_file)
         fallback_config = Config()
         repo_config = Config()
 
@@ -182,7 +222,8 @@ class RepoHandler(GitHubHandler):
                 if len(fallback_config) == 0:
                     logger.trace(f"Didn't find a fallback config in {self.repo}@{branch}.")
 
-        # Priority is 1) repo_config 2) fallback_config 3) app_config
+        # Priority is 1) repo_config 2) fallback_config 3) org_config 4) app_config
+        app_config.update_from_config(org_config)
         app_config.update_from_config(fallback_config)
         app_config.update_from_config(repo_config)
 

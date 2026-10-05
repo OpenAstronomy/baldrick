@@ -5,6 +5,33 @@ This page lists the available plugins. Note that to enable a plugin, your bot
 app should include an ``enabled = true`` entry in the ``pyproject.toml`` file
 under the section for the specific plugin.
 
+Organization-wide configuration
+-------------------------------
+
+Configuration can also be set for all repositories belonging to an organization
+(or user) by adding a ``pyproject.toml`` file, with the same ``tool.<your-bot-name>``
+sections, to the root of the organization's ``.github`` repository. The bot
+needs to be installed on the ``.github`` repository for this file to be read.
+
+Settings are combined from the following sources, each overriding individual
+settings from the previous one:
+
+1. The ``pyproject.toml`` file of the bot app itself.
+2. The ``pyproject.toml`` file in the organization's ``.github`` repository.
+3. The ``pyproject.toml`` file in the repository.
+
+Since settings are overridden individually, a repository only needs to list the
+settings it wants to change. For example, a plugin can be enabled for a whole
+organization with the following in the ``.github`` repository::
+
+    [ tool.<your-bot-name>.org_vetting ]
+    enabled = true
+
+and a single repository can then opt out with::
+
+    [ tool.<your-bot-name>.org_vetting ]
+    enabled = false
+
 CircleCI Artifacts
 ------------------
 

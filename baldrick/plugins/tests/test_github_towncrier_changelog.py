@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
+from baldrick.config import Config
 from baldrick.github.github_api import FILE_CACHE, PullRequestHandler, RepoHandler
 from baldrick.plugins.github_towncrier_changelog import process_towncrier_changelog
 
@@ -41,6 +42,8 @@ class TestTowncrierPlugin:
     def setup_method(self, method):
 
         self.get_file_contents_mock = patch("baldrick.github.github_api.PullRequestHandler.get_file_contents")
+        self.get_org_config_mock = patch("baldrick.github.github_api.RepoHandler.get_org_config", return_value=Config())
+        self.get_org_config_mock.start()
         self.get_base_branch_mock = patch("baldrick.github.github_api.PullRequestHandler.base_branch")
         a = self.get_base_branch_mock.start()
         a.return_value = "main"
@@ -56,6 +59,7 @@ class TestTowncrierPlugin:
 
     def teardown_method(self, method):
         self.get_file_contents_mock.stop()
+        self.get_org_config_mock.stop()
         self.modified_files_mock.stop()
         self.get_base_branch_mock.stop()
 

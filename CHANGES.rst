@@ -28,6 +28,10 @@
   argument and attribute from ``RepoHandler`` (pass ``branch`` to the methods
   that need it instead).
 
+* Configuration is now also read from the ``pyproject.toml`` file in the
+  owner's ``.github`` repository, with settings in individual repositories
+  overriding it.
+
 * Always use GitHub default branch not hard coded ``master`` [#116]
 
 * Refresh package for Python 3.14 and fix some bugs with GitHub auth [#120]
