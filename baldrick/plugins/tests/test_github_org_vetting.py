@@ -40,10 +40,11 @@ def test_close_if_not_in_org(is_member):
     assert pr_handler.close.called is not is_member
 
 
-def make_handlers(previous_prs, counts=(0, 0, 0, 0)):
+def make_handlers(previous_prs, counts=(0, 0, 0, 0), config=None):
     pr_handler = MagicMock()
     pr_handler.user = "contributor"
     pr_handler.number = 42
+    pr_handler.get_config_value.return_value = {"enabled": True, **(config or {})}
 
     repo_handler = MagicMock()
     repo_handler.org_handler.is_member.return_value = False
@@ -97,5 +98,15 @@ def test_close_message_activity_table():
     message = pr_handler.submit_comment.call_args[0][0]
     assert "| Pull requests opened | 3 | 12 |" in message
     assert "| Issues opened        | 1 | 5 |" in message
-    assert message.startswith("Hi 👋 and thank you for your contribution!")
+    assert message.startswith("This pull request has been closed automatically")
     assert pr_handler.close.called
+
+
+def test_close_message_from_config():
+    pr_handler, repo_handler = make_handlers([42], config={"message": "Hi {there}! Please join our Slack.\n"})
+
+    close_if_not_in_org(pr_handler, repo_handler)
+
+    message = pr_handler.submit_comment.call_args[0][0]
+    assert message.startswith("Hi {there}! Please join our Slack.\n\n### Notes for maintainers\n")
+    assert "closed automatically" not in message

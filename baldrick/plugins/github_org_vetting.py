@@ -4,21 +4,12 @@ from loguru import logger
 
 from baldrick.plugins.github_pull_requests import pull_request_handler
 
-CLOSE_MESSAGE = """\
-Hi 👋 and thank you for your contribution! 🙏
+DEFAULT_MESSAGE = """\
+This pull request has been closed automatically because the author is not a \
+member of the organization. A maintainer can re-open it if appropriate.
+"""
 
-This pull request is being closed automatically - but don't worry, this is not the end, and we may re-open it.
-
-For some background, we have recently started seeing a rapid increase in the number of pull requests opened. Some of these are from good-faith humans, but some of which are from autonomous LLM agents or humans using LLMs who do not have a genuine understanding of, or interest in, the project. We are therefore auto-closing pull requests from new contributors, but if you are a good-faith human, we want to make sure your pull request gets considered! So if you would like us to re-open your pull request so that it gets reviewed, you need to do two things:
-
-1. Add a comment here to explain why you need the changes here to be considered, as in how the bug or missing feature affects your work, or whether this is an issue you have encountered but does not affect you.
-
-2. Join the astropy slack using [this invite link](https://join.slack.com/t/astropy/shared_invite/zt-4c1p8lbom-GuaB46o3rPd0ZRJh6MR_kQ) and head over to the **#hello** channel to introduce yourself and let us know about this pull request
-
-The second step is important, as we may otherwise miss notifications about this pull request.
-
-To be clear, our [AI policy](https://github.com/astropy/astropy-project/blob/main/policies/ai-policy.md) does allow the use of LLMs as part of contributions, _but_ we need to see authentic engagement and understanding from humans making the contribution.
-
+MAINTAINER_NOTES = """\
 ### Notes for maintainers
 
 {previous_prs}
@@ -76,10 +67,14 @@ def close_if_not_in_org(pr_handler, repo_handler):
 
     logger.debug(f"No they are not, posting comment")
 
-    message = CLOSE_MESSAGE.format(
+    # The contributor-facing text comes from the configuration (with a generic
+    # fallback) and is not passed through str.format, so that it can contain
+    # braces; the maintainer notes are always appended to it.
+    notes = MAINTAINER_NOTES.format(
         previous_prs=previous_pull_requests_notes(pr_handler, repo_handler),
         **activity_counts(pr_handler, repo_handler),
     )
+    message = vet_config.get("message", DEFAULT_MESSAGE).strip() + "\n\n" + notes
 
     pr_handler.submit_comment(message)
     pr_handler.close()
