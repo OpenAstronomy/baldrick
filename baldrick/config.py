@@ -25,4 +25,11 @@ class Config(dict):
                 self[section_name][setting] = value
 
     def copy(self):
-        return Config(super().copy())
+        # Copy the sections too, so that updating the copy does not modify the
+        # sections of the original configuration.
+        return Config(
+            {
+                section_name: dict(section) if isinstance(section, dict) else section
+                for section_name, section in self.items()
+            }
+        )

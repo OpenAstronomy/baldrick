@@ -59,3 +59,11 @@ def test_copy():
     conf_copy = conf.copy()
     assert isinstance(conf_copy, Config)
     assert conf_copy == {"a": 1}
+
+
+def test_copy_does_not_share_sections():
+    conf = Config({"plugin1": {"setting1": "a"}})
+    conf_copy = conf.copy()
+    conf_copy.update_from_config(Config({"plugin1": {"setting1": "b"}}))
+    assert conf["plugin1"]["setting1"] == "a"
+    assert conf_copy["plugin1"]["setting1"] == "b"
