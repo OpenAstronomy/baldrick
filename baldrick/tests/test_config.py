@@ -67,3 +67,10 @@ def test_copy_does_not_share_sections():
     conf_copy.update_from_config(Config({"plugin1": {"setting1": "b"}}))
     assert conf["plugin1"]["setting1"] == "a"
     assert conf_copy["plugin1"]["setting1"] == "b"
+
+
+def test_summary_truncates_long_strings():
+    conf = Config({"plugin1": {"short": "abc", "number": 3, "long": "x" * 100}})
+    assert conf.summary(max_length=10) == repr(
+        {"plugin1": {"short": "abc", "number": 3, "long": "xxxxxxxxxx... [100 characters]"}}
+    )

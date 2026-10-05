@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, PropertyMock, patch
 import pytest
 
 from baldrick.config import loads
-from baldrick.github.github_api import FILE_CACHE, IssueHandler, PullRequestHandler, RepoHandler
+from baldrick.github.github_api import FILE_CACHE, ORG_CONFIG_CACHE, IssueHandler, PullRequestHandler, RepoHandler
 
 # TODO: Add more tests to increase coverage.
 
@@ -95,6 +95,7 @@ class TestOrgConfig:
 
     def setup_method(self, method):
         FILE_CACHE.clear()
+        ORG_CONFIG_CACHE.clear()
         self.repo = RepoHandler("fakeorg/fakerepo")
 
     def fake_file_contents(self, files):
@@ -147,6 +148,25 @@ class TestOrgConfig:
                 assert self.repo.get_config_value("pr", branch="main") == {"setting1": 2, "setting2": 3}
                 assert self.repo.get_config_value("org_vetting", branch="main") is None
 
+    def test_org_config_is_cached(self, app):
+        with app.app_context():
+            with self.fake_file_contents({"fakeorg/.github": TEST_ORG_CONFIG}) as mock_get:
+                first = self.repo.get_org_config()
+                second = RepoHandler("fakeorg/otherrepo").get_org_config()
+                assert first == second
+                assert mock_get.call_count == 1
+
+                # Modifying the returned config must not modify the cached copy
+                first["org_vetting"]["enabled"] = False
+                assert self.repo.get_org_config()["org_vetting"]["enabled"] is True
+
+    def test_missing_org_config_is_cached(self, app):
+        with app.app_context():
+            with self.fake_file_contents({}) as mock_get:
+                assert self.repo.get_org_config() == {}
+                assert self.repo.get_org_config() == {}
+                assert mock_get.call_count == 1
+
     def test_org_config_read_from_owner_dot_github_repo(self, app):
         with app.app_context():
             with self.fake_file_contents({"fakeorg/.github": TEST_ORG_CONFIG}) as mock_get:
@@ -160,6 +180,7 @@ class TestOrgConfig:
 class TestRealRepoHandler:
     def setup_method(self, method):
         FILE_CACHE.clear()
+        ORG_CONFIG_CACHE.clear()
 
     def setup_class(self):
         self.repo = RepoHandler("OpenAstronomy/baldrick")

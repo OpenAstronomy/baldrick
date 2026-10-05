@@ -20,6 +20,7 @@ HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
 
 FILE_CACHE = TTLCache(maxsize=512, ttl=float(os.environ.get("BALDRICK_FILE_CACHE_TTL", 60)))
+ORG_CONFIG_CACHE = TTLCache(maxsize=512, ttl=float(os.environ.get("BALDRICK_FILE_CACHE_TTL", 60)))
 
 
 def paged_github_json_request(url, headers=None):
@@ -160,17 +161,30 @@ class RepoHandler(GitHubHandler):
             Configuration parameters.
         """
         owner = self.repo.split("/")[0]
+        cache_key = f"{owner}:{path_to_file}"
+
+        # The parsed configuration is cached (not just the file contents) to
+        # avoid looking up the default branch of the .github repository on
+        # every call. TTLCache raises KeyError for expired as well as missing
+        # keys, so we access the cache via try/except.
+        try:
+            return ORG_CONFIG_CACHE[cache_key].copy()
+        except KeyError:
+            pass
+
         org_repo = RepoHandler(f"{owner}/.github", installation=self.installation)
 
         try:
             file_content = org_repo.get_file_contents(path_to_file)
         except (FileNotFoundError, ValueError):
             logger.debug(f"No {path_to_file} found in {org_repo.repo}.")
-            return Config()
+            org_config = Config()
+        else:
+            org_config = loads(file_content, tool=current_app.bot_username) or Config()
+            logger.trace(f"Got the following config from {org_repo.repo}: {org_config.summary()}")
 
-        org_config = loads(file_content, tool=current_app.bot_username) or Config()
-        logger.trace(f"Got the following config from {org_repo.repo}: {org_config}")
-        return org_config
+        ORG_CONFIG_CACHE[cache_key] = org_config
+        return org_config.copy()
 
     def get_repo_config(self, branch=None, path_to_file="pyproject.toml"):
         """
@@ -210,15 +224,15 @@ class RepoHandler(GitHubHandler):
             file_content = None
 
         if file_content:
-            repo_config = loads(file_content, tool=current_app.bot_username) or {}
-            logger.trace(f"Got the following config from {self.repo}@{branch}: {repo_config}")
+            repo_config = loads(file_content, tool=current_app.bot_username) or Config()
+            logger.trace(f"Got the following config from {self.repo}@{branch}: {repo_config.summary()}")
             if len(repo_config) == 0:
                 logger.exception(
                     f"Failed to load config in {self.repo} on branch {branch}, despite finding a pyproject.toml file."
                 )
 
             if getattr(current_app, "fall_back_config", None):
-                fallback_config = loads(file_content, tool=current_app.fall_back_config) or {}
+                fallback_config = loads(file_content, tool=current_app.fall_back_config) or Config()
                 if len(fallback_config) == 0:
                     logger.trace(f"Didn't find a fallback config in {self.repo}@{branch}.")
 
@@ -227,7 +241,7 @@ class RepoHandler(GitHubHandler):
         app_config.update_from_config(fallback_config)
         app_config.update_from_config(repo_config)
 
-        logger.debug(f"Got this combined config from {self.repo}@{branch}: {app_config}")
+        logger.debug(f"Got this combined config from {self.repo}@{branch}: {app_config.summary()}")
 
         return app_config
 

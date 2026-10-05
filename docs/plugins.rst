@@ -12,6 +12,9 @@ Configuration can also be set for all repositories belonging to an organization
 (or user) by adding a ``pyproject.toml`` file, with the same ``tool.<your-bot-name>``
 sections, to the root of the organization's ``.github`` repository. The bot
 needs to be installed on the ``.github`` repository for this file to be read.
+The organization configuration is cached for 60 seconds by default (this can be
+changed with the ``BALDRICK_FILE_CACHE_TTL`` environment variable, which is
+also used for the cache of files read from repositories).
 
 Settings are combined from the following sources, each overriding individual
 settings from the previous one:
