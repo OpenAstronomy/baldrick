@@ -13,7 +13,7 @@ For some background, we have recently started seeing a rapid increase in the num
 
 1. Add a comment here to explain why you need the changes here to be considered, as in how the bug or missing feature affects your work, or whether this is an issue you have encountered but does not affect you.
 
-2. Join the astropy slack (you can find instructions [here](https://www.astropy.org/contribute.html)) and head over to the **#hello** channel to introduce yourself and let us know about this pull request
+2. Join the astropy slack using [this invite link](https://join.slack.com/t/astropy/shared_invite/zt-4c1p8lbom-GuaB46o3rPd0ZRJh6MR_kQ) and head over to the **#hello** channel to introduce yourself and let us know about this pull request
 
 The second step is important, as we may otherwise miss notifications about this pull request.
 
