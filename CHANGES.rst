@@ -23,6 +23,11 @@
 
 * Updated the Circle CI plugin to v2 webhooks. [#119]
 
+* Moved the repository-level methods from ``GitHubHandler`` to ``RepoHandler``,
+  added ``OrgHandler`` with an ``is_member`` method, and removed the ``branch``
+  argument and attribute from ``RepoHandler`` (pass ``branch`` to the methods
+  that need it instead).
+
 * Always use GitHub default branch not hard coded ``master`` [#116]
 
 * Refresh package for Python 3.14 and fix some bugs with GitHub auth [#120]

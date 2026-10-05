@@ -10,7 +10,7 @@ from baldrick.github.github_api import FILE_CACHE, IssueHandler, PullRequestHand
 
 class TestRepoHandler:
     def setup_class(self):
-        self.repo = RepoHandler("fakerepo/doesnotexist", branch="awesomebot")
+        self.repo = RepoHandler("fakerepo/doesnotexist")
 
     @patch("requests.get")
     def test_get_issues(self, mock_get):

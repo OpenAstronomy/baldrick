@@ -40,7 +40,10 @@ class TestArtifactPlugin:
         self.requests_get.return_value.ok = True
         self.requests_get.return_value.json.return_value = {"default_branch": "main"}
 
-        self.get_file_contents_mock = patch("baldrick.github.github_api.GitHubHandler.get_file_contents")
+        self.get_file_contents_mock = patch("baldrick.github.github_api.RepoHandler.get_file_contents")
+        self.get_installation_token_mock = patch("baldrick.github.github_auth.get_installation_token")
+        self.get_installation_token = self.get_installation_token_mock.start()
+        self.get_installation_token.return_value = "abcdefg"
 
         self.set_status_mock = patch("baldrick.github.github_api.RepoHandler.set_status")
         self.set_status = self.set_status_mock.start()
@@ -58,6 +61,7 @@ class TestArtifactPlugin:
 
     def teardown_method(self, method):
         self.get_file_contents_mock.stop()
+        self.get_installation_token_mock.stop()
         self.requests_get_mock.stop()
 
     def basic_payload(self):

@@ -34,7 +34,7 @@ class TestPushHandler:
         self.requests_get.return_value.ok = True
         self.requests_get.return_value.json.return_value = {"default_branch": "main"}
 
-        self.get_file_contents_mock = patch("baldrick.github.github_api.GitHubHandler.get_file_contents")
+        self.get_file_contents_mock = patch("baldrick.github.github_api.RepoHandler.get_file_contents")
         self.get_installation_token_mock = patch("baldrick.github.github_auth.get_installation_token")
 
         self.get_file_contents = self.get_file_contents_mock.start()
@@ -62,7 +62,6 @@ class TestPushHandler:
         assert mock_handler.call_count == 1
         repo_handler, git_ref = mock_handler.call_args[0]
         assert repo_handler.repo == "test-repo"
-        assert repo_handler.branch == "experimental"
         assert git_ref == "refs/heads/experimental"
 
     def test_tags(self, app, client, github_webhook_headers):
@@ -71,7 +70,6 @@ class TestPushHandler:
         assert mock_handler.call_count == 1
         repo_handler, git_ref = mock_handler.call_args[0]
         assert repo_handler.repo == "test-repo"
-        assert repo_handler.branch is None
         assert git_ref == "refs/tags/stable"
 
     def test_disabled(self, app, client, github_webhook_headers):

@@ -14,7 +14,7 @@ from loguru import logger
 from baldrick.config import Config, loads
 from baldrick.github.github_auth import github_request_headers
 
-__all__ = ["GitHubHandler", "IssueHandler", "PullRequestHandler", "RepoHandler"]
+__all__ = ["GitHubHandler", "IssueHandler", "OrgHandler", "PullRequestHandler", "RepoHandler"]
 
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
@@ -53,13 +53,48 @@ class GitHubHandler:
     A base class for things that represent things the github app can operate on.
     """
 
-    def __init__(self, repo, installation=None):
-        self.repo = repo
+    def __init__(self, installation=None):
         self.installation = installation
         self._cache = {}
 
     def invalidate_cache(self):
         self._cache.clear()
+
+    @property
+    def _headers(self):
+        if self.installation is None:
+            return {}
+        return github_request_headers(self.installation)
+
+
+class OrgHandler(GitHubHandler):
+    def __init__(self, org_name, installation=None):
+        self.org_name = org_name
+        super().__init__(installation=installation)
+
+    def is_member(self, user):
+        response = requests.get(f"{HOST}/orgs/{self.org_name}/members/{user}", headers=self._headers)
+        if response.status_code == 204:
+            return True
+        if response.status_code == 404:
+            return False
+        raise Exception(
+            f"An error occurred when trying to determine organization membership (status code {response.status_code})"
+        )
+
+
+class RepoHandler(GitHubHandler):
+    def __init__(self, repo, installation=None):
+        self.repo = repo
+        super().__init__(installation=installation)
+
+    @property
+    def org_handler(self):
+        if "org_handler" not in self._cache:
+            if self.repo_info["owner"]["type"] != "Organization":
+                raise Exception("Repository does not belong to an organization")
+            self._cache["org_handler"] = OrgHandler(self.repo.split("/")[0], installation=self.installation)
+        return self._cache["org_handler"]
 
     @property
     def repo_info(self):
@@ -74,12 +109,6 @@ class GitHubHandler:
     @property
     def default_branch(self):
         return self.repo_info["default_branch"]
-
-    @property
-    def _headers(self):
-        if self.installation is None:
-            return {}
-        return github_request_headers(self.installation)
 
     @property
     def _url_contents(self):
@@ -276,12 +305,6 @@ class GitHubHandler:
 
         return checks
 
-
-class RepoHandler(GitHubHandler):
-    def __init__(self, repo, branch=None, installation=None):
-        self.branch = branch
-        super().__init__(repo, installation=installation)
-
     @property
     def _url_pull_requests(self):
         return f"{HOST}/repos/{self.repo}/pulls"
@@ -289,11 +312,6 @@ class RepoHandler(GitHubHandler):
     def open_pull_requests(self):
         pull_requests = paged_github_json_request(self._url_pull_requests, headers=self._headers)
         return [pr["number"] for pr in pull_requests]
-
-    def get_file_contents(self, path_to_file, branch=None):
-        if branch is None:
-            branch = self.branch
-        return super().get_file_contents(path_to_file, branch=branch)
 
     def get_issues(self, state, labels, exclude_pr=True):
         """
@@ -333,7 +351,7 @@ class RepoHandler(GitHubHandler):
         return [label["name"] for label in result]
 
 
-class IssueHandler(GitHubHandler):
+class IssueHandler(RepoHandler):
     def __init__(self, repo, number, installation=None):
         self.number = number
         super().__init__(repo, installation=installation)
@@ -478,15 +496,8 @@ class IssueHandler(GitHubHandler):
         if len(missing_labels) == 0:
             return None
 
-        # Need repo handler (default branch)
-        if "repohandler" not in self._cache:
-            repo = RepoHandler(self.repo, installation=self.installation)
-            self._cache["repohandler"] = repo
-        else:
-            repo = self._cache["repohandler"]
-
         # If label does not already exist in the repo, give a warning
-        repo_labels = repo.get_all_labels()
+        repo_labels = self.get_all_labels()
         nonexistent_labels = missing_labels.difference(repo_labels)
         if len(nonexistent_labels) > 0:
             pass

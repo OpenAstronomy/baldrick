@@ -16,6 +16,7 @@ def setup_module(module):
 def teardown_module(module):
     CIRCLECI_WEBHOOK_HANDLERS[:] = module.CIRCLECI_WEBOOK_HANDLERS_ORIGINAL[:]
 
+
 V2_PAYLOAD = {
     "job": {"status": "passed", "number": 42},
     "pipeline": {
