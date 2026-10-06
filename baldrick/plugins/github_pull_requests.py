@@ -23,6 +23,7 @@ def pull_request_handler(actions=None):
     * labeled
     * synchronize
     * opened
+    * reopened
     * milestoned
     * demilestoned
 
@@ -75,7 +76,7 @@ def handle_pull_requests(repo_handler, payload, headers):
 
     # We only need to listen to certain kinds of events:
     if event == "pull_request":
-        if payload["action"] not in ("unlabeled", "labeled", "synchronize", "opened"):
+        if payload["action"] not in ("unlabeled", "labeled", "synchronize", "opened", "reopened"):
             logger.debug("Action '" + payload["action"] + "' does not require action")
             return
     elif event == "issues":

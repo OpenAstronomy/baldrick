@@ -117,6 +117,62 @@ the default behavior:
   ``skip_labels``, then a failed status check will be posted to the pull request.
   If ``false``, the checks will be silently skipped. The default is ``true``.
 
+Organization vetting
+^^^^^^^^^^^^^^^^^^^^
+
+This pull request handler plugin closes pull requests opened by users who are
+neither members of the organization that owns the repository nor on an optional
+allowlist, and posts a comment explaining why. To enable this plugin, include the following in your
+``pyproject.toml`` file::
+
+    [ tool.<your-bot-name>.org_vetting ]
+    enabled = true
+
+The outcome is reported as a status check on the pull request, so that it can
+be made a required check: it shows as running while the author is being
+checked, then passes (green) if the author is an organization member, on the
+allowlist, or the pull request has been re-opened; fails (red)
+otherwise; or is neutral (grey) if an error occurred while checking, for
+example because the allowlist could not be fetched, in which case the pull
+request is left open and the error is shown in the check summary.
+
+The pull request is only closed when it is first opened. The check is re-run,
+without closing, whenever the pull request is re-opened or updated, so that it
+is present on the current head commit. Since only users with write access to
+the repository can re-open a pull request closed by someone else, re-opening
+one counts as overriding the bot's decision.
+
+The comment starts with the contributor-facing text given by the ``message``
+configuration item, followed (unless ``maintainer_notes`` is ``false``) by notes
+for maintainers listing the author's previous pull requests to the repository
+and how many issues and pull requests they have opened GitHub-wide in the last
+day and week. The configuration items are:
+
+* ``allowlist``: the URL of a plain text file listing GitHub usernames, one
+  per line (blank lines and lines starting with ``#`` are ignored), whose pull
+  requests should be left open even though they are not organization members.
+  For example, a file in the organization's ``.github`` repository::
+
+    allowlist = "https://raw.githubusercontent.com/<org>/.github/main/vetting-allowlist.txt"
+
+  If the file cannot be fetched, a warning is logged and the allowlist is
+  treated as empty.
+
+* ``maintainer_notes``: whether to append the notes for maintainers to the
+  comment. The default is ``true``.
+
+* ``message``: the Markdown text to show to the contributor, typically
+  explaining how to get the pull request re-opened. If not set, a short generic
+  explanation is used. For example::
+
+    [ tool.<your-bot-name>.org_vetting ]
+    enabled = true
+    message = """
+    Thank you for your contribution! This pull request has been closed
+    automatically. To get it re-opened, please leave a comment explaining
+    how the change affects you.
+    """
+
 GitHub milestone checker
 ^^^^^^^^^^^^^^^^^^^^^^^^
 

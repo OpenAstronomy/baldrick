@@ -1,9 +1,17 @@
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 
 from baldrick.config import loads
-from baldrick.github.github_api import FILE_CACHE, ORG_CONFIG_CACHE, IssueHandler, PullRequestHandler, RepoHandler
+from baldrick.github.github_api import (
+    FILE_CACHE,
+    ORG_CONFIG_CACHE,
+    GitHubHandler,
+    IssueHandler,
+    PullRequestHandler,
+    RepoHandler,
+)
 
 # TODO: Add more tests to increase coverage.
 
@@ -24,6 +32,34 @@ class TestRepoHandler:
 
         assert self.repo.get_issues("open", "Close?") == [42]
         assert self.repo.get_issues("open", "Close?", exclude_pr=False) == [42, 55]
+
+    @patch("requests.get")
+    def test_get_pull_requests_by(self, mock_get):
+        mock_response = Mock()
+        mock_response.json.return_value = {"items": [{"number": 3}, {"number": 17}]}
+        mock_get.return_value = mock_response
+
+        assert self.repo.get_pull_requests_by("contributor") == [3, 17]
+
+        args = mock_get.call_args[0]
+        assert args[1]["q"] == "repo:fakerepo/doesnotexist type:pr author:contributor"
+        assert args[1]["order"] == "asc"
+
+    @patch("requests.get")
+    def test_count_opened_by(self, mock_get):
+        mock_response = Mock()
+        mock_response.json.return_value = {"total_count": 7, "items": [{"number": 3}]}
+        mock_get.return_value = mock_response
+
+        # The count is GitHub-wide, so it is available on any handler
+        since = datetime(2026, 10, 4, 12, 30, 0, tzinfo=UTC)
+        assert self.repo.count_opened_by("contributor", "issue", since) == 7
+        assert GitHubHandler().count_opened_by("contributor", "issue", since) == 7
+
+        args = mock_get.call_args[0]
+        assert args[0] == "https://api.github.com/search/issues"
+        assert args[1]["q"] == "author:contributor type:issue created:>=2026-10-04T12:30:00Z"
+        assert args[1]["per_page"] == 1
 
     @patch("requests.get")
     def test_get_all_labels(self, mock_get):
@@ -246,6 +282,34 @@ class TestRealRepoHandler:
 class TestIssueHandler:
     def setup_class(self):
         self.issue = IssueHandler("fakerepo/doesnotexist", 1234)
+
+    @pytest.mark.parametrize(
+        ("events", "expected"),
+        [
+            ([], None),
+            ([{"event": "closed", "actor": {"login": "bot"}}], None),
+            (
+                [
+                    {"event": "closed", "actor": {"login": "bot"}},
+                    {"event": "reopened", "actor": {"login": "maintainer"}},
+                ],
+                "maintainer",
+            ),
+            (
+                [
+                    {"event": "reopened", "actor": {"login": "first"}},
+                    {"event": "closed", "actor": {"login": "bot"}},
+                    {"event": "reopened", "actor": {"login": "second"}},
+                ],
+                "second",
+            ),
+            ([{"event": "reopened", "actor": None}], None),
+        ],
+    )
+    def test_last_reopened_by(self, events, expected):
+        with patch("baldrick.github.github_api.paged_github_json_request", return_value=events) as mock_request:
+            assert self.issue.last_reopened_by == expected
+        assert mock_request.call_args[0][0] == "https://api.github.com/repos/fakerepo/doesnotexist/issues/1234/events"
 
     def test_urls(self):
         assert self.issue._url_issue == "https://api.github.com/repos/fakerepo/doesnotexist/issues/1234"

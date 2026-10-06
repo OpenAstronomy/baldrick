@@ -67,6 +67,26 @@ class GitHubHandler:
             return {}
         return github_request_headers(self.installation)
 
+    def count_opened_by(self, user, kind, since):
+        """
+        Count the issues or pull requests opened by the given user anywhere on
+        GitHub since the given time.
+
+        Parameters
+        ----------
+        user : str
+            The GitHub username.
+        kind : {'issue', 'pr'}
+            Whether to count issues or pull requests.
+        since : `datetime.datetime`
+            Only count issues or pull requests created at or after this time.
+        """
+        url = f"{HOST}/search/issues"
+        query = f"author:{user} type:{kind} created:>={since:%Y-%m-%dT%H:%M:%SZ}"
+        response = requests.get(url, {"q": query, "per_page": 1}, headers=self._headers)
+        response.raise_for_status()
+        return response.json()["total_count"]
+
 
 class OrgHandler(GitHubHandler):
     def __init__(self, org_name, installation=None):
@@ -368,6 +388,16 @@ class RepoHandler(GitHubHandler):
         pull_requests = paged_github_json_request(self._url_pull_requests, headers=self._headers)
         return [pr["number"] for pr in pull_requests]
 
+    def get_pull_requests_by(self, user):
+        """
+        Get the numbers of pull requests opened by the given user, oldest first.
+        """
+        url = f"{HOST}/search/issues"
+        params = {"q": f"repo:{self.repo} type:pr author:{user}", "sort": "created", "order": "asc", "per_page": 100}
+        response = requests.get(url, params, headers=self._headers)
+        response.raise_for_status()
+        return [item["number"] for item in response.json()["items"]]
+
     def get_issues(self, state, labels, exclude_pr=True):
         """
         Get a list of issues.
@@ -418,6 +448,22 @@ class IssueHandler(RepoHandler):
     @property
     def _url_issue_nonapi(self):
         return f"{HOST_NONAPI}/{self.repo}/issues/{self.number}"
+
+    @property
+    def _url_issue_events(self):
+        return f"{self._url_issue}/events"
+
+    @property
+    def last_reopened_by(self):
+        """
+        Login of the user who most recently re-opened this issue or pull
+        request, or `None` if it has never been re-opened.
+        """
+        events = paged_github_json_request(self._url_issue_events, headers=self._headers)
+        reopens = [event for event in events if event["event"] == "reopened" and event.get("actor")]
+        if reopens:
+            return reopens[-1]["actor"]["login"]
+        return None
 
     @property
     def _url_labels(self):
