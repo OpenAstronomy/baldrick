@@ -14,12 +14,13 @@ from loguru import logger
 from baldrick.config import Config, loads
 from baldrick.github.github_auth import github_request_headers
 
-__all__ = ["GitHubHandler", "IssueHandler", "PullRequestHandler", "RepoHandler"]
+__all__ = ["GitHubHandler", "IssueHandler", "OrgHandler", "PullRequestHandler", "RepoHandler"]
 
 HOST = "https://api.github.com"
 HOST_NONAPI = "https://github.com"
 
 FILE_CACHE = TTLCache(maxsize=512, ttl=float(os.environ.get("BALDRICK_FILE_CACHE_TTL", 60)))
+ORG_CONFIG_CACHE = TTLCache(maxsize=512, ttl=float(os.environ.get("BALDRICK_FILE_CACHE_TTL", 60)))
 
 
 def paged_github_json_request(url, headers=None):
@@ -53,13 +54,48 @@ class GitHubHandler:
     A base class for things that represent things the github app can operate on.
     """
 
-    def __init__(self, repo, installation=None):
-        self.repo = repo
+    def __init__(self, installation=None):
         self.installation = installation
         self._cache = {}
 
     def invalidate_cache(self):
         self._cache.clear()
+
+    @property
+    def _headers(self):
+        if self.installation is None:
+            return {}
+        return github_request_headers(self.installation)
+
+
+class OrgHandler(GitHubHandler):
+    def __init__(self, org_name, installation=None):
+        self.org_name = org_name
+        super().__init__(installation=installation)
+
+    def is_member(self, user):
+        response = requests.get(f"{HOST}/orgs/{self.org_name}/members/{user}", headers=self._headers)
+        if response.status_code == 204:
+            return True
+        if response.status_code == 404:
+            return False
+        raise Exception(
+            f"An error occurred when trying to determine organization membership (status code {response.status_code})"
+        )
+
+
+class RepoHandler(GitHubHandler):
+    def __init__(self, repo, installation=None):
+        self.repo = repo
+        super().__init__(installation=installation)
+
+    @property
+    def org_handler(self):
+        if "org_handler" not in self._cache:
+            if self.repo_info["owner"]["type"] != "Organization":
+                raise Exception("Repository does not belong to an organization")
+            self._cache["org_handler"] = OrgHandler(self.repo.split("/")[0], installation=self.installation)
+        return self._cache["org_handler"]
 
     @property
     def repo_info(self):
@@ -74,12 +110,6 @@ class GitHubHandler:
     @property
     def default_branch(self):
         return self.repo_info["default_branch"]
-
-    @property
-    def _headers(self):
-        if self.installation is None:
-            return {}
-        return github_request_headers(self.installation)
 
     @property
     def _url_contents(self):
@@ -109,10 +139,62 @@ class GitHubHandler:
         FILE_CACHE[cache_key] = contents
         return contents
 
+    def get_org_config(self, path_to_file="pyproject.toml"):
+        """
+        Load configuration shared by all repositories of the owner.
+
+        This is read from the ``.github`` repository of the organization (or
+        user) that owns this repository, following the same ``[tool.<bot>]``
+        layout as the per-repository configuration. The bot needs to be
+        installed on the ``.github`` repository for this to work; if it is not,
+        or the repository or file does not exist, an empty configuration is
+        returned.
+
+        Parameters
+        ----------
+        path_to_file : `str`
+            Path to the ``pyproject.toml`` file in the ``.github`` repository.
+
+        Returns
+        -------
+        cfg : `baldrick.config.Config`
+            Configuration parameters.
+        """
+        owner = self.repo.split("/")[0]
+        cache_key = f"{owner}:{path_to_file}"
+
+        # The parsed configuration is cached (not just the file contents) to
+        # avoid looking up the default branch of the .github repository on
+        # every call. TTLCache raises KeyError for expired as well as missing
+        # keys, so we access the cache via try/except.
+        try:
+            return ORG_CONFIG_CACHE[cache_key].copy()
+        except KeyError:
+            pass
+
+        org_repo = RepoHandler(f"{owner}/.github", installation=self.installation)
+
+        try:
+            file_content = org_repo.get_file_contents(path_to_file)
+        except (FileNotFoundError, ValueError):
+            logger.debug(f"No {path_to_file} found in {org_repo.repo}.")
+            org_config = Config()
+        else:
+            org_config = loads(file_content, tool=current_app.bot_username) or Config()
+            logger.trace(f"Got the following config from {org_repo.repo}: {org_config.summary()}")
+
+        ORG_CONFIG_CACHE[cache_key] = org_config
+        return org_config.copy()
+
     def get_repo_config(self, branch=None, path_to_file="pyproject.toml"):
         """
         Load configuration from the repository.
 
+        The configuration is built up in layers, each overriding individual
+        settings from the previous one: the global app configuration, the
+        owner's ``.github`` repository configuration (see `get_org_config`),
+        the fallback configuration in the repository, and finally the
+        repository's own configuration.
 
         Parameters
         ----------
@@ -131,6 +213,7 @@ class GitHubHandler:
         """
         branch = branch or self.default_branch
         app_config = current_app.conf.copy()
+        org_config = self.get_org_config(path_to_file=path_to_file)
         fallback_config = Config()
         repo_config = Config()
 
@@ -141,23 +224,24 @@ class GitHubHandler:
             file_content = None
 
         if file_content:
-            repo_config = loads(file_content, tool=current_app.bot_username) or {}
-            logger.trace(f"Got the following config from {self.repo}@{branch}: {repo_config}")
+            repo_config = loads(file_content, tool=current_app.bot_username) or Config()
+            logger.trace(f"Got the following config from {self.repo}@{branch}: {repo_config.summary()}")
             if len(repo_config) == 0:
                 logger.exception(
                     f"Failed to load config in {self.repo} on branch {branch}, despite finding a pyproject.toml file."
                 )
 
             if getattr(current_app, "fall_back_config", None):
-                fallback_config = loads(file_content, tool=current_app.fall_back_config) or {}
+                fallback_config = loads(file_content, tool=current_app.fall_back_config) or Config()
                 if len(fallback_config) == 0:
                     logger.trace(f"Didn't find a fallback config in {self.repo}@{branch}.")
 
-        # Priority is 1) repo_config 2) fallback_config 3) app_config
+        # Priority is 1) repo_config 2) fallback_config 3) org_config 4) app_config
+        app_config.update_from_config(org_config)
         app_config.update_from_config(fallback_config)
         app_config.update_from_config(repo_config)
 
-        logger.debug(f"Got this combined config from {self.repo}@{branch}: {app_config}")
+        logger.debug(f"Got this combined config from {self.repo}@{branch}: {app_config.summary()}")
 
         return app_config
 
@@ -276,12 +360,6 @@ class GitHubHandler:
 
         return checks
 
-
-class RepoHandler(GitHubHandler):
-    def __init__(self, repo, branch=None, installation=None):
-        self.branch = branch
-        super().__init__(repo, installation=installation)
-
     @property
     def _url_pull_requests(self):
         return f"{HOST}/repos/{self.repo}/pulls"
@@ -289,11 +367,6 @@ class RepoHandler(GitHubHandler):
     def open_pull_requests(self):
         pull_requests = paged_github_json_request(self._url_pull_requests, headers=self._headers)
         return [pr["number"] for pr in pull_requests]
-
-    def get_file_contents(self, path_to_file, branch=None):
-        if branch is None:
-            branch = self.branch
-        return super().get_file_contents(path_to_file, branch=branch)
 
     def get_issues(self, state, labels, exclude_pr=True):
         """
@@ -333,7 +406,7 @@ class RepoHandler(GitHubHandler):
         return [label["name"] for label in result]
 
 
-class IssueHandler(GitHubHandler):
+class IssueHandler(RepoHandler):
     def __init__(self, repo, number, installation=None):
         self.number = number
         super().__init__(repo, installation=installation)
@@ -478,15 +551,8 @@ class IssueHandler(GitHubHandler):
         if len(missing_labels) == 0:
             return None
 
-        # Need repo handler (default branch)
-        if "repohandler" not in self._cache:
-            repo = RepoHandler(self.repo, installation=self.installation)
-            self._cache["repohandler"] = repo
-        else:
-            repo = self._cache["repohandler"]
-
         # If label does not already exist in the repo, give a warning
-        repo_labels = repo.get_all_labels()
+        repo_labels = self.get_all_labels()
         nonexistent_labels = missing_labels.difference(repo_labels)
         if len(nonexistent_labels) > 0:
             pass

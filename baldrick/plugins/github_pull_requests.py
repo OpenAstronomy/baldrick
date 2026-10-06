@@ -70,22 +70,26 @@ def handle_pull_requests(repo_handler, payload, headers):
     event = headers["X-GitHub-Event"]
 
     if event not in ("pull_request", "issues"):
-        return "Not a pull_request or issues event"
+        logger.debug(f"Not a pull_request or issues event (got {event})")
+        return
 
     # We only need to listen to certain kinds of events:
     if event == "pull_request":
         if payload["action"] not in ("unlabeled", "labeled", "synchronize", "opened"):
-            return "Action '" + payload["action"] + "' does not require action"
+            logger.debug("Action '" + payload["action"] + "' does not require action")
+            return
     elif event == "issues":
         if payload["action"] not in ("milestoned", "demilestoned"):
-            return "Action '" + payload["action"] + "' does not require action"
+            logger.debug("Action '" + payload["action"] + "' does not require action")
+            return
 
     if event == "pull_request":
         number = payload["pull_request"]["number"]
     elif event == "issues":
         number = payload["issue"]["number"]
     else:
-        return "Not an issue or pull request"
+        logger.debug("Not an issue or pull request")
+        return
 
     is_new = (event == "pull_request") & (payload["action"] == "opened")
 
@@ -110,7 +114,8 @@ def process_pull_request(repository, number, installation, action, is_new=False)
 
     # Don't comment on closed PR
     if pr_handler.is_closed:
-        return "Pull request already closed, no need to check"
+        logger.debug("Pull request already closed, no need to check")
+        return
 
     repo_handler = RepoHandler(repository, installation)
 
@@ -215,4 +220,4 @@ def process_pull_request(repository, number, installation, action, is_new=False)
         if special_msg:
             pr_handler.submit_comment(special_msg)
 
-    return "Finished pull requests checks"
+    logger.debug("Finished pull requests checks")

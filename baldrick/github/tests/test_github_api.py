@@ -3,14 +3,14 @@ from unittest.mock import MagicMock, Mock, PropertyMock, patch
 import pytest
 
 from baldrick.config import loads
-from baldrick.github.github_api import FILE_CACHE, IssueHandler, PullRequestHandler, RepoHandler
+from baldrick.github.github_api import FILE_CACHE, ORG_CONFIG_CACHE, IssueHandler, PullRequestHandler, RepoHandler
 
 # TODO: Add more tests to increase coverage.
 
 
 class TestRepoHandler:
     def setup_class(self):
-        self.repo = RepoHandler("fakerepo/doesnotexist", branch="awesomebot")
+        self.repo = RepoHandler("fakerepo/doesnotexist")
 
     @patch("requests.get")
     def test_get_issues(self, mock_get):
@@ -67,10 +67,120 @@ setting3 = 4
 """
 
 
+TEST_ORG_CONFIG = """
+[tool.testbot]
+[tool.testbot.pr]
+setting1 = 10
+setting3 = 30
+[tool.testbot.org_vetting]
+enabled = true
+"""
+
+
+TEST_REPO_OPT_OUT_CONFIG = """
+[tool.testbot]
+[tool.testbot.pr]
+setting1 = 2
+setting2 = 3
+[tool.testbot.org_vetting]
+enabled = false
+"""
+
+
+class TestOrgConfig:
+    """
+    Configuration from the owner's .github repository is layered between the
+    app configuration and the repository's own configuration.
+    """
+
+    def setup_method(self, method):
+        FILE_CACHE.clear()
+        ORG_CONFIG_CACHE.clear()
+        self.repo = RepoHandler("fakeorg/fakerepo")
+
+    def fake_file_contents(self, files):
+        """
+        Return a get_file_contents replacement that serves files per repository
+        and raises the error get_file_contents would raise otherwise.
+        """
+
+        def get_file_contents(handler, path_to_file, branch=None):
+            result = files.get(handler.repo)
+            if isinstance(result, Exception):
+                raise result
+            if result is None:
+                raise FileNotFoundError(path_to_file)
+            return result
+
+        return patch.object(RepoHandler, "get_file_contents", autospec=True, side_effect=get_file_contents)
+
+    def test_org_config_used_when_repo_has_none(self, app):
+        with app.app_context():
+            with self.fake_file_contents({"fakeorg/.github": TEST_ORG_CONFIG}):
+                assert self.repo.get_config_value("org_vetting", branch="main") == {"enabled": True}
+                assert self.repo.get_config_value("pr", branch="main") == {"setting1": 10, "setting3": 30}
+
+    def test_repo_config_overrides_org_config_per_setting(self, app):
+        with app.app_context():
+            files = {"fakeorg/.github": TEST_ORG_CONFIG, "fakeorg/fakerepo": TEST_REPO_OPT_OUT_CONFIG}
+            with self.fake_file_contents(files):
+                assert self.repo.get_config_value("org_vetting", branch="main") == {"enabled": False}
+                assert self.repo.get_config_value("pr", branch="main") == {"setting1": 2, "setting2": 3, "setting3": 30}
+
+    def test_org_config_overrides_app_config(self, app):
+        with app.app_context():
+            app.conf = loads(TEST_GLOBAL_CONFIG, tool="testbot")
+            with self.fake_file_contents({"fakeorg/.github": TEST_ORG_CONFIG}):
+                assert self.repo.get_config_value("pr", branch="main") == {
+                    "setting1": 10,
+                    "setting2": 5,
+                    "setting3": 30,
+                }
+                assert self.repo.get_config_value("other", branch="main") == {"setting4": 5}
+
+    @pytest.mark.parametrize(
+        "org_result", [None, ValueError("Unable to fetch repo information")], ids=["no-file", "no-repo"]
+    )
+    def test_missing_org_config_is_ignored(self, app, org_result):
+        with app.app_context():
+            with self.fake_file_contents({"fakeorg/.github": org_result, "fakeorg/fakerepo": TEST_CONFIG}):
+                assert self.repo.get_org_config() == {}
+                assert self.repo.get_config_value("pr", branch="main") == {"setting1": 2, "setting2": 3}
+                assert self.repo.get_config_value("org_vetting", branch="main") is None
+
+    def test_org_config_is_cached(self, app):
+        with app.app_context():
+            with self.fake_file_contents({"fakeorg/.github": TEST_ORG_CONFIG}) as mock_get:
+                first = self.repo.get_org_config()
+                second = RepoHandler("fakeorg/otherrepo").get_org_config()
+                assert first == second
+                assert mock_get.call_count == 1
+
+                # Modifying the returned config must not modify the cached copy
+                first["org_vetting"]["enabled"] = False
+                assert self.repo.get_org_config()["org_vetting"]["enabled"] is True
+
+    def test_missing_org_config_is_cached(self, app):
+        with app.app_context():
+            with self.fake_file_contents({}) as mock_get:
+                assert self.repo.get_org_config() == {}
+                assert self.repo.get_org_config() == {}
+                assert mock_get.call_count == 1
+
+    def test_org_config_read_from_owner_dot_github_repo(self, app):
+        with app.app_context():
+            with self.fake_file_contents({"fakeorg/.github": TEST_ORG_CONFIG}) as mock_get:
+                self.repo.get_org_config()
+                handler, path = mock_get.call_args[0]
+                assert handler.repo == "fakeorg/.github"
+                assert path == "pyproject.toml"
+
+
 @pytest.mark.github_api
 class TestRealRepoHandler:
     def setup_method(self, method):
         FILE_CACHE.clear()
+        ORG_CONFIG_CACHE.clear()
 
     def setup_class(self):
         self.repo = RepoHandler("OpenAstronomy/baldrick")

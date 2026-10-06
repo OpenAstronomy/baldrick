@@ -59,3 +59,18 @@ def test_copy():
     conf_copy = conf.copy()
     assert isinstance(conf_copy, Config)
     assert conf_copy == {"a": 1}
+
+
+def test_copy_does_not_share_sections():
+    conf = Config({"plugin1": {"setting1": "a"}})
+    conf_copy = conf.copy()
+    conf_copy.update_from_config(Config({"plugin1": {"setting1": "b"}}))
+    assert conf["plugin1"]["setting1"] == "a"
+    assert conf_copy["plugin1"]["setting1"] == "b"
+
+
+def test_summary_truncates_long_strings():
+    conf = Config({"plugin1": {"short": "abc", "number": 3, "long": "x" * 100}})
+    assert conf.summary(max_length=10) == repr(
+        {"plugin1": {"short": "abc", "number": 3, "long": "xxxxxxxxxx... [100 characters]"}}
+    )
