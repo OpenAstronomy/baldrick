@@ -44,7 +44,7 @@ def paged_github_json_request(url, headers=None):
             for page in range(2, last_page + 1):
                 response = requests.get(url + f"?page={page}", headers=headers)
                 response.raise_for_status()
-                results += response.json()
+                results = {**results, **response.json()}
 
     return results
 
