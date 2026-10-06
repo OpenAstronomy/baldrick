@@ -45,23 +45,6 @@ class TestRepoHandler:
         assert args[1]["q"] == "repo:fakerepo/doesnotexist type:pr author:contributor"
         assert args[1]["order"] == "asc"
 
-    @pytest.mark.parametrize(
-        ("status", "permission", "expected"),
-        [(200, "admin", True), (200, "write", True), (200, "read", False), (200, "none", False), (404, None, False)],
-    )
-    @patch("requests.get")
-    def test_is_maintainer(self, mock_get, status, permission, expected):
-        mock_response = Mock()
-        mock_response.status_code = status
-        mock_response.json.return_value = {"permission": permission}
-        mock_get.return_value = mock_response
-
-        assert self.repo.is_maintainer("contributor") is expected
-        assert (
-            mock_get.call_args[0][0]
-            == "https://api.github.com/repos/fakerepo/doesnotexist/collaborators/contributor/permission"
-        )
-
     @patch("requests.get")
     def test_count_opened_by(self, mock_get):
         mock_response = Mock()

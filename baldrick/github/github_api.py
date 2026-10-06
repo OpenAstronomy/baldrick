@@ -398,17 +398,6 @@ class RepoHandler(GitHubHandler):
         response.raise_for_status()
         return [item["number"] for item in response.json()["items"]]
 
-    def is_maintainer(self, user):
-        """
-        Whether the user has write access or higher on the repository.
-        """
-        url = f"{HOST}/repos/{self.repo}/collaborators/{user}/permission"
-        response = requests.get(url, headers=self._headers)
-        if response.status_code == 404:
-            return False
-        response.raise_for_status()
-        return response.json()["permission"] in ("admin", "write")
-
     def get_issues(self, state, labels, exclude_pr=True):
         """
         Get a list of issues.

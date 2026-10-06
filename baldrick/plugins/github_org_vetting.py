@@ -105,10 +105,13 @@ def vetting_decision(pr_handler, repo_handler, vet_config, reopened_override):
             return True, "Author is on the allowlist"
 
     if reopened_override:
+        # Only users with write access can re-open a pull request closed by
+        # someone else, so a re-open is an explicit override of the bot's
+        # decision and there is no need to check who did it.
         reopened_by = pr_handler.last_reopened_by
-        if reopened_by is not None and repo_handler.is_maintainer(reopened_by):
-            logger.debug(f"Passing org-vetting as the pull request was re-opened by maintainer {reopened_by}.")
-            return True, f"Re-opened by maintainer @{reopened_by}"
+        if reopened_by is not None:
+            logger.debug(f"Passing org-vetting as the pull request was re-opened by {reopened_by}.")
+            return True, f"Re-opened by @{reopened_by}"
 
     logger.debug(f"Failing org-vetting as {user} is not in the org or on the allowlist.")
     return False, "Author is not a member of the organization or on the allowlist"
@@ -125,7 +128,7 @@ def vet_pull_request(pr_handler, repo_handler, close):
     close : bool
         Whether to comment on and close the pull request if the author fails
         vetting (done when the pull request is first opened). Otherwise a
-        pull request that was last re-opened by a maintainer passes.
+        pull request that has been re-opened passes.
     """
     vet_config = pr_handler.get_config_value("org_vetting", {})
     if not vet_config.get("enabled", False):
@@ -186,6 +189,6 @@ def update_vetting_status(pr_handler, repo_handler):
     """
     Re-post the vetting status when a pull request is re-opened or updated,
     so that it is present on the current head commit, without closing it. A
-    pull request re-opened by a maintainer passes.
+    pull request that has been re-opened passes.
     """
     return vet_pull_request(pr_handler, repo_handler, close=False)

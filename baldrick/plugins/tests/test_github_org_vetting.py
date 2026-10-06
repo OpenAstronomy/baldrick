@@ -56,7 +56,6 @@ def make_handlers(previous_prs=(42,), counts=(0, 0, 0, 0), config=None, is_membe
 
     repo_handler = MagicMock()
     repo_handler.org_handler.is_member.return_value = is_member
-    repo_handler.is_maintainer.side_effect = lambda user: user == "maintainer"
     repo_handler.get_pull_requests_by.return_value = list(previous_prs)
     repo_handler.count_opened_by.side_effect = list(counts)
 
@@ -123,17 +122,15 @@ def test_non_member_is_not_closed_on_update():
     assert not pr_handler.close.called
 
 
-@pytest.mark.parametrize(
-    ("reopened_by", "conclusion"), [("maintainer", "success"), ("contributor", "failure"), (None, "failure")]
-)
-def test_reopened_by_maintainer_passes(reopened_by, conclusion):
+@pytest.mark.parametrize(("reopened_by", "conclusion"), [("maintainer", "success"), (None, "failure")])
+def test_reopened_pull_request_passes(reopened_by, conclusion):
     pr_handler, repo_handler = make_handlers(reopened_by=reopened_by)
 
     result = update_vetting_status(pr_handler, repo_handler)
 
     assert result["org_vetting"]["conclusion"] == conclusion
     if conclusion == "success":
-        assert result["org_vetting"]["title"] == "Re-opened by maintainer @maintainer"
+        assert result["org_vetting"]["title"] == "Re-opened by @maintainer"
     assert not pr_handler.close.called
 
 
@@ -143,7 +140,6 @@ def test_reopen_override_does_not_apply_when_opened():
     result = close_if_not_in_org(pr_handler, repo_handler)
 
     assert result["org_vetting"]["conclusion"] == "failure"
-    assert not repo_handler.is_maintainer.called
     assert pr_handler.close.called
 
 

@@ -131,16 +131,16 @@ allowlist, and posts a comment explaining why. To enable this plugin, include th
 The outcome is reported as a status check on the pull request, so that it can
 be made a required check: it shows as running while the author is being
 checked, then passes (green) if the author is an organization member, on the
-allowlist, or the pull request was last re-opened by a maintainer; fails (red)
+allowlist, or the pull request has been re-opened; fails (red)
 otherwise; or is neutral (grey) if an error occurred while checking, for
 example because the allowlist could not be fetched, in which case the pull
 request is left open and the error is shown in the check summary.
 
 The pull request is only closed when it is first opened. The check is re-run,
 without closing, whenever the pull request is re-opened or updated, so that it
-is present on the current head commit. Re-opening a pull request as a
-maintainer (a user with write access to the repository) therefore counts as
-overriding the bot's decision.
+is present on the current head commit. Since only users with write access to
+the repository can re-open a pull request closed by someone else, re-opening
+one counts as overriding the bot's decision.
 
 The comment starts with the contributor-facing text given by the ``message``
 configuration item, followed (unless ``maintainer_notes`` is ``false``) by notes
