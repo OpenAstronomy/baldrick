@@ -45,6 +45,23 @@ class TestRepoHandler:
         assert args[1]["q"] == "repo:fakerepo/doesnotexist type:pr author:contributor"
         assert args[1]["order"] == "asc"
 
+    @pytest.mark.parametrize(
+        ("status", "permission", "expected"),
+        [(200, "admin", True), (200, "write", True), (200, "read", False), (200, "none", False), (404, None, False)],
+    )
+    @patch("requests.get")
+    def test_is_maintainer(self, mock_get, status, permission, expected):
+        mock_response = Mock()
+        mock_response.status_code = status
+        mock_response.json.return_value = {"permission": permission}
+        mock_get.return_value = mock_response
+
+        assert self.repo.is_maintainer("contributor") is expected
+        assert (
+            mock_get.call_args[0][0]
+            == "https://api.github.com/repos/fakerepo/doesnotexist/collaborators/contributor/permission"
+        )
+
     @patch("requests.get")
     def test_count_opened_by(self, mock_get):
         mock_response = Mock()
@@ -281,6 +298,34 @@ class TestRealRepoHandler:
 class TestIssueHandler:
     def setup_class(self):
         self.issue = IssueHandler("fakerepo/doesnotexist", 1234)
+
+    @pytest.mark.parametrize(
+        ("events", "expected"),
+        [
+            ([], None),
+            ([{"event": "closed", "actor": {"login": "bot"}}], None),
+            (
+                [
+                    {"event": "closed", "actor": {"login": "bot"}},
+                    {"event": "reopened", "actor": {"login": "maintainer"}},
+                ],
+                "maintainer",
+            ),
+            (
+                [
+                    {"event": "reopened", "actor": {"login": "first"}},
+                    {"event": "closed", "actor": {"login": "bot"}},
+                    {"event": "reopened", "actor": {"login": "second"}},
+                ],
+                "second",
+            ),
+            ([{"event": "reopened", "actor": None}], None),
+        ],
+    )
+    def test_last_reopened_by(self, events, expected):
+        with patch("baldrick.github.github_api.paged_github_json_request", return_value=events) as mock_request:
+            assert self.issue.last_reopened_by == expected
+        assert mock_request.call_args[0][0] == "https://api.github.com/repos/fakerepo/doesnotexist/issues/1234/events"
 
     def test_urls(self):
         assert self.issue._url_issue == "https://api.github.com/repos/fakerepo/doesnotexist/issues/1234"

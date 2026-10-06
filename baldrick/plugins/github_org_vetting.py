@@ -33,21 +33,16 @@ def load_allowlist(url):
     The set of (lower-case) GitHub usernames listed at the given URL, one per
     line, ignoring blank lines and lines starting with ``#``.
 
-    The result is cached for a short time. If the allowlist cannot be fetched,
-    a warning is logged and an empty set is returned, so that a broken URL does
-    not disable vetting.
+    The result is cached for a short time. Fetch failures are not cached and
+    raise `requests.RequestException`.
     """
     try:
         return ALLOWLIST_CACHE[url]
     except KeyError:
         pass
 
-    try:
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-    except requests.RequestException:
-        logger.warning(f"Could not fetch the vetting allowlist from {url}, treating it as empty")
-        return set()
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
 
     allowlist = set()
     for line in response.text.splitlines():
@@ -83,42 +78,114 @@ def activity_counts(pr_handler, repo_handler):
     return counts
 
 
-@pull_request_handler(actions=["opened"])
-def close_if_not_in_org(pr_handler, repo_handler):
+CHECK_ID = "org_vetting"
 
-    # When a PR is first opened, we check if the contributor is in the
-    # organization or on the allowlist, and if not, we close the pull request
-    # and post a friendly message encouraging contributors to re-open
 
+def vetting_decision(pr_handler, repo_handler, vet_config, reopened_override):
+    """
+    Decide whether the pull request author passes vetting.
+
+    Returns
+    -------
+    passed : bool
+    reason : str
+        A short explanation, used as the title of the status check.
+    """
+    user = pr_handler.user
+
+    logger.debug(f"Checking if {user} is a member of org")
+    if repo_handler.org_handler.is_member(user):
+        logger.debug(f"Passing org-vetting as {user} is a member of the org.")
+        return True, "Author is a member of the organization"
+
+    if "allowlist" in vet_config:
+        logger.debug(f"Checking if {user} is on the allowlist")
+        if user.lower() in load_allowlist(vet_config["allowlist"]):
+            logger.debug(f"Passing org-vetting as {user} is on the allowlist.")
+            return True, "Author is on the allowlist"
+
+    if reopened_override:
+        reopened_by = pr_handler.last_reopened_by
+        if reopened_by is not None and repo_handler.is_maintainer(reopened_by):
+            logger.debug(f"Passing org-vetting as the pull request was re-opened by maintainer {reopened_by}.")
+            return True, f"Re-opened by maintainer @{reopened_by}"
+
+    logger.debug(f"Failing org-vetting as {user} is not in the org or on the allowlist.")
+    return False, "Author is not a member of the organization or on the allowlist"
+
+
+def vet_pull_request(pr_handler, repo_handler, close):
+    """
+    Vet the pull request author and report the outcome as a status check:
+    success if they pass, failure if not, and neutral if an error occurred
+    while checking (in which case the pull request is left open).
+
+    Parameters
+    ----------
+    close : bool
+        Whether to comment on and close the pull request if the author fails
+        vetting (done when the pull request is first opened). Otherwise a
+        pull request that was last re-opened by a maintainer passes.
+    """
     vet_config = pr_handler.get_config_value("org_vetting", {})
     if not vet_config.get("enabled", False):
         logger.debug("Skipping org vetting plugin as disabled in config")
         return None
 
-    logger.debug(f"Checking if {pr_handler.user} is a member of org")
+    # Show the check as running while the lookups below happen; the result
+    # returned from this function completes it.
+    pr_handler.set_check(
+        CHECK_ID, title="Vetting the author of this pull request", status="in_progress", conclusion=None
+    )
 
-    if repo_handler.org_handler.is_member(pr_handler.user):
-        logger.debug(f"Passing org-vetting as {pr_handler.user} is a member of the org.")
-        return
+    try:
+        passed, reason = vetting_decision(pr_handler, repo_handler, vet_config, reopened_override=not close)
+    except Exception as exc:  # noqa: BLE001 - any failure to decide is reported on the pull request
+        logger.exception(f"Could not vet the author of {pr_handler.repo}#{pr_handler.number}")
+        return {
+            CHECK_ID: {
+                "conclusion": "neutral",
+                "title": "Could not vet the author of this pull request",
+                "summary": f"An error occurred while checking the author; the pull request has been left open.\n\n{type(exc).__name__}: {exc}",
+            }
+        }
 
-    if "allowlist" in vet_config:
-        logger.debug(f"Checking if {pr_handler.user} is on the allowlist")
-        if pr_handler.user.lower() in load_allowlist(vet_config["allowlist"]):
-            logger.debug(f"Passing org-vetting as {pr_handler.user} is on the allowlist.")
-            return
+    if passed:
+        return {CHECK_ID: {"conclusion": "success", "title": reason}}
 
-    logger.debug(f"Failing org-vetting as {pr_handler.user} is not in the org or on the allowlist.")
+    if close:
+        # The contributor-facing text comes from the configuration (with a
+        # generic fallback) and is not passed through str.format, so that it
+        # can contain braces; the maintainer notes are appended to it unless
+        # disabled.
+        message = vet_config.get("message", DEFAULT_MESSAGE).strip()
+        if vet_config.get("maintainer_notes", True):
+            notes = MAINTAINER_NOTES.format(
+                previous_prs=previous_pull_requests_notes(pr_handler, repo_handler),
+                **activity_counts(pr_handler, repo_handler),
+            )
+            message += "\n\n" + notes
 
-    # The contributor-facing text comes from the configuration (with a generic
-    # fallback) and is not passed through str.format, so that it can contain
-    # braces; the maintainer notes are appended to it unless disabled.
-    message = vet_config.get("message", DEFAULT_MESSAGE).strip()
-    if vet_config.get("maintainer_notes", True):
-        notes = MAINTAINER_NOTES.format(
-            previous_prs=previous_pull_requests_notes(pr_handler, repo_handler),
-            **activity_counts(pr_handler, repo_handler),
-        )
-        message += "\n\n" + notes
+        pr_handler.submit_comment(message)
+        pr_handler.close()
 
-    pr_handler.submit_comment(message)
-    pr_handler.close()
+    return {CHECK_ID: {"conclusion": "failure", "title": reason}}
+
+
+@pull_request_handler(actions=["opened"])
+def close_if_not_in_org(pr_handler, repo_handler):
+    """
+    When a pull request is first opened, close it with an explanatory comment
+    if the author is neither an organization member nor on the allowlist.
+    """
+    return vet_pull_request(pr_handler, repo_handler, close=True)
+
+
+@pull_request_handler(actions=["reopened", "synchronize"])
+def update_vetting_status(pr_handler, repo_handler):
+    """
+    Re-post the vetting status when a pull request is re-opened or updated,
+    so that it is present on the current head commit, without closing it. A
+    pull request re-opened by a maintainer passes.
+    """
+    return vet_pull_request(pr_handler, repo_handler, close=False)

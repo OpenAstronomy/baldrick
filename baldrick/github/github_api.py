@@ -398,6 +398,17 @@ class RepoHandler(GitHubHandler):
         response.raise_for_status()
         return [item["number"] for item in response.json()["items"]]
 
+    def is_maintainer(self, user):
+        """
+        Whether the user has write access or higher on the repository.
+        """
+        url = f"{HOST}/repos/{self.repo}/collaborators/{user}/permission"
+        response = requests.get(url, headers=self._headers)
+        if response.status_code == 404:
+            return False
+        response.raise_for_status()
+        return response.json()["permission"] in ("admin", "write")
+
     def get_issues(self, state, labels, exclude_pr=True):
         """
         Get a list of issues.
@@ -448,6 +459,22 @@ class IssueHandler(RepoHandler):
     @property
     def _url_issue_nonapi(self):
         return f"{HOST_NONAPI}/{self.repo}/issues/{self.number}"
+
+    @property
+    def _url_issue_events(self):
+        return f"{self._url_issue}/events"
+
+    @property
+    def last_reopened_by(self):
+        """
+        Login of the user who most recently re-opened this issue or pull
+        request, or `None` if it has never been re-opened.
+        """
+        events = paged_github_json_request(self._url_issue_events, headers=self._headers)
+        reopens = [event for event in events if event["event"] == "reopened" and event.get("actor")]
+        if reopens:
+            return reopens[-1]["actor"]["login"]
+        return None
 
     @property
     def _url_labels(self):
