@@ -98,7 +98,7 @@ def close_if_not_in_org(pr_handler, repo_handler):
     logger.debug(f"Checking if {pr_handler.user} is a member of org")
 
     if repo_handler.org_handler.is_member(pr_handler.user):
-        logger.debug(f"Passing org-vetting as {pr_hander.user} is a member of the org.")
+        logger.debug(f"Passing org-vetting as {pr_handler.user} is a member of the org.")
         return
 
     if "allowlist" in vet_config:
@@ -107,7 +107,7 @@ def close_if_not_in_org(pr_handler, repo_handler):
             logger.debug(f"Passing org-vetting as {pr_handler.user} is on the allowlist.")
             return
 
-    logger.debug(f"Failing org-vetting as {repo_handler.user} is not in the org or on the allowlist.")
+    logger.debug(f"Failing org-vetting as {pr_handler.user} is not in the org or on the allowlist.")
 
     # The contributor-facing text comes from the configuration (with a generic
     # fallback) and is not passed through str.format, so that it can contain

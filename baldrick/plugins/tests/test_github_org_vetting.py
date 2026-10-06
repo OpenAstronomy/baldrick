@@ -76,7 +76,7 @@ def test_close_message_without_previous_pull_requests():
     close_if_not_in_org(pr_handler, repo_handler)
 
     message = pr_handler.submit_comment.call_args[0][0]
-    assert "This user has not made any other pull requests to this repository prior to this one." in message
+    assert "This user has not made any pull requests to this repository prior to this one." in message
     assert "here is a full list" not in message
 
 
