@@ -111,12 +111,14 @@ def close_if_not_in_org(pr_handler, repo_handler):
 
     # The contributor-facing text comes from the configuration (with a generic
     # fallback) and is not passed through str.format, so that it can contain
-    # braces; the maintainer notes are always appended to it.
-    notes = MAINTAINER_NOTES.format(
-        previous_prs=previous_pull_requests_notes(pr_handler, repo_handler),
-        **activity_counts(pr_handler, repo_handler),
-    )
-    message = vet_config.get("message", DEFAULT_MESSAGE).strip() + "\n\n" + notes
+    # braces; the maintainer notes are appended to it unless disabled.
+    message = vet_config.get("message", DEFAULT_MESSAGE).strip()
+    if vet_config.get("maintainer_notes", True):
+        notes = MAINTAINER_NOTES.format(
+            previous_prs=previous_pull_requests_notes(pr_handler, repo_handler),
+            **activity_counts(pr_handler, repo_handler),
+        )
+        message += "\n\n" + notes
 
     pr_handler.submit_comment(message)
     pr_handler.close()

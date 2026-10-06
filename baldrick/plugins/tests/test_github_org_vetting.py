@@ -103,6 +103,19 @@ def test_close_message_activity_table():
     assert pr_handler.close.called
 
 
+def test_close_message_without_maintainer_notes():
+    pr_handler, repo_handler = make_handlers(
+        [3, 42], config={"message": "Please join our Slack.", "maintainer_notes": False}
+    )
+
+    close_if_not_in_org(pr_handler, repo_handler)
+
+    assert pr_handler.submit_comment.call_args[0][0] == "Please join our Slack."
+    assert not repo_handler.get_pull_requests_by.called
+    assert not repo_handler.count_opened_by.called
+    assert pr_handler.close.called
+
+
 def test_close_message_from_config():
     pr_handler, repo_handler = make_handlers([42], config={"message": "Hi {there}! Please join our Slack.\n"})
 

@@ -128,10 +128,11 @@ allowlist, and posts a comment explaining why. To enable this plugin, include th
     [ tool.<your-bot-name>.org_vetting ]
     enabled = true
 
-The comment starts with the contributor-facing text given by the following
-configuration item, followed by notes for maintainers listing the author's
-previous pull requests to the repository and how many issues and pull requests
-they have opened GitHub-wide in the last day and week:
+The comment starts with the contributor-facing text given by the ``message``
+configuration item, followed (unless ``maintainer_notes`` is ``false``) by notes
+for maintainers listing the author's previous pull requests to the repository
+and how many issues and pull requests they have opened GitHub-wide in the last
+day and week. The configuration items are:
 
 * ``allowlist``: the URL of a plain text file listing GitHub usernames, one
   per line (blank lines and lines starting with ``#`` are ignored), whose pull
@@ -142,6 +143,9 @@ they have opened GitHub-wide in the last day and week:
 
   If the file cannot be fetched, a warning is logged and the allowlist is
   treated as empty.
+
+* ``maintainer_notes``: whether to append the notes for maintainers to the
+  comment. The default is ``true``.
 
 * ``message``: the Markdown text to show to the contributor, typically
   explaining how to get the pull request re-opened. If not set, a short generic
