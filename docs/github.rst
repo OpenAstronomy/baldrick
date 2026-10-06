@@ -63,6 +63,20 @@ permission is always granted to GitHub apps and does not need to be selected.
      - Read and write
      - The CircleCI artifacts plugin only, to post the link to the artifacts.
 
+Under "Organization permissions", the following is needed in addition:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 65
+
+   * - Permission
+     - Access
+     - Needed by
+   * - **Members**
+     - Read-only
+     - The organization vetting plugin, to check whether the author of a pull
+       request is a member of the organization.
+
 Once you have selected these permissions, extra "Subscribe to events" entries
 appear, of which the following are needed:
 
