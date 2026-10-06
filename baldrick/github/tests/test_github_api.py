@@ -4,7 +4,14 @@ from unittest.mock import MagicMock, Mock, PropertyMock, patch
 import pytest
 
 from baldrick.config import loads
-from baldrick.github.github_api import FILE_CACHE, ORG_CONFIG_CACHE, IssueHandler, PullRequestHandler, RepoHandler
+from baldrick.github.github_api import (
+    FILE_CACHE,
+    ORG_CONFIG_CACHE,
+    GitHubHandler,
+    IssueHandler,
+    PullRequestHandler,
+    RepoHandler,
+)
 
 # TODO: Add more tests to increase coverage.
 
@@ -44,8 +51,9 @@ class TestRepoHandler:
         mock_response.json.return_value = {"total_count": 7, "items": [{"number": 3}]}
         mock_get.return_value = mock_response
 
+        # The count is GitHub-wide, so it is available on any handler
         since = datetime(2026, 10, 4, 12, 30, 0, tzinfo=UTC)
-        assert self.repo.count_opened_by("contributor", "issue", since) == 7
+        assert GitHubHandler().count_opened_by("contributor", "issue", since) == 7
 
         args = mock_get.call_args[0]
         assert args[0] == "https://api.github.com/search/issues"
