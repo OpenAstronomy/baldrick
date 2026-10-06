@@ -3,6 +3,7 @@ import json
 from flask import Blueprint, request
 from loguru import logger
 
+from baldrick.github import github_auth
 from baldrick.github.github_api import RepoHandler
 from baldrick.webhooks import verify_github_webhook
 
@@ -27,6 +28,35 @@ def github_webhook_handler(func):
     return func
 
 
+def handle_installation_event(event, payload):
+    """
+    Update the cached installation mapping in response to an
+    ``installation`` or ``installation_repositories`` webhook event.
+
+    These events have no ``repository`` field, so they are dispatched before
+    the repository/installation extraction in :func:`github_webhook`.
+    """
+    action = payload.get("action")
+    installation_id = (payload.get("installation") or {}).get("id")
+    if installation_id is None:
+        return
+
+    if event == "installation":
+        if action in ("created", "unsuspended"):
+            github_auth.add_installation(installation_id)
+        elif action in ("deleted", "suspended"):
+            github_auth.remove_installation(installation_id)
+        # Other actions (e.g. new_permissions_accepted) are no-ops.
+
+    elif event == "installation_repositories":
+        if action == "added":
+            repos = [r["full_name"] for r in payload.get("repositories_added", [])]
+            github_auth.add_repositories_to_installation(installation_id, repos)
+        elif action == "removed":
+            repos = [r["full_name"] for r in payload.get("repositories_removed", [])]
+            github_auth.remove_repositories_from_installation(repos)
+
+
 @github_blueprint.route("/github", methods=["POST"])
 def github_webhook():
 
@@ -49,6 +79,16 @@ def github_webhook():
     if not isinstance(payload, dict):
         logger.warning(f"Rejecting GitHub webhook delivery {delivery} with a payload that is not a JSON object.")
         return "Payload is not a JSON object", 400
+
+    event = request.headers.get("X-GitHub-Event")
+    if event in ("installation", "installation_repositories"):
+        try:
+            handle_installation_event(event, payload)
+        except Exception:  # noqa: BLE001
+            logger.exception(f"Failed to process {event} webhook delivery {delivery}")
+            return "Failed to update installation cache", 502
+        logger.debug("Updated installation cache")
+        return "Installation cache updated"
 
     installation_id = (payload.get("installation") or {}).get("id")
     repo_name = (payload.get("repository") or {}).get("full_name")
