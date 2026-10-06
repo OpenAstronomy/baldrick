@@ -65,7 +65,7 @@ def previous_pull_requests_notes(pr_handler, repo_handler):
     """
     previous_prs = [n for n in repo_handler.get_pull_requests_by(pr_handler.user) if n != int(pr_handler.number)]
     if not previous_prs:
-        return "This user has not made any other pull requests to this repository prior to this one."
+        return "This user has not made any pull requests to this repository prior to this one."
     pr_list = "\n".join(f"* #{n}" for n in previous_prs)
     return f"This user has made other pull requests to this repository prior to this one, here is a full list:\n\n{pr_list}"
 
@@ -98,16 +98,16 @@ def close_if_not_in_org(pr_handler, repo_handler):
     logger.debug(f"Checking if {pr_handler.user} is a member of org")
 
     if repo_handler.org_handler.is_member(pr_handler.user):
-        logger.debug(f"Yes they are")
+        logger.debug(f"Passing org-vetting as {pr_hander.user} is a member of the org.")
         return
 
     if "allowlist" in vet_config:
         logger.debug(f"Checking if {pr_handler.user} is on the allowlist")
         if pr_handler.user.lower() in load_allowlist(vet_config["allowlist"]):
-            logger.debug("Yes they are")
+            logger.debug(f"Passing org-vetting as {pr_handler.user} is on the allowlist.")
             return
 
-    logger.debug(f"No they are not, posting comment")
+    logger.debug(f"Failing org-vetting as {repo_handler.user} is not in the org or on the allowlist.")
 
     # The contributor-facing text comes from the configuration (with a generic
     # fallback) and is not passed through str.format, so that it can contain
