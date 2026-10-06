@@ -30,12 +30,60 @@ variable on the server running the bot (see :ref:`heroku`). You can ignore
 "Setup URL". It would be useful to provide a description of what your bot
 intends to do but not required.
 
-The permissions of the app should be read/write access to **Commit statuses**,
-**Issues**, and **Pull requests**. Once you have checked these options,
-you will see extra "Subscribe to events" entries that you can check as well.
-For the events, it should be sufficient to only check **Status**,
-**Issue comment**, **Issues**, **Pull request**, **Pull request review**,
-**Pull request review comment**, and **Pushes**.
+Under "Repository permissions", give the app the permissions listed in the
+following table. Which ones are needed depends on the plugins you enable (see
+:doc:`plugins`), but it is simplest to grant all of them. The **Metadata**
+permission is always granted to GitHub apps and does not need to be selected.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 65
+
+   * - Permission
+     - Access
+     - Needed by
+   * - **Contents**
+     - Read-only
+     - All plugins, to read the bot configuration from ``pyproject.toml``. The
+       towncrier changelog checker also uses it to read changelog entries, and
+       push handlers need it to receive push events.
+   * - **Pull requests**
+     - Read and write
+     - All pull request handlers, to read pull request details and files and
+       to post comments.
+   * - **Issues**
+     - Read-only
+     - All pull request handlers, to receive events when the milestone of a
+       pull request changes.
+   * - **Checks**
+     - Read and write
+     - All pull request handlers, to report the results of the checks (for
+       example the milestone, towncrier changelog and base branch checkers).
+   * - **Commit statuses**
+     - Read and write
+     - The CircleCI artifacts plugin only, to post the link to the artifacts.
+
+Once you have selected these permissions, extra "Subscribe to events" entries
+appear, of which the following are needed:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - Event
+     - Needed by
+   * - **Pull request**
+     - All pull request handlers.
+   * - **Issues**
+     - All pull request handlers, to re-run the checks when the milestone of a
+       pull request changes.
+   * - **Push**
+     - Push handlers.
+
+The CircleCI artifacts plugin does not need any GitHub event, since it is
+triggered by CircleCI webhooks instead. Other events (such as **Status** or
+**Issue comment**) are ignored by the bot, so there is no need to subscribe
+to them.
 
 It is up to you to choose whether you want to allow your GitHub app here to
 be installed only on your account or by any user or organization.
