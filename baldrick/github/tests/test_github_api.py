@@ -70,6 +70,7 @@ class TestRepoHandler:
 
         # The count is GitHub-wide, so it is available on any handler
         since = datetime(2026, 10, 4, 12, 30, 0, tzinfo=UTC)
+        assert self.repo.count_opened_by("contributor", "issue", since) == 7
         assert GitHubHandler().count_opened_by("contributor", "issue", since) == 7
 
         args = mock_get.call_args[0]
