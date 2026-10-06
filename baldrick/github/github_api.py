@@ -245,16 +245,17 @@ class RepoHandler(GitHubHandler):
 
         if file_content:
             repo_config = loads(file_content, tool=current_app.bot_username) or Config()
-            logger.trace(f"Got the following config from {self.repo}@{branch}: {repo_config.summary()}")
             if len(repo_config) == 0:
-                logger.exception(
+                logger.warning(
                     f"Failed to load config in {self.repo} on branch {branch}, despite finding a pyproject.toml file."
                 )
+            else:
+                logger.trace(f"Got the following config from {self.repo}@{branch}: {repo_config.summary()}")
 
             if getattr(current_app, "fall_back_config", None):
                 fallback_config = loads(file_content, tool=current_app.fall_back_config) or Config()
-                if len(fallback_config) == 0:
-                    logger.trace(f"Didn't find a fallback config in {self.repo}@{branch}.")
+                if len(fallback_config) > 0:
+                    logger.trace(f"Found fallback config in {self.repo}@{branch} {fallback_config.summary()}.")
 
         # Priority is 1) repo_config 2) fallback_config 3) org_config 4) app_config
         app_config.update_from_config(org_config)
