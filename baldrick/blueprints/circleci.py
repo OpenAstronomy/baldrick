@@ -37,8 +37,6 @@ def circleci_new_handler():
         logger.warning("Rejecting CircleCI v2 webhook with a payload that is not valid JSON.")
         return "Payload is not valid JSON", 400
 
-    logger.debug(f"Got {pformat(payload)} on /circleci/v2")
-
     if not isinstance(payload, dict):
         return "Payload is not a JSON object", 400
 
