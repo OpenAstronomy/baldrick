@@ -17,6 +17,8 @@ member of the organization. A maintainer can re-open it if appropriate.
 MAINTAINER_NOTES = """\
 ### Notes for maintainers
 
+{preamble}
+
 {previous_prs}
 
 In addition, here are some statistics on the user's activity on GitHub:
@@ -167,7 +169,9 @@ def vet_pull_request(pr_handler, repo_handler, close):
         # disabled.
         message = vet_config.get("message", DEFAULT_MESSAGE).strip()
         if vet_config.get("maintainer_notes", True):
+            preamble = vet_config.get("maintainer_preamble", "").strip()
             notes = MAINTAINER_NOTES.format(
+                preamble=preamble,
                 previous_prs=previous_pull_requests_notes(pr_handler, repo_handler),
                 **activity_counts(pr_handler, repo_handler),
             )

@@ -161,6 +161,9 @@ day and week. The configuration items are:
 * ``maintainer_notes``: whether to append the notes for maintainers to the
   comment. The default is ``true``.
 
+* ``maintainer_preamble``: A free-form section under the "maintainer
+  notes" heading, only used if ``maintainer_notes=True``.
+
 * ``message``: the Markdown text to show to the contributor, typically
   explaining how to get the pull request re-opened. If not set, a short generic
   explanation is used. For example::
