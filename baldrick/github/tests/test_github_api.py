@@ -11,9 +11,115 @@ from baldrick.github.github_api import (
     IssueHandler,
     PullRequestHandler,
     RepoHandler,
+    paged_github_json_request,
 )
 
 # TODO: Add more tests to increase coverage.
+
+
+def _mock_response(json_data, link_header=None):
+    """Build a mock requests.Response with optional pagination Link header."""
+    mock_resp = Mock()
+    mock_resp.json.return_value = json_data
+    mock_resp.raise_for_status.return_value = None
+    mock_resp.headers = {"Link": link_header} if link_header else {}
+    return mock_resp
+
+
+LINK_TEMPLATE = (
+    '<https://api.github.com/test?page={next}>; rel="next", '
+    '<https://api.github.com/test?page={last}>; rel="last"'
+)
+
+
+class TestPagedGithubJsonRequest:
+    """Tests for the paged_github_json_request helper."""
+
+    @patch("baldrick.github.github_api.requests.get")
+    def test_single_page_list(self, mock_get):
+        data = [{"name": "label1"}, {"name": "label2"}]
+        mock_get.return_value = _mock_response(data)
+
+        result = paged_github_json_request("https://api.github.com/test")
+
+        assert result == data
+        assert mock_get.call_count == 1
+
+    @patch("baldrick.github.github_api.requests.get")
+    def test_single_page_dict(self, mock_get):
+        data = {"total_count": 2, "check_runs": [{"id": 1}, {"id": 2}]}
+        mock_get.return_value = _mock_response(data)
+
+        result = paged_github_json_request("https://api.github.com/test")
+
+        assert result == data
+
+    @patch("baldrick.github.github_api.requests.get")
+    def test_multi_page_list(self, mock_get):
+        link = LINK_TEMPLATE.format(next=2, last=2)
+        mock_get.side_effect = [
+            _mock_response([{"id": 1}, {"id": 2}], link_header=link),
+            _mock_response([{"id": 3}, {"id": 4}]),
+        ]
+
+        result = paged_github_json_request("https://api.github.com/test")
+
+        assert result == [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 4}]
+
+    @patch("baldrick.github.github_api.requests.get")
+    def test_multi_page_dict(self, mock_get):
+        link = LINK_TEMPLATE.format(next=2, last=2)
+        mock_get.side_effect = [
+            _mock_response({"total_count": 4, "check_runs": [{"id": 1}, {"id": 2}]}, link_header=link),
+            _mock_response({"total_count": 4, "check_runs": [{"id": 3}, {"id": 4}]}),
+        ]
+
+        result = paged_github_json_request("https://api.github.com/test")
+
+        assert result == {
+            "total_count": 4,
+            "check_runs": [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 4}],
+        }
+
+    @patch("baldrick.github.github_api.requests.get")
+    def test_multi_page_three_pages_list(self, mock_get):
+        link = LINK_TEMPLATE.format(next=2, last=3)
+        mock_get.side_effect = [
+            _mock_response([{"id": 1}], link_header=link),
+            _mock_response([{"id": 2}]),
+            _mock_response([{"id": 3}]),
+        ]
+
+        result = paged_github_json_request("https://api.github.com/test")
+
+        assert result == [{"id": 1}, {"id": 2}, {"id": 3}]
+
+    @patch("baldrick.github.github_api.requests.get")
+    def test_multi_page_three_pages_dict(self, mock_get):
+        link = LINK_TEMPLATE.format(next=2, last=3)
+        mock_get.side_effect = [
+            _mock_response({"total_count": 3, "check_runs": [{"id": 1}]}, link_header=link),
+            _mock_response({"total_count": 3, "check_runs": [{"id": 2}]}),
+            _mock_response({"total_count": 3, "check_runs": [{"id": 3}]}),
+        ]
+
+        result = paged_github_json_request("https://api.github.com/test")
+
+        assert result == {
+            "total_count": 3,
+            "check_runs": [{"id": 1}, {"id": 2}, {"id": 3}],
+        }
+
+    @patch("baldrick.github.github_api.requests.get")
+    def test_single_page_no_link_header(self, mock_get):
+        """When there is no Link header at all, the raw json is returned."""
+        data = [{"event": "labeled"}]
+        mock_get.return_value = _mock_response(data)
+
+        result = paged_github_json_request("https://api.github.com/test")
+
+        assert result == data
+        assert mock_get.call_count == 1
 
 
 class TestRepoHandler:

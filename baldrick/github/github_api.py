@@ -44,7 +44,21 @@ def paged_github_json_request(url, headers=None):
             for page in range(2, last_page + 1):
                 response = requests.get(url + f"?page={page}", headers=headers)
                 response.raise_for_status()
-                results = {**results, **response.json()}
+                data = response.json()
+                if isinstance(results, list) and isinstance(data, list):
+                    results.extend(data)
+                elif isinstance(results, dict) and isinstance(data, dict):
+                    # Merge dict responses, extending any list values that
+                    # appear in both (e.g. "check_runs" from check-runs pages)
+                    for key, value in data.items():
+                        if (
+                            key in results
+                            and isinstance(results[key], list)
+                            and isinstance(value, list)
+                        ):
+                            results[key].extend(value)
+                        else:
+                            results[key] = value
 
     return results
 
