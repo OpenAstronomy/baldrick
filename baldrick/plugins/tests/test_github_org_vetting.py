@@ -94,7 +94,13 @@ def test_member_passes():
 
     repo_handler.org_handler.is_member.assert_called_once_with("contributor")
     assert_running_check_posted(pr_handler)
-    assert result == {"org_vetting": {"conclusion": "success", "title": "Author is a member of the organization"}}
+    assert result == {
+        "org_vetting": {
+            "conclusion": "success",
+            "title": "Author is a member of the organization",
+            "name": "New Contributor",
+        }
+    }
     assert not pr_handler.submit_comment.called
     assert not pr_handler.close.called
 

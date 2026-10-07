@@ -72,29 +72,29 @@ def handle_pull_requests(repo_handler, payload, headers):
 
     if event not in ("pull_request", "issues"):
         logger.debug(f"Not a pull_request or issues event (got {event})")
-        return
+        return None
 
     # We only need to listen to certain kinds of events:
     if event == "pull_request":
         if payload["action"] not in ("unlabeled", "labeled", "synchronize", "opened", "reopened"):
-            logger.debug("Action '" + payload["action"] + "' does not require action")
-            return
+            logger.trace("Action '" + payload["action"] + "' does not require action")
+            return None
     elif event == "issues":
         if payload["action"] not in ("milestoned", "demilestoned"):
-            logger.debug("Action '" + payload["action"] + "' does not require action")
-            return
+            logger.trace("Action '" + payload["action"] + "' does not require action")
+            return None
 
     if event == "pull_request":
         number = payload["pull_request"]["number"]
     elif event == "issues":
         number = payload["issue"]["number"]
     else:
-        logger.debug("Not an issue or pull request")
-        return
+        logger.trace("Event not an issue or pull request")
+        return None
 
     is_new = (event == "pull_request") & (payload["action"] == "opened")
 
-    logger.debug(f"Processing event {event} #{number} on {repo_handler.repo}")
+    logger.debug(f"{repo_handler.repo}#{number} - processing event {event}")
 
     return process_pull_request(
         repo_handler.repo, number, repo_handler.installation, action=payload["action"], is_new=is_new
@@ -107,16 +107,17 @@ def process_pull_request(repository, number, installation, action, is_new=False)
     # certain events.
     pr_handler = PullRequestHandler(repository, number, installation)
 
+    pr_name = f"{pr_handler.head_repo_name}#{pr_handler.number}"
     pr_config = pr_handler.get_config_value("pull_requests", {})
     if not pr_config.get("enabled", False):
-        msg = "Skipping PR checks, disabled in config."
+        msg = f"{pr_name} - Skipping PR checks, disabled in config."
         logger.debug(msg)
         return msg
 
     # Don't comment on closed PR
     if pr_handler.is_closed:
-        logger.debug("Pull request already closed, no need to check")
-        return
+        logger.debug(f"{pr_name} - Pull request already closed, no need to check")
+        return None
 
     repo_handler = RepoHandler(repository, installation)
 
@@ -221,4 +222,5 @@ def process_pull_request(repository, number, installation, action, is_new=False)
         if special_msg:
             pr_handler.submit_comment(special_msg)
 
-    logger.debug("Finished pull requests checks")
+    logger.debug(f"{pr_name} - Finished pull requests checks")
+    return None
