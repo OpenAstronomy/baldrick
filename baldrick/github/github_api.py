@@ -262,7 +262,7 @@ class RepoHandler(GitHubHandler):
         app_config.update_from_config(fallback_config)
         app_config.update_from_config(repo_config)
 
-        logger.debug(f"Got this combined config from {self.repo}@{branch}: {app_config.summary()}")
+        logger.debug(f"Got this combined config {app_config.summary()}")
 
         return app_config
 
