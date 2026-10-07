@@ -92,16 +92,17 @@ def vetting_decision(pr_handler, repo_handler, vet_config, reopened_override):
         A short explanation, used as the title of the status check.
     """
     user = pr_handler.user
+    pr_name = f"{pr_handler.head_repo_name}#{pr_handler.number}"
 
-    logger.debug(f"Checking if {user} is a member of org")
+    logger.debug(f"{pr_name} - Checking if {user} is a member of org")
     if repo_handler.org_handler.is_member(user):
-        logger.debug(f"Passing org-vetting as {user} is a member of the org.")
+        logger.debug(f"{pr_name} - Passing org-vetting as {user} is a member of the org.")
         return True, "Author is a member of the organization"
 
     if "allowlist" in vet_config:
-        logger.debug(f"Checking if {user} is on the allowlist")
+        logger.debug(f"{pr_name} - Checking if {user} is on the allowlist")
         if user.lower() in load_allowlist(vet_config["allowlist"]):
-            logger.debug(f"Passing org-vetting as {user} is on the allowlist.")
+            logger.debug(f"{pr_name} - Passing org-vetting as {user} is on the allowlist.")
             return True, "Author is on the allowlist"
 
     if reopened_override:
@@ -110,10 +111,10 @@ def vetting_decision(pr_handler, repo_handler, vet_config, reopened_override):
         # decision and there is no need to check who did it.
         reopened_by = pr_handler.last_reopened_by
         if reopened_by is not None:
-            logger.debug(f"Passing org-vetting as the pull request was re-opened by {reopened_by}.")
+            logger.debug(f"{pr_name} - Passing org-vetting as the pull request was re-opened by {reopened_by}.")
             return True, f"Re-opened by @{reopened_by}"
 
-    logger.debug(f"Failing org-vetting as {user} is not in the org or on the allowlist.")
+    logger.debug(f"{pr_name} - Failing org-vetting as {user} is not in the org or on the allowlist.")
     return False, "Author is not a member of the organization or on the allowlist"
 
 
@@ -130,9 +131,11 @@ def vet_pull_request(pr_handler, repo_handler, close):
         vetting (done when the pull request is first opened). Otherwise a
         pull request that has been re-opened passes.
     """
+    pr_name = f"{pr_handler.head_repo_name}#{pr_handler.number}"
+
     vet_config = pr_handler.get_config_value("org_vetting", {})
     if not vet_config.get("enabled", False):
-        logger.debug("Skipping org vetting plugin as disabled in config")
+        logger.debug(f"{pr_name} - Skipping org vetting plugin as disabled in config")
         return None
 
     # Show the check as running while the lookups below happen; the result
@@ -144,7 +147,7 @@ def vet_pull_request(pr_handler, repo_handler, close):
     try:
         passed, reason = vetting_decision(pr_handler, repo_handler, vet_config, reopened_override=not close)
     except Exception as exc:  # noqa: BLE001 - any failure to decide is reported on the pull request
-        logger.exception(f"Could not vet the author of {pr_handler.repo}#{pr_handler.number}")
+        logger.exception(f"{pr_name} - Could not vet the author of {pr_handler.repo}#{pr_handler.number}")
         return {
             CHECK_ID: {
                 "conclusion": "neutral",
