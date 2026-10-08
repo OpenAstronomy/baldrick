@@ -42,7 +42,7 @@ class TestTowncrierPlugin:
     def setup_method(self, method):
 
         self.get_file_contents_mock = patch("baldrick.github.github_api.PullRequestHandler.get_file_contents")
-        self.get_org_config_mock = patch("baldrick.github.github_api.RepoHandler.get_org_config", return_value=Config())
+        self.get_org_config_mock = patch("baldrick.github.github_api.RepoHandler.get_org_config", return_value=(Config(), False))
         self.get_org_config_mock.start()
         self.get_base_branch_mock = patch("baldrick.github.github_api.PullRequestHandler.base_branch")
         a = self.get_base_branch_mock.start()
@@ -66,7 +66,7 @@ class TestTowncrierPlugin:
     @pytest.mark.xfail(sys.platform.startswith("win"), reason="process_towncrier_changelog returns failure on Windows")
     def test_changelog_present(self, app):
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE, False)
         self.modified_files.return_value = ["testbot/newsfragments/1234.bugfix"]
 
         with app.app_context():
@@ -78,7 +78,7 @@ class TestTowncrierPlugin:
     @pytest.mark.xfail(sys.platform.startswith("win"), reason="process_towncrier_changelog returns failure on Windows")
     def test_changelog_type_substring(self, app):
 
-        self.get_file_contents.return_value = CUSTOM_TYPE_TEMPLATE
+        self.get_file_contents.return_value = (CUSTOM_TYPE_TEMPLATE, False)
         self.modified_files.return_value = ["changelog/1234.docfix.rst"]
 
         with app.app_context():
