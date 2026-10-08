@@ -74,7 +74,7 @@ class TestArtifactPlugin:
         }
 
     def test_skip(self, app):
-        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(enabled="false")
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE.format(enabled="false"), False)
         with app.app_context():
             set_commit_status_for_artifacts(
                 self.repo_handler, "v1", self.basic_payload(), {}, "success", "2.0", "12356"
@@ -83,7 +83,7 @@ class TestArtifactPlugin:
         assert self.set_status.call_count == 0
 
     def test_no_artifact(self, app):
-        self.get_file_contents.return_value = CONFIG_TEMPLATE.format(enabled="true")
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE.format(enabled="true"), False)
         with app.app_context():
             set_commit_status_for_artifacts(
                 self.repo_handler, "v1", self.basic_payload(), {}, "success", "2.0", "12356"
@@ -93,7 +93,7 @@ class TestArtifactPlugin:
         assert self.get_artifacts.call_count == 1
 
     def test_artifacts(self, app, caplog):
-        self.get_file_contents.return_value = CONFIG_TEMPLATE_ARTIFACT_2
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE_ARTIFACT_2, False)
         self.get_artifacts.return_value = [
             {
                 "path": "raw-test-output/go-test-report.xml",
@@ -142,7 +142,7 @@ class TestArtifactPlugin:
         assert self.get_artifacts.call_count == 1
 
     def test_report_on_fail(self, app, caplog):
-        self.get_file_contents.return_value = CONFIG_TEMPLATE_ARTIFACT_2
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE_ARTIFACT_2, False)
         self.get_artifacts.return_value = [
             {
                 "path": "raw-test-output/go-test-report.xml",
