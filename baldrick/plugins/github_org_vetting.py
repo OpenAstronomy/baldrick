@@ -5,6 +5,7 @@ import requests
 from cachetools import TTLCache
 from loguru import logger
 
+from baldrick.github.github_api import RepoHandler
 from baldrick.plugins.github_pull_requests import pull_request_handler
 
 ALLOWLIST_CACHE = TTLCache(maxsize=64, ttl=float(os.environ.get("BALDRICK_FILE_CACHE_TTL", 60)))
@@ -72,11 +73,19 @@ def activity_counts(pr_handler, repo_handler):
     Count the issues and pull requests the author has opened GitHub-wide over
     the last day and the last week.
     """
+    return activity_counts_by_user(pr_handler.user, repo_handler)
+
+
+def activity_counts_by_user(user, repo_handler=None):
+    """Like :func:`activity_counts` but for a given user."""
+    if repo_handler is None:
+        repo_handler = RepoHandler("OpenAstronomy/baldrick")
+
     now = datetime.now(UTC)
     counts = {}
     for period, delta in (("day", timedelta(days=1)), ("week", timedelta(days=7))):
         for kind in ("pr", "issue"):
-            counts[f"{kind}_{period}"] = repo_handler.count_opened_by(pr_handler.user, kind, now - delta)
+            counts[f"{kind}_{period}"] = repo_handler.count_opened_by(user, kind, now - delta)
     return counts
 
 
