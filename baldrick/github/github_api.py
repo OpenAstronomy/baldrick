@@ -157,7 +157,7 @@ class RepoHandler(GitHubHandler):
         # TTLCache raises KeyError for expired as well as missing keys, so
         # we access the cache via try/except
         try:
-            return FILE_CACHE[cache_key]
+            return FILE_CACHE[cache_key], True
         except KeyError:
             pass
 
@@ -171,7 +171,7 @@ class RepoHandler(GitHubHandler):
         contents = base64.b64decode(contents_base64).decode()
 
         FILE_CACHE[cache_key] = contents
-        return contents
+        return contents, False
 
     def get_org_config(self, path_to_file="pyproject.toml"):
         """
@@ -202,14 +202,15 @@ class RepoHandler(GitHubHandler):
         # every call. TTLCache raises KeyError for expired as well as missing
         # keys, so we access the cache via try/except.
         try:
-            return ORG_CONFIG_CACHE[cache_key].copy()
+            return ORG_CONFIG_CACHE[cache_key].copy(), True
         except KeyError:
             pass
 
         org_repo = RepoHandler(f"{owner}/.github", installation=self.installation)
 
+        cached = False
         try:
-            file_content = org_repo.get_file_contents(path_to_file)
+            file_content, cached = org_repo.get_file_contents(path_to_file)
         except (FileNotFoundError, ValueError):
             logger.debug(f"No {path_to_file} found in {org_repo.repo}.")
             org_config = Config()
@@ -218,7 +219,7 @@ class RepoHandler(GitHubHandler):
             logger.trace(f"Got the following config from {org_repo.repo}: {org_config.summary()}")
 
         ORG_CONFIG_CACHE[cache_key] = org_config
-        return org_config.copy()
+        return org_config.copy(), cached
 
     def get_repo_config(self, branch=None, path_to_file="pyproject.toml"):
         """
@@ -247,15 +248,16 @@ class RepoHandler(GitHubHandler):
         """
         branch = branch or self.default_branch
         app_config = current_app.conf.copy()
-        org_config = self.get_org_config(path_to_file=path_to_file)
+        org_config, org_cached = self.get_org_config(path_to_file=path_to_file)
         fallback_config = Config()
         repo_config = Config()
 
         try:
-            file_content = self.get_file_contents(path_to_file, branch=branch)
+            file_content, cached = self.get_file_contents(path_to_file, branch=branch)
         except FileNotFoundError:
             logger.debug(f"No config file found in {self.repo}@{branch}.")
             file_content = None
+            cached = False
 
         if file_content:
             repo_config = loads(file_content, tool=current_app.bot_username) or Config()
@@ -276,7 +278,8 @@ class RepoHandler(GitHubHandler):
         app_config.update_from_config(fallback_config)
         app_config.update_from_config(repo_config)
 
-        logger.debug(f"Got this combined config {app_config.summary()}")
+        if not (cached or org_cached):
+            logger.debug(f"{self.repo} - Fetched combined config {app_config.summary()}")
 
         return app_config
 
