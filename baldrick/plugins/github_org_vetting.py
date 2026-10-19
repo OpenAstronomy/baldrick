@@ -152,7 +152,7 @@ def vet_pull_request(pr_handler, repo_handler, close):
     # Show the check as running while the lookups below happen; the result
     # returned from this function completes it.
     pr_handler.set_check(
-        CHECK_ID, name="New Contributor", title="Vetting the author of this pull request", status="in_progress", conclusion=None
+        CHECK_ID, name="Known Contributor", title="Vetting the author of this pull request", status="in_progress", conclusion=None
     )
 
     try:
@@ -162,14 +162,14 @@ def vet_pull_request(pr_handler, repo_handler, close):
         return {
             CHECK_ID: {
                 "conclusion": "neutral",
-                "name": "New Contributor",
+                "name": "Known Contributor",
                 "title": "Could not vet the author of this pull request",
                 "summary": f"An error occurred while checking the author; the pull request has been left open.\n\n{type(exc).__name__}: {exc}",
             }
         }
 
     if passed:
-        return {CHECK_ID: {"conclusion": "success", "title": reason, "name": "New Contributor"}}
+        return {CHECK_ID: {"conclusion": "success", "title": reason, "name": "Known Contributor"}}
 
     if close:
         # The contributor-facing text comes from the configuration (with a
@@ -189,7 +189,7 @@ def vet_pull_request(pr_handler, repo_handler, close):
         pr_handler.submit_comment(message)
         pr_handler.close()
 
-    return {CHECK_ID: {"conclusion": "failure", "title": reason, "name": "New Contributor"}}
+    return {CHECK_ID: {"conclusion": "failure", "title": reason, "name": "Known Contributor"}}
 
 
 @pull_request_handler(actions=["opened"])

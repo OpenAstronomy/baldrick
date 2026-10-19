@@ -98,7 +98,7 @@ def test_member_passes():
         "org_vetting": {
             "conclusion": "success",
             "title": "Author is a member of the organization",
-            "name": "New Contributor",
+            "name": "Known Contributor",
         }
     }
     assert not pr_handler.submit_comment.called
