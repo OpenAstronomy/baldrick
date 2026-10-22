@@ -32,6 +32,20 @@ CONFIG_TEMPLATE_ARTIFACT_2 = """
         report_on_fail = true
 """
 
+CONFIG_TEMPLATE_ARTIFACT_JOBS = """
+[ tool.testbot ]
+    [ tool.testbot.circleci_artifacts ]
+    enabled = true
+    [ tool.testbot.circleci_artifacts.report ]
+        job = "test-visual"
+        url = "results/fig_comparison.html"
+        message = "Figures for test-visual"
+    [ tool.testbot.circleci_artifacts.report_dev ]
+        job = "test-visual-dev"
+        url = "results/fig_comparison.html"
+        message = "Figures for test-visual-dev"
+"""
+
 
 class TestArtifactPlugin:
     def setup_method(self, method):
@@ -171,4 +185,29 @@ class TestArtifactPlugin:
             "other",
             "2.0",
             "https://24-88881093-gh.circle-artifacts.com/0/raw-test-output/go-test.out",
+        )
+
+    def test_job_filter(self, app):
+        self.get_file_contents.return_value = CONFIG_TEMPLATE_ARTIFACT_JOBS
+        self.get_artifacts.return_value = [
+            {
+                "path": "results/fig_comparison.html",
+                "pretty_path": "results/fig_comparison.html",
+                "node_index": 0,
+                "url": "https://output.circle-artifacts.com/output/job/abc/artifacts/0/results/fig_comparison.html",
+            },
+        ]
+
+        payload = {"type": "job-completed", "job": {"name": "test-visual-dev", "status": "success", "number": 12356}}
+
+        with app.app_context():
+            set_commit_status_for_artifacts(self.repo_handler, "v2", payload, {}, "success", "2.0", 12356)
+
+        # Only the configuration for the job that completed is reported
+        self.set_status.assert_called_once_with(
+            "success",
+            "Figures for test-visual-dev",
+            "report_dev",
+            "2.0",
+            "https://output.circle-artifacts.com/output/job/abc/artifacts/0/results/fig_comparison.html",
         )

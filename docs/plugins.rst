@@ -64,6 +64,22 @@ of ``"success"``, if ``report_on_fail`` is set to ``true`` then the artifact
 status will be posted (as long as it is successfully uploaded) irrespective of
 the build status.
 
+By default, each artifact status is posted for every CircleCI job that
+completes, so if several jobs upload artifacts at the same path, the status will
+link to whichever job finished last. To report the artifacts of several jobs
+separately, add one sub-section per job and set the ``job`` option to the name
+of the CircleCI job, for example::
+
+    [ tool.<your-bot-name>.circleci_artifacts.figure_report ]
+    job = "py311-test-visual"
+    url = "results/fig_comparison.html"
+    message = "Click details to see the image comparisons for py311-test-visual"
+
+    [ tool.<your-bot-name>.circleci_artifacts.figure_report_dev ]
+    job = "py311-test-visual-dev"
+    url = "results/fig_comparison.html"
+    message = "Click details to see the image comparisons for py311-test-visual-dev"
+
 Push handlers
 -------------
 
