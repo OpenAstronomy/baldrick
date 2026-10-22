@@ -24,13 +24,21 @@ def set_commit_status_for_artifacts(repo_handler, webhook_version, payload, head
     # Remove enabled from the config list
     ci_config.pop("enabled", None)
 
+    job_name = payload.get("job", {}).get("name")
+
     for name, config in ci_config.items():
         logger.trace(f"{commit_name} - Job {name=} {config=}")
         if not config.get("enabled", True) or (status != "success" and not config.get("report_on_fail", False)):
             continue
 
+        # If a job name is given, only report artifacts from that job
+        if "job" in config and config["job"] != job_name:
+            continue
+
         if "url" not in config or "message" not in config:
-            logger.warning(f"{commit_name} - Incorrectly configured job {name}, skipping because missing url or message")
+            logger.warning(
+                f"{commit_name} - Incorrectly configured job {name}, skipping because missing url or message"
+            )
             continue
 
         url = get_documentation_url_from_artifacts(artifacts, config["url"])
