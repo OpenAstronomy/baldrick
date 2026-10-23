@@ -30,6 +30,15 @@ In addition, here are some statistics on the user's activity on GitHub:
 | Issues opened        | {issue_day} | {issue_week} |
 """
 
+USER_STAT_ONLY_TEXT = """\
+Here are some statistics on {user}'s activity on GitHub:
+
+|                      | Last 24 hours | Last 7 days |
+| -------------------- | ------------: | ----------: |
+| Pull requests opened | {pr_day} | {pr_week} |
+| Issues opened        | {issue_day} | {issue_week} |
+"""
+
 
 def load_allowlist(url):
     """
@@ -76,7 +85,7 @@ def activity_counts(pr_handler, repo_handler):
     return activity_counts_by_user(pr_handler.user, repo_handler)
 
 
-def activity_counts_by_user(user, repo_handler=None):
+def activity_counts_by_user(user, repo_handler=None, markdown=False):
     """Like :func:`activity_counts` but for a given user."""
     if repo_handler is None:
         repo_handler = RepoHandler("OpenAstronomy/baldrick")
@@ -86,7 +95,11 @@ def activity_counts_by_user(user, repo_handler=None):
     for period, delta in (("day", timedelta(days=1)), ("week", timedelta(days=7))):
         for kind in ("pr", "issue"):
             counts[f"{kind}_{period}"] = repo_handler.count_opened_by(user, kind, now - delta)
-    return counts
+
+    if not markdown:
+        return counts
+
+    return USER_STAT_ONLY_TEXT.format(user=user, **counts)
 
 
 CHECK_ID = "org_vetting"
