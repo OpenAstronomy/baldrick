@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
@@ -12,6 +13,7 @@ from baldrick.github.github_api import (
     PullRequestHandler,
     RepoHandler,
     paged_github_json_request,
+    Config,
 )
 
 # TODO: Add more tests to increase coverage.
@@ -252,7 +254,7 @@ class TestOrgConfig:
                 raise result
             if result is None:
                 raise FileNotFoundError(path_to_file)
-            return result
+            return result, False
 
         return patch.object(RepoHandler, "get_file_contents", autospec=True, side_effect=get_file_contents)
 
@@ -286,27 +288,27 @@ class TestOrgConfig:
     def test_missing_org_config_is_ignored(self, app, org_result):
         with app.app_context():
             with self.fake_file_contents({"fakeorg/.github": org_result, "fakeorg/fakerepo": TEST_CONFIG}):
-                assert self.repo.get_org_config() == {}
+                assert self.repo.get_org_config() == ({}, False)
                 assert self.repo.get_config_value("pr", branch="main") == {"setting1": 2, "setting2": 3}
                 assert self.repo.get_config_value("org_vetting", branch="main") is None
 
     def test_org_config_is_cached(self, app):
         with app.app_context():
             with self.fake_file_contents({"fakeorg/.github": TEST_ORG_CONFIG}) as mock_get:
-                first = self.repo.get_org_config()
-                second = RepoHandler("fakeorg/otherrepo").get_org_config()
+                first, _ = self.repo.get_org_config()
+                second, _ = RepoHandler("fakeorg/otherrepo").get_org_config()
                 assert first == second
                 assert mock_get.call_count == 1
 
                 # Modifying the returned config must not modify the cached copy
                 first["org_vetting"]["enabled"] = False
-                assert self.repo.get_org_config()["org_vetting"]["enabled"] is True
+                assert self.repo.get_org_config()[0]["org_vetting"]["enabled"] is True
 
     def test_missing_org_config_is_cached(self, app):
         with app.app_context():
             with self.fake_file_contents({}) as mock_get:
-                assert self.repo.get_org_config() == {}
-                assert self.repo.get_org_config() == {}
+                assert self.repo.get_org_config() == ({}, False)
+                assert self.repo.get_org_config() == ({}, True)
                 assert mock_get.call_count == 1
 
     def test_org_config_read_from_owner_dot_github_repo(self, app):
@@ -316,6 +318,145 @@ class TestOrgConfig:
                 handler, path = mock_get.call_args[0]
                 assert handler.repo == "fakeorg/.github"
                 assert path == "pyproject.toml"
+
+
+class TestRepoConfig:
+    """
+    Tests for the configuration parsing in ``get_repo_config``, mirroring the
+    config-parsing tests in ``TestRealRepoHandler`` but using mocks so that the
+    GitHub API is never called.
+    """
+
+    def setup_method(self, method):
+        FILE_CACHE.clear()
+        ORG_CONFIG_CACHE.clear()
+        self.repo = RepoHandler("fakeorg/fakerepo")
+
+    def test_get_config_value(self, app):
+        with (
+            patch.object(RepoHandler, "default_branch", new_callable=PropertyMock, return_value="main"),
+            patch.object(RepoHandler, "get_org_config", return_value=(Config(), False)),
+            patch.object(self.repo, "get_file_contents", return_value=(TEST_CONFIG, False)),
+            app.app_context(),
+        ):
+            assert self.repo.get_config_value("pr")["setting1"] == 2
+            assert self.repo.get_config_value("pr")["setting2"] == 3
+
+    def test_get_fallback_config_value(self, app):
+        with (
+            patch.object(RepoHandler, "default_branch", new_callable=PropertyMock, return_value="main"),
+            patch.object(RepoHandler, "get_org_config", return_value=(Config(), False)),
+            patch.object(self.repo, "get_file_contents", return_value=(TEST_FALLBACK_CONFIG, False)),
+            app.app_context(),
+        ):
+            app.fall_back_config = "nottestbot"
+
+            assert self.repo.get_config_value("pr")["setting1"] == 5
+            assert self.repo.get_config_value("pr")["setting3"] == 4
+
+    def test_get_fallback_with_primary_config_value(self, app):
+        with (
+            patch.object(RepoHandler, "default_branch", new_callable=PropertyMock, return_value="main"),
+            patch.object(RepoHandler, "get_org_config", return_value=(Config(), False)),
+            patch.object(self.repo, "get_file_contents", return_value=(TEST_CONFIG + TEST_FALLBACK_CONFIG, False)),
+            app.app_context(),
+        ):
+            app.fall_back_config = "nottestbot"
+
+            assert self.repo.get_config_value("pr")["setting1"] == 2
+            assert self.repo.get_config_value("pr")["setting2"] == 3
+            assert self.repo.get_config_value("pr")["setting3"] == 4
+
+    def test_get_config_value_with_app_defaults(self, app):
+        with (
+            patch.object(RepoHandler, "default_branch", new_callable=PropertyMock, return_value="main"),
+            patch.object(RepoHandler, "get_org_config", return_value=(Config(), False)),
+            patch.object(self.repo, "get_file_contents", return_value=(TEST_CONFIG, False)),
+            app.app_context(),
+        ):
+            assert self.repo.get_config_value("pr") == {"setting1": 2, "setting2": 3}
+            assert self.repo.get_config_value("other") is None
+
+            app.conf = loads(TEST_GLOBAL_CONFIG, tool="testbot")
+
+            assert self.repo.get_config_value("pr") == {"setting1": 2, "setting2": 3, "setting3": 6}
+            assert self.repo.get_config_value("other") == {"setting4": 5}
+
+    def test_missing_config_file(self, app):
+        with (
+            patch.object(RepoHandler, "default_branch", new_callable=PropertyMock, return_value="main"),
+            patch.object(RepoHandler, "get_org_config", return_value=(Config(), False)),
+            patch.object(self.repo, "get_file_contents", side_effect=FileNotFoundError("not found")),
+            app.app_context(),
+        ):
+            app.conf = loads(TEST_GLOBAL_CONFIG, tool="testbot")
+
+            assert self.repo.get_config_value("pr") == {"setting1": 1, "setting2": 5, "setting3": 6}
+            assert self.repo.get_config_value("other") == {"setting4": 5}
+
+    def test_config_file_without_tool_section(self, app):
+        with (
+            patch.object(RepoHandler, "default_branch", new_callable=PropertyMock, return_value="main"),
+            patch.object(RepoHandler, "get_org_config", return_value=(Config(), False)),
+            patch.object(self.repo, "get_file_contents", return_value=(TEST_FALLBACK_CONFIG, False)),
+            app.app_context(),
+        ):
+            app.conf = loads(TEST_GLOBAL_CONFIG, tool="testbot")
+
+            assert self.repo.get_config_value("pr") == {"setting1": 1, "setting2": 5, "setting3": 6}
+
+    def test_org_config_value_provides_defaults(self, app):
+        org_config = loads(TEST_ORG_CONFIG, tool="testbot")
+        with (
+            patch.object(RepoHandler, "default_branch", new_callable=PropertyMock, return_value="main"),
+            patch.object(RepoHandler, "get_org_config", return_value=(org_config, False)),
+            patch.object(self.repo, "get_file_contents", return_value=(TEST_CONFIG, False)),
+            app.app_context(),
+        ):
+            assert self.repo.get_config_value("pr") == {"setting1": 2, "setting2": 3, "setting3": 30}
+            assert self.repo.get_config_value("org_vetting") == {"enabled": True}
+
+    def test_config_priority_order(self, app):
+        """Priority is 1) repo_config 2) fallback_config 3) org_config 4) app_config."""
+        org_config = Config({"pr": {"setting1": "org", "setting2": "org", "setting3": "org"}})
+        with (
+            patch.object(RepoHandler, "default_branch", new_callable=PropertyMock, return_value="main"),
+            patch.object(RepoHandler, "get_org_config", return_value=(org_config, False)),
+            patch.object(self.repo, "get_file_contents", return_value=(TEST_CONFIG + TEST_FALLBACK_CONFIG, False)),
+            app.app_context(),
+        ):
+            app.conf = Config({"pr": {"setting1": "app", "setting2": "app", "setting3": "app"}})
+            app.fall_back_config = "nottestbot"
+
+            cfg = self.repo.get_repo_config()
+            assert cfg["pr"]["setting1"] == 2
+            assert cfg["pr"]["setting2"] == 3
+            assert cfg["pr"]["setting3"] == 4
+
+    def test_config_cache_logging(self, app, caplog):
+        caplog.set_level(logging.DEBUG)
+        with (
+            patch.object(RepoHandler, "default_branch", new_callable=PropertyMock, return_value="main"),
+            patch.object(RepoHandler, "get_org_config", return_value=(Config(), False)),
+            patch.object(self.repo, "get_file_contents", return_value=(TEST_CONFIG, False)),
+            app.app_context(),
+        ):
+            app.conf = Config({"pr": {"setting1": "app", "setting2": "app", "setting3": "app"}})
+
+            self.repo.get_repo_config()
+            assert f"{self.repo.repo} - Fetched combined config" in caplog.text
+
+        caplog.clear()
+
+        with (
+            patch.object(RepoHandler, "default_branch", new_callable=PropertyMock, return_value="main"),
+            patch.object(RepoHandler, "get_org_config", return_value=(Config(), True)),
+            patch.object(self.repo, "get_file_contents", return_value=(TEST_CONFIG, True)),
+            app.app_context(),
+        ):
+            app.conf = Config({"pr": {"setting1": "app", "setting2": "app", "setting3": "app"}})
+            self.repo.get_repo_config()
+            assert f"{self.repo.repo} - Fetched combined config" not in caplog.text
 
 
 @pytest.mark.github_api
@@ -331,7 +472,7 @@ class TestRealRepoHandler:
 
         with app.app_context():
             with patch.object(self.repo, "get_file_contents") as mock_get:
-                mock_get.return_value = TEST_CONFIG
+                mock_get.return_value = (TEST_CONFIG, False)
 
                 # These are set to False in YAML; defaults must not be used.
                 assert self.repo.get_config_value("pr")["setting1"] == 2
@@ -342,7 +483,7 @@ class TestRealRepoHandler:
         with app.app_context():
             app.fall_back_config = "nottestbot"
             with patch.object(self.repo, "get_file_contents") as mock_get:
-                mock_get.return_value = TEST_FALLBACK_CONFIG
+                mock_get.return_value = (TEST_FALLBACK_CONFIG, False)
 
                 # These are set to False in YAML; defaults must not be used.
                 assert self.repo.get_config_value("pr")["setting1"] == 5
@@ -353,7 +494,7 @@ class TestRealRepoHandler:
         with app.app_context():
             app.fall_back_config = "nottestbot"
             with patch.object(self.repo, "get_file_contents") as mock_get:
-                mock_get.return_value = TEST_CONFIG + TEST_FALLBACK_CONFIG
+                mock_get.return_value = (TEST_CONFIG + TEST_FALLBACK_CONFIG, False)
 
                 # These are set to False in YAML; defaults must not be used.
                 assert self.repo.get_config_value("pr")["setting1"] == 2
@@ -364,7 +505,7 @@ class TestRealRepoHandler:
 
         with app.app_context():
             with patch.object(self.repo, "get_file_contents") as mock_get:
-                mock_get.return_value = TEST_CONFIG
+                mock_get.return_value = (TEST_CONFIG, False)
 
                 # These are set to False in YAML; defaults must not be used.
                 assert self.repo.get_config_value("pr") == {"setting1": 2, "setting2": 3}
@@ -376,7 +517,7 @@ class TestRealRepoHandler:
                 assert self.repo.get_config_value("other") == {"setting4": 5}
 
     def test_get_file_contents(self):
-        result = self.repo.get_file_contents("README.rst", branch="main")
+        result, _ = self.repo.get_file_contents("README.rst", branch="main")
         assert "Baldrick" in result
         assert "cunning plan" in result
 

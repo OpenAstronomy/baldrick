@@ -100,7 +100,7 @@ class TestPullRequestHandler:
         # registered handlers don't return any checks
 
         mock_hook.return_value = None
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE, False)
 
         self.send_event(client, github_webhook_headers)
 
@@ -115,7 +115,7 @@ class TestPullRequestHandler:
             "test2": {"description": "All good here", "state": "success"},
         }
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE, False)
 
         self.send_event(client, github_webhook_headers)
 
@@ -152,7 +152,7 @@ class TestPullRequestHandler:
             "test2": {"description": "All good here", "state": "success"},
         }
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE, False)
 
         self.send_event(client, github_webhook_headers)
 
@@ -186,7 +186,7 @@ class TestPullRequestHandler:
 
         mock_hook.return_value = {"test2": {"title": "All good here", "conclusion": "success"}}
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE, False)
 
         self.existing_checks = {
             "total_count": 1,
@@ -243,7 +243,7 @@ class TestPullRequestHandler:
             "test2": {"description": "All good here", "state": "success"},
         }
 
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE, False)
 
         self.existing_checks = {
             "total_count": 3,
@@ -313,7 +313,7 @@ class TestPullRequestHandler:
         # registered handlers don't return any checks
 
         mock_hook.return_value = {}
-        self.get_file_contents.return_value = CONFIG_TEMPLATE + 'skip_labels = [ "Experimental" ]\n'
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE + 'skip_labels = [ "Experimental" ]\n', False)
 
         self.labels.return_value = ["Experimental"]
 

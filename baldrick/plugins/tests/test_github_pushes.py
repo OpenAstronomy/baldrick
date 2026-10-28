@@ -57,7 +57,7 @@ class TestPushHandler:
         client.post("/github", data=json.dumps(data), headers=headers, content_type="application/json")
 
     def test_branch(self, app, client, github_webhook_headers):
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE, False)
         self.send_event(client, github_webhook_headers, git_ref="refs/heads/experimental")
         assert mock_handler.call_count == 1
         repo_handler, git_ref = mock_handler.call_args[0]
@@ -65,7 +65,7 @@ class TestPushHandler:
         assert git_ref == "refs/heads/experimental"
 
     def test_tags(self, app, client, github_webhook_headers):
-        self.get_file_contents.return_value = CONFIG_TEMPLATE
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE, False)
         self.send_event(client, github_webhook_headers, git_ref="refs/tags/stable")
         assert mock_handler.call_count == 1
         repo_handler, git_ref = mock_handler.call_args[0]
@@ -73,11 +73,11 @@ class TestPushHandler:
         assert git_ref == "refs/tags/stable"
 
     def test_disabled(self, app, client, github_webhook_headers):
-        self.get_file_contents.return_value = CONFIG_TEMPLATE.replace("enabled = true", "enabled = false")
+        self.get_file_contents.return_value = (CONFIG_TEMPLATE.replace("enabled = true", "enabled = false"), False)
         self.send_event(client, github_webhook_headers, git_ref="refs/tags/stable")
         assert mock_handler.call_count == 0
 
     def test_missing_config(self, app, client, github_webhook_headers):
-        self.get_file_contents.return_value = ""
+        self.get_file_contents.return_value = ("", False)
         self.send_event(client, github_webhook_headers, git_ref="refs/tags/stable")
         assert mock_handler.call_count == 0
